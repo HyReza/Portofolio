@@ -1,0 +1,415 @@
+@import url('star.css');
+@import url('loading.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+
+    --radius: 0.5rem;
+
+    --d: 2500ms;
+    --angle: 90deg;
+    --gradX: 100%;
+    --gradY: 50%;
+    --c1: rgba(168, 239, 255, 1);
+    --c2: rgba(168, 239, 255, 0.1);
+
+    --line2-color: #d4d4d4; /* neutral-300 */
+    --line1-color: #a3a3a3; /* neutral-200 */
+    --area1-color: rgba(212, 212, 212, 0.3); /* neutral-300 with transparency */
+    --area2-color: rgba(229, 229, 229, 0.3); /* neutral-200 with transparency */
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+
+    --d: 2500ms;
+    --angle: 90deg;
+    --gradX: 100%;
+    --gradY: 50%;
+    --c1: rgba(168, 239, 255, 1);
+    --c2: rgba(168, 239, 255, 0.1);
+
+    --line1-color: #67e8f9; /* neutral-800 */
+    --line2-color: #e879f9; /* neutral-700 */
+    --area1-color: rgba(38, 38, 38, 0.3); /* neutral-800 with transparency */
+    --area2-color: rgba(64, 64, 64, 0.3); /* neutral-700 with transparency */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  @layer responsive {
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: none; /* Firefox */
+    }
+  }
+}
+
+.inverted-border-radius {
+  background: white;
+}
+.inverted-border-radius-dark {
+  background: white;
+}
+
+.inverted-border-radius::before {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  bottom: -50px;
+  height: 50px;
+  width: 25px;
+  left: 0;
+  border-top-left-radius: 12px;
+  box-shadow: 0 -25px 0 0 white;
+  z-index: 0;
+}
+
+.inverted-border-radius::after {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  top: 0;
+  height: 50px;
+  width: 25px;
+  right: -25px;
+  border-top-left-radius: 12px;
+  box-shadow: 0 -25px 0 0 white;
+  z-index: 0;
+}
+
+.inverted-border-radius-dark::before {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  bottom: -50px;
+  height: 50px;
+  width: 25px;
+  left: 0;
+  border-top-left-radius: 12px;
+  box-shadow: 0 -25px 0 0 #0a0a0a;
+  z-index: 0;
+}
+
+.inverted-border-radius-dark::after {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  top: 0;
+  height: 50px;
+  width: 25px;
+  right: -25px;
+  border-top-left-radius: 12px;
+  box-shadow: 0 -25px 0 0 #0a0a0a;
+  z-index: 0;
+}
+
+.animation-reverse {
+  animation-direction: reverse;
+}
+
+.inverted-image-left {
+  background: #fff;
+  height: 100px;
+  width: 80px;
+}
+
+.inverted-image-left::before {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  bottom: -49px;
+  height: 50px;
+  width: 35px;
+  left: -5px;
+  border-top-left-radius: 50px;
+  box-shadow: 0 -25px 0 0 #fff;
+  z-index: 0;
+  border-top: 1px solid #d4d4d4;
+  border-left: 1px solid #d4d4d4;
+}
+
+.inverted-image-left::after {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  top: -49px;
+  height: 50px;
+  width: 35px;
+  left: -5px;
+  border-top-left-radius: 50px;
+  box-shadow: 0 -25px 0 0 #fff;
+  z-index: 0;
+  transform: scaleY(-1);
+  border-top: 1px solid #d4d4d4;
+  border-left: 1px solid #d4d4d4;
+}
+
+.inverted-image-left-dark {
+  background: #0a0a0a;
+  height: 100px;
+  width: 80px;
+}
+
+.inverted-image-left-dark::before {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  bottom: -49px;
+  height: 50px;
+  width: 35px;
+  left: -5px;
+  border-top-left-radius: 50px;
+  box-shadow: 0 -25px 0 0 #0a0a0a;
+  z-index: 0;
+  border-top: 1px solid #525252;
+  border-left: 1px solid #525252;
+}
+
+.inverted-image-left-dark::after {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  top: -49px;
+  height: 50px;
+  width: 35px;
+  left: -5px;
+  border-top-left-radius: 50px;
+  box-shadow: 0 -25px 0 0 #0a0a0a;
+  z-index: 0;
+  transform: scaleY(-1);
+  border-top: 1px solid #525252;
+  border-left: 1px solid #525252;
+}
+
+/* ----- Ribbon Container ---------------------------------------*/
+#ribbon-container {
+  background: transparent;
+  height: 130px;
+  width: 200px;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  overflow: hidden;
+}
+
+/* ----- Top Curl ---------------------------------------*/
+#ribbon-container:before {
+  content: '';
+  display: block;
+  -webkit-border-radius: 10px 10px 0px 0px;
+  border-radius: 10px 10px 0px 0px;
+  width: 35px;
+  height: 10px;
+  position: absolute;
+  right: 30px;
+  z-index: 1;
+}
+
+/* ----- Right Curl ---------------------------------------*/
+#ribbon-container:after {
+  content: '';
+  display: block;
+  -webkit-border-radius: 0px 10px 10px 0px;
+  border-radius: 0px 10px 10px 0px;
+  width: 10px;
+  height: 35px;
+  position: absolute;
+  right: 0px;
+  top: 30px;
+}
+
+/* ----- Ribbon ---------------------------------------*/
+#ribbon-container > div {
+  width: 100px;
+  height: 20px;
+  position: relative;
+  top: 18px;
+  right: -135px;
+  z-index: 11;
+  overflow: hidden;
+  transform: rotate(45deg);
+  -ms-transform: rotate(45deg); /* IE 9 */
+  -moz-transform: rotate(45deg); /* Firefox */
+  -webkit-transform: rotate(45deg); /* Safari and Chrome */
+  -o-transform: rotate(45deg); /* Opera */
+}
+
+/* Dotted Background */
+
+.dotted {
+  background-image: radial-gradient(#e5e5e5 5%, transparent 0);
+  background-size: 35px 35px;
+}
+
+.dotted-dark {
+  background-image: radial-gradient(#262626 5%, transparent 0);
+  background-size: 35px 35px;
+}
+
+/* Glow Button */
+.glow-button {
+  width: '100%';
+  border: none;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 0;
+  border-radius: 10px;
+}
+
+.glow-button:before {
+  content: '';
+  background: linear-gradient(45deg, #ff1a1a, #ff8c1a, #ffff1a, #5dff1a, #1affec, #1a45ff, #911aff, #ff1ae1, #ff1a1a);
+  position: absolute;
+  top: -1px;
+  left: -2px;
+  background-size: 400%;
+  z-index: -1;
+  filter: blur(5px);
+  width: calc(100%);
+  height: calc(100%);
+  animation: glowing 20s linear infinite;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+  border-radius: 10px;
+}
+
+.glow-button:active {
+  color: #000;
+}
+
+.glow-button:active:after {
+  background: transparent;
+}
+
+.glow-button:after {
+  z-index: -1;
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  border-radius: 10px;
+}
+
+@keyframes glowing {
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: 400% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+.inset-shadow {
+  box-shadow:
+    0 1px 0 1px rgba(0, 0, 0, 0.02),
+    0 4px 6px rgba(0, 0, 0, 0.02),
+    inset 0 0 0 6px #171717;
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 90deg;
+  inherits: true;
+}
+
+@property --gradX {
+  syntax: '<percentage>';
+  initial-value: 50%;
+  inherits: true;
+}
+
+@property --gradY {
+  syntax: '<percentage>';
+  initial-value: 0%;
+  inherits: true;
+}
+
+.glow-border {
+  border-image: conic-gradient(from var(--angle), var(--c2), var(--c1) 0.1turn, var(--c1) 0.1turn, var(--c2) 0.1turn) 30;
+  animation: borderRotate var(--d) linear infinite forwards;
+}
+
+@keyframes borderRotate {
+  100% {
+    --angle: 420deg;
+  }
+}
