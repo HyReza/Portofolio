@@ -88,7 +88,7 @@ class PublicController extends Controller
     public function certificates(): Response
     {
         return Inertia::render('public/certificates', [
-            'certificates' => Certificate::ordered()->get(),
+            'certificates' => Certificate::orderBy('sort_order')->orderByDesc('created_at')->get(),
         ]);
     }
 

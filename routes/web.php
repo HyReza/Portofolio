@@ -98,6 +98,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('certificates', [Admin\CertificateController::class, 'store'])->name('certificates.store');
     Route::put('certificates/{certificate}', [Admin\CertificateController::class, 'update'])->name('certificates.update');
     Route::delete('certificates/{certificate}', [Admin\CertificateController::class, 'destroy'])->name('certificates.destroy');
+    Route::post('certificates/reorder', [Admin\CertificateController::class, 'reorder'])->name('certificates.reorder');
 
     // Contacts
     Route::get('contacts', [Admin\ContactController::class, 'index'])->name('contacts.index');

@@ -12,12 +12,20 @@ class Certificate extends Model
 
     protected $fillable = [
         'title',
+        'title_en',
         'issuer',
+        'credential_type',
+        'credential_type_en',
         'credential_id',
         'credential_url',
         'image',
         'issued_date',
         'expiry_date',
+        'description_id',
+        'description_en',
+        'skills',
+        'category',
+        'category_en',
         'sort_order',
     ];
 
@@ -26,6 +34,7 @@ class Certificate extends Model
         return [
             'issued_date' => 'date',
             'expiry_date' => 'date',
+            'skills' => 'array',
             'sort_order' => 'integer',
         ];
     }

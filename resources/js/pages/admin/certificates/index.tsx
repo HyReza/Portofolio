@@ -1,125 +1,458 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Plus, Trash2, ExternalLink, Pencil, Award } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, Pencil, Award, Search, X, ZoomIn, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import AppLayout from '@/layouts/app-layout';
+import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 
 interface Certificate {
-    id: number; title: string; issuer: string; credential_id: string | null;
-    credential_url: string | null; image: string | null;
-    issued_date: string | null; expiry_date: string | null; sort_order: number;
+    id: number; title: string; title_en: string | null; issuer: string;
+    credential_id: string | null; credential_url: string | null; image: string | null;
+    credential_type: string | null; credential_type_en: string | null;
+    issued_date: string | null; expiry_date: string | null;
+    description_id: string | null; description_en: string | null;
+    skills: string[] | null; category: string | null; category_en: string | null;
+    sort_order: number;
 }
 
 export default function CertificateIndex({ certificates }: { certificates: Certificate[] }) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
     const form = useForm({
-        title: '', issuer: '', credential_id: '', credential_url: '',
-        image: null as File | null, issued_date: '', expiry_date: '', sort_order: 0,
+        title: '', title_en: '', issuer: '', credential_id: '', credential_url: '',
+        credential_type: '', credential_type_en: '',
+        image: null as File | null, issued_date: '', expiry_date: '',
+        description_id: '', description_en: '',
+        skills: '', category: '', category_en: '', sort_order: 0,
     });
 
     const handleEdit = (cert: Certificate) => {
         setEditingId(cert.id);
         form.setData({
             title: cert.title || '',
+            title_en: cert.title_en || '',
             issuer: cert.issuer || '',
+            credential_type: cert.credential_type || '',
+            credential_type_en: cert.credential_type_en || '',
             credential_id: cert.credential_id || '',
             credential_url: cert.credential_url || '',
             image: null,
             issued_date: cert.issued_date ? cert.issued_date.split('T')[0] : '',
             expiry_date: cert.expiry_date ? cert.expiry_date.split('T')[0] : '',
+            description_id: cert.description_id || '',
+            description_en: cert.description_en || '',
+            skills: cert.skills ? cert.skills.join(', ') : '',
+            category: cert.category || '',
+            category_en: cert.category_en || '',
             sort_order: cert.sort_order || 0,
         });
+        setImagePreview(cert.image ? `/storage/${cert.image}` : null);
         setDialogOpen(true);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const formData = new FormData();
+        Object.entries(form.data).forEach(([key, value]) => {
+            if (key === 'image') {
+                if (value instanceof File) formData.append('image', value);
+            } else {
+                formData.append(key, String(value ?? ''));
+            }
+        });
+
         if (editingId) {
-            form.post(`/admin/certificates/${editingId}`, {
-                forceFormData: true,
-                headers: { 'X-HTTP-Method-Override': 'PUT' },
-                onSuccess: () => { setDialogOpen(false); setEditingId(null); form.reset(); toast.success('Certificate updated!'); },
+            formData.append('_method', 'PUT');
+            router.post(`/admin/certificates/${editingId}`, formData, {
+                onSuccess: () => { setDialogOpen(false); setEditingId(null); form.reset(); setImagePreview(null); toast.success('Certificate updated!'); },
+                onError: (errors) => { toast.error(Object.values(errors)[0] || 'An error occurred while saving.'); },
             });
         } else {
-            form.post('/admin/certificates', {
-                forceFormData: true,
-                onSuccess: () => { setDialogOpen(false); form.reset(); toast.success('Certificate added!'); },
+            router.post('/admin/certificates', formData, {
+                onSuccess: () => { setDialogOpen(false); form.reset(); setImagePreview(null); toast.success('Certificate added!'); },
+                onError: (errors) => { toast.error(Object.values(errors)[0] || 'An error occurred while saving.'); },
             });
         }
     };
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            form.setData('image', file);
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const openNew = () => {
+        setEditingId(null);
+        form.reset();
+        setImagePreview(null);
+        setDialogOpen(true);
+    };
+
+    // Filter Logic
+    const filteredCertificates = certificates.filter(cert => {
+        const query = searchQuery.toLowerCase();
+        return cert.title.toLowerCase().includes(query) ||
+               cert.issuer.toLowerCase().includes(query) ||
+               (cert.category && cert.category.toLowerCase().includes(query));
+    });
+
+    // Move certificate up or down
+    const moveCert = (certId: number, direction: 'up' | 'down') => {
+        const idx = certificates.findIndex(c => c.id === certId);
+        if (idx < 0) return;
+        const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= certificates.length) return;
+
+        router.post('/admin/certificates/reorder', {
+            from_id: certificates[idx].id,
+            to_id: certificates[swapIdx].id,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Order updated!'),
+            onError: () => toast.error('Failed to reorder.'),
+        });
+    };
+
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Certificates', href: '/admin/certificates' }]}>
             <Head title="Manage Certificates" />
-            <div className="mx-auto max-w-5xl space-y-6 pb-10">
-                <div className="flex items-center justify-between">
+            <div className="mx-auto max-w-6xl space-y-6 pb-10 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Certificates</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Manage your certifications and credentials.</p>
+                        <p className="text-muted-foreground mt-1 text-sm">Manage your professional certifications and credentials.</p>
                     </div>
-                    <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); } }}>
-                        <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700"><Plus className="mr-2 h-4 w-4" />Add</Button></DialogTrigger>
-                        <DialogContent className="max-w-lg">
-                            <DialogHeader><DialogTitle>{editingId ? 'Edit Certificate' : 'Add Certificate'}</DialogTitle></DialogHeader>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="space-y-2"><Label>Title</Label><Input value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} required /></div>
-                                <div className="space-y-2"><Label>Issuer</Label><Input value={form.data.issuer} onChange={(e) => form.setData('issuer', e.target.value)} required /></div>
-                                <div className="grid gap-4 grid-cols-2">
-                                    <div className="space-y-2"><Label>Credential ID</Label><Input value={form.data.credential_id} onChange={(e) => form.setData('credential_id', e.target.value)} /></div>
-                                    <div className="space-y-2"><Label>Credential URL</Label><Input type="url" value={form.data.credential_url} onChange={(e) => form.setData('credential_url', e.target.value)} /></div>
-                                </div>
-                                <div className="grid gap-4 grid-cols-2">
-                                    <div className="space-y-2"><Label>Issued Date</Label><Input type="date" value={form.data.issued_date} onChange={(e) => form.setData('issued_date', e.target.value)} /></div>
-                                    <div className="space-y-2"><Label>Expiry Date</Label><Input type="date" value={form.data.expiry_date} onChange={(e) => form.setData('expiry_date', e.target.value)} /></div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Certificate Image {editingId && '(leave empty to keep current)'}</Label>
-                                    <Input type="file" accept="image/*" onChange={(e) => form.setData('image', e.target.files?.[0] ?? null)} />
-                                </div>
-                                <Button type="submit" disabled={form.processing} className="w-full bg-indigo-600 hover:bg-indigo-700">
-                                    {form.processing ? 'Saving...' : (editingId ? 'Update Certificate' : 'Save Certificate')}
-                                </Button>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Search certificates..."
+                                className="pl-8 bg-white dark:bg-neutral-900"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <Button onClick={openNew} className="bg-indigo-600 hover:bg-indigo-700 shrink-0">
+                            <Plus className="mr-2 h-4 w-4" />New Certificate
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {certificates.length === 0 ? (
-                        <Card className="col-span-full"><CardContent className="py-10 text-center"><Award className="mx-auto h-10 w-10 text-neutral-300 mb-3" /><p className="text-muted-foreground text-sm">No certificates yet.</p></CardContent></Card>
-                    ) : certificates.map((cert) => (
-                        <Card key={cert.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-neutral-200 transition-shadow hover:shadow-md dark:ring-neutral-800">
-                            {cert.image && <img src={`/storage/${cert.image}`} alt={cert.title} className="h-40 w-full object-cover" />}
-                            <CardContent className="pt-4 space-y-2">
-                                <h3 className="font-semibold">{cert.title}</h3>
-                                <p className="text-muted-foreground text-sm">{cert.issuer}</p>
-                                {cert.credential_id && <Badge variant="outline" className="text-xs">{cert.credential_id}</Badge>}
-                                {cert.issued_date && <p className="text-muted-foreground text-xs">{new Date(cert.issued_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>}
-                                <div className="flex items-center justify-between pt-2">
+                {/* ─── Certificate Form Dialog ─── */}
+                <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); setImagePreview(null); } }}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+                        <div className="p-6 pb-0">
+                            <DialogHeader>
+                                <DialogTitle className="text-xl">{editingId ? 'Edit Certificate' : 'Add Certificate'}</DialogTitle>
+                                <DialogDescription>Fill in the details below. Fields marked * are required.</DialogDescription>
+                            </DialogHeader>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 pt-4 space-y-5">
+
+                            {/* ── Section 1: Image Upload ── */}
+                            <div className="space-y-3">
+                                <Label className="text-sm font-semibold">Certificate Image</Label>
+                                {imagePreview ? (
+                                    <div className="relative group">
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            className="w-full max-h-48 object-contain rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 cursor-pointer"
+                                            onClick={() => setFullscreenImage(imagePreview)}
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                type="button"
+                                                onClick={() => setFullscreenImage(imagePreview)}
+                                                className="flex items-center gap-1.5 bg-black/70 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-black/80 transition-colors"
+                                            >
+                                                <ZoomIn className="h-3.5 w-3.5" /> View Full
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setImagePreview(null); form.setData('image', null); }}
+                                                className="flex items-center gap-1.5 bg-red-600/80 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                                            >
+                                                <X className="h-3.5 w-3.5" /> Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center h-32 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-all">
+                                        <Award className="h-8 w-8 text-neutral-400 mb-2" />
+                                        <span className="text-sm font-medium text-neutral-500">Click to upload image</span>
+                                        <span className="text-[11px] text-neutral-400 mt-0.5">Max 5MB • JPG, PNG, WebP</span>
+                                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                                    </label>
+                                )}
+                                {imagePreview && (
+                                    <label className="inline-flex items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+                                        Change image
+                                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* ── Section 2: Title (Bilingual) ── */}
+                            <fieldset className="space-y-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
+                                <legend className="px-2 text-sm font-semibold">Certificate Title *</legend>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[11px] uppercase tracking-wider text-neutral-400">Bahasa Indonesia</Label>
+                                    <Input value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} required placeholder="e.g. Sertifikat Pengembang React" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-[11px] uppercase tracking-wider text-neutral-400">English</Label>
+                                        <AutoTranslateButton sourceText={form.data.title} onTranslate={(t) => form.setData('title_en', t)} />
+                                    </div>
+                                    <Input value={form.data.title_en} onChange={(e) => form.setData('title_en', e.target.value)} placeholder="e.g. React Developer Certificate" />
+                                </div>
+                            </fieldset>
+
+                            {/* ── Section 3: Issuer ── */}
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-semibold">Issuer / Organization *</Label>
+                                <Input value={form.data.issuer} onChange={(e) => form.setData('issuer', e.target.value)} required placeholder="e.g. Coursera, Dicoding, Bangkit Academy" />
+                            </div>
+
+                            {/* ── Section 4: Category (Bilingual) ── */}
+                            <fieldset className="space-y-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
+                                <legend className="px-2 text-sm font-semibold">Category</legend>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[11px] uppercase tracking-wider text-neutral-400">Bahasa Indonesia</Label>
+                                        <Input value={form.data.category} onChange={(e) => form.setData('category', e.target.value)} placeholder="e.g. Pengembangan Web" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-[11px] uppercase tracking-wider text-neutral-400">English</Label>
+                                            <AutoTranslateButton sourceText={form.data.category} onTranslate={(t) => form.setData('category_en', t)} />
+                                        </div>
+                                        <Input value={form.data.category_en} onChange={(e) => form.setData('category_en', e.target.value)} placeholder="e.g. Web Development" />
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            {/* ── Section 5: Credential Type (Bilingual) ── */}
+                            <fieldset className="space-y-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
+                                <legend className="px-2 text-sm font-semibold">Credential Type</legend>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[11px] uppercase tracking-wider text-neutral-400">Bahasa Indonesia</Label>
+                                        <Input value={form.data.credential_type} onChange={(e) => form.setData('credential_type', e.target.value)} placeholder="e.g. Sertifikat Profesional" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-[11px] uppercase tracking-wider text-neutral-400">English</Label>
+                                            <AutoTranslateButton sourceText={form.data.credential_type} onTranslate={(t) => form.setData('credential_type_en', t)} />
+                                        </div>
+                                        <Input value={form.data.credential_type_en} onChange={(e) => form.setData('credential_type_en', e.target.value)} placeholder="e.g. Professional Certificate" />
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            {/* ── Section 6: Dates ── */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-semibold">Issued Date</Label>
+                                    <Input type="date" value={form.data.issued_date} onChange={(e) => form.setData('issued_date', e.target.value)} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-semibold">Expiry Date</Label>
+                                    <Input type="date" value={form.data.expiry_date} onChange={(e) => form.setData('expiry_date', e.target.value)} />
+                                </div>
+                            </div>
+
+                            {/* ── Section 7: Credential Info ── */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-semibold">Credential ID</Label>
+                                    <Input value={form.data.credential_id} onChange={(e) => form.setData('credential_id', e.target.value)} placeholder="e.g. X123456" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-semibold">Credential URL</Label>
+                                    <Input type="url" value={form.data.credential_url} onChange={(e) => form.setData('credential_url', e.target.value)} placeholder="https://..." />
+                                </div>
+                            </div>
+
+                            {/* ── Section 8: Skills ── */}
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-semibold">Skills Gained</Label>
+                                <Input value={form.data.skills} onChange={(e) => form.setData('skills', e.target.value)} placeholder="e.g. React, Tailwind CSS, TypeScript (comma separated)" />
+                                <p className="text-[11px] text-neutral-400">Separate each skill with a comma.</p>
+                            </div>
+
+                            {/* ── Section 9: Description (Bilingual) ── */}
+                            <fieldset className="space-y-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
+                                <legend className="px-2 text-sm font-semibold">Description</legend>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[11px] uppercase tracking-wider text-neutral-400">Bahasa Indonesia</Label>
+                                    <textarea
+                                        className="border-input bg-background min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-y"
+                                        value={form.data.description_id}
+                                        onChange={(e) => form.setData('description_id', e.target.value)}
+                                        placeholder="Jelaskan apa yang dipelajari..."
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-[11px] uppercase tracking-wider text-neutral-400">English</Label>
+                                        <AutoTranslateButton sourceText={form.data.description_id} onTranslate={(t) => form.setData('description_en', t)} />
+                                    </div>
+                                    <textarea
+                                        className="border-input bg-background min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-y"
+                                        value={form.data.description_en}
+                                        onChange={(e) => form.setData('description_en', e.target.value)}
+                                        placeholder="Explain what was learned..."
+                                    />
+                                </div>
+                            </fieldset>
+
+                            {/* ── Submit ── */}
+                            <Button type="submit" disabled={form.processing} className="w-full bg-indigo-600 hover:bg-indigo-700 h-11 text-sm font-semibold">
+                                {form.processing ? 'Saving...' : (editingId ? 'Update Certificate' : 'Save Certificate')}
+                            </Button>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* ─── Certificate Grid ─── */}
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredCertificates.length === 0 ? (
+                        <Card className="col-span-full border-none shadow-none bg-transparent">
+                            <CardContent className="py-20 text-center">
+                                <Award className="mx-auto h-12 w-12 text-neutral-300 dark:text-neutral-700 mb-4" />
+                                <p className="text-muted-foreground">No certificates found matching your search.</p>
+                            </CardContent>
+                        </Card>
+                    ) : filteredCertificates.map((cert, index) => (
+                        <Card key={cert.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-neutral-200 transition-all hover:shadow-xl hover:ring-indigo-500/20 dark:ring-neutral-800 dark:hover:ring-indigo-500/30 dark:bg-[#121212]">
+                            <div className="relative aspect-[4/3] bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
+                                {cert.image ? (
+                                    <img src={`/storage/${cert.image}`} alt={cert.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center">
+                                        <Award className="h-16 w-16 text-neutral-300 dark:text-neutral-700" />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+
+                                {/* Sort order badge */}
+                                <div className="absolute top-3 left-3 z-10 flex items-center gap-1">
+                                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white text-xs font-bold backdrop-blur-sm">
+                                        {index + 1}
+                                    </span>
+                                </div>
+
+                                {/* Quick actions */}
+                                <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                    {cert.image && (
+                                        <Button size="icon" variant="secondary" className="h-8 w-8 bg-white/90 hover:bg-white text-neutral-700 shadow-lg" onClick={() => setFullscreenImage(`/storage/${cert.image}`)}>
+                                            <ZoomIn className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    <Button size="icon" variant="secondary" className="h-8 w-8 bg-white/90 hover:bg-white text-indigo-600 shadow-lg" onClick={() => handleEdit(cert)}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="icon" variant="destructive" className="h-8 w-8 shadow-lg" onClick={() => { if (confirm('Delete this certificate?')) router.delete(`/admin/certificates/${cert.id}`); }}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+
+                                {/* Move up/down buttons */}
+                                <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                    <Button
+                                        size="icon"
+                                        variant="secondary"
+                                        className="h-7 w-7 bg-white/90 hover:bg-white text-neutral-700 shadow-lg disabled:opacity-30"
+                                        disabled={index === 0}
+                                        onClick={(e) => { e.stopPropagation(); moveCert(cert.id, 'up'); }}
+                                    >
+                                        <ChevronUp className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        size="icon"
+                                        variant="secondary"
+                                        className="h-7 w-7 bg-white/90 hover:bg-white text-neutral-700 shadow-lg disabled:opacity-30"
+                                        disabled={index === filteredCertificates.length - 1}
+                                        onClick={(e) => { e.stopPropagation(); moveCert(cert.id, 'down'); }}
+                                    >
+                                        <ChevronDown className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <CardContent className="p-5">
+                                <div className="flex items-start justify-between gap-4 mb-2">
+                                    <h3 className="font-bold text-neutral-900 dark:text-white line-clamp-2 leading-tight">{cert.title}</h3>
+                                </div>
+                                <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-4">{cert.issuer}</p>
+
+                                {cert.skills && cert.skills.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-4">
+                                        {cert.skills.slice(0, 3).map((skill, i) => (
+                                            <Badge key={i} variant="secondary" className="text-[10px] bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium">
+                                                {skill}
+                                            </Badge>
+                                        ))}
+                                        {cert.skills.length > 3 && (
+                                            <Badge variant="secondary" className="text-[10px] bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium">
+                                                +{cert.skills.length - 3}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-between text-xs text-neutral-500 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+                                    <span>
+                                        {cert.issued_date ? new Date(cert.issued_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'No date'}
+                                    </span>
                                     {cert.credential_url && (
-                                        <a href={cert.credential_url} target="_blank" rel="noopener" className="text-primary flex items-center gap-1 text-xs hover:underline">
-                                            <ExternalLink className="h-3 w-3" />Verify
+                                        <a href={cert.credential_url} target="_blank" rel="noopener" className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+                                            Verify <ExternalLink className="h-3 w-3" />
                                         </a>
                                     )}
-                                    <div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                        <Button size="icon" variant="ghost" onClick={() => handleEdit(cert)}><Pencil className="h-4 w-4" /></Button>
-                                        <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => { if (confirm('Delete?')) router.delete(`/admin/certificates/${cert.id}`); }}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             </div>
-        </>
+
+            {/* ─── Fullscreen Image Viewer ─── */}
+            {fullscreenImage && (
+                <div
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 cursor-pointer"
+                    onClick={() => setFullscreenImage(null)}
+                >
+                    <button
+                        onClick={() => setFullscreenImage(null)}
+                        className="absolute top-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                    <img
+                        src={fullscreenImage}
+                        alt="Certificate fullscreen view"
+                        className="max-h-[90vh] max-w-[95vw] object-contain rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
+        </AppLayout>
     );
 }
