@@ -92,6 +92,13 @@ class PublicController extends Controller
         ]);
     }
 
+    public function testimonials(): Response
+    {
+        return Inertia::render('public/testimonials', [
+            'testimonials' => \App\Models\Testimonial::ordered()->get(),
+        ]);
+    }
+
     public function contact(): Response
     {
         return Inertia::render('public/contact', [

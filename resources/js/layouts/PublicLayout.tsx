@@ -7,7 +7,7 @@ import { SpotlightSearch } from '@/components/landing/SpotlightSearch';
 import { useKonami, KonamiOverlay, useAchievements, AchievementToast } from '@/hooks/useGimmicks';
 
 /* react-icons — EXACT same icons codebayu uses */
-import { BiHomeSmile, BiLeaf, BiEditAlt, BiArchive, BiPaperPlane } from 'react-icons/bi';
+import { BiHomeSmile, BiLeaf, BiEditAlt, BiArchive, BiPaperPlane, BiMessageDetail } from 'react-icons/bi';
 import { BsCloudSun, BsCloudMoon, BsLinkedin, BsInstagram } from 'react-icons/bs';
 import { PiChatTeardropDotsBold, PiCertificate } from 'react-icons/pi';
 import { MdVerified } from 'react-icons/md';
@@ -55,6 +55,7 @@ const MENU_ITEMS = [
     { title: 'Blog', titleId: 'Blog', href: '/blog', icon: <BiEditAlt />, isShow: true },
     { title: 'Projects', titleId: 'Proyek', href: '/projects', icon: <BiArchive />, isShow: true },
     { title: 'Certificates', titleId: 'Sertifikat', href: '/certificates', icon: <PiCertificate />, isShow: true },
+    { title: 'Testimonials', titleId: 'Testimoni', href: '/testimonials', icon: <BiMessageDetail />, isShow: true },
     { title: 'Chat Room', titleId: 'Ruang Chat', href: '/chat', icon: <PiChatTeardropDotsBold />, isShow: true },
     { title: 'Contact', titleId: 'Kontak', href: '/contact', icon: <BiPaperPlane />, isShow: true },
 ];

@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     Award, FileText, FolderKanban, GitBranch, GraduationCap,
-    LayoutDashboard, Linkedin, Instagram, Mail, MessageCircle,
+    LayoutDashboard, Linkedin, Instagram, Mail, MessageCircle, MessageSquare,
     Settings, Trophy, User, Users, Zap, Tag,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -32,6 +32,7 @@ const contentNavItems: NavItem[] = [
     { title: 'Tags', href: '/admin/tags', icon: Tag },
     { title: 'Achievements', href: '/admin/achievements', icon: Trophy },
     { title: 'Certificates', href: '/admin/certificates', icon: Award },
+    { title: 'Testimonials', href: '/admin/testimonials', icon: MessageSquare },
 ];
 
 const socialNavItems: NavItem[] = [

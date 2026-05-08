@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Code2, Newspaper, Wrench, ChevronDown } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Code2, Newspaper, Wrench, ChevronDown, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useApp } from '@/hooks/useApp';
 import { PublicLayout } from '@/layouts/PublicLayout';
@@ -15,8 +15,8 @@ interface Skill { id: number; name_id: string; name_en: string; description_id: 
 interface SkillCategory { id: number; name_en: string; name_id: string; skills: Skill[]; }
 interface Project { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; tech_stack: string[] | null; demo_url: string | null; }
 interface BlogPost { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; published_at: string | null; tags: { id: number; name: string; }[]; }
-interface Organization { id: number; name: string; name_en: string | null; role: string; role_en: string | null; start_date: string; end_date: string | null; is_current: boolean; logo: string | null; }
-interface Props { profiles: Record<string, Profile>; skillCategories: SkillCategory[]; projects: Project[]; blogs: BlogPost[]; organizations: Organization[]; }
+interface Testimonial { id: number; client_name: string; company: string | null; company_en: string | null; position: string | null; position_en: string | null; relation: string | null; relation_en: string | null; content_id: string; content_en: string | null; image: string | null; }
+interface Props { profiles: Record<string, Profile>; skillCategories: SkillCategory[]; projects: Project[]; blogs: BlogPost[]; testimonials: Testimonial[]; }
 
 import { ReactIconRender } from '@/components/ReactIconRender';
 
@@ -80,7 +80,7 @@ function TypeWriter({ texts }: { texts: string[] }) {
 /* Smooth reveal */
 const reveal = { hidden: { opacity: 0, y: 20 }, visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] } }) };
 
-export default function Home({ profiles, skillCategories, projects, blogs, organizations }: Props) {
+export default function Home({ profiles, skillCategories, projects, blogs, testimonials }: Props) {
     const { lang, theme: appTheme, t } = useApp();
     const pv = (k: string) => lang === 'id' ? (profiles[k]?.value_id || profiles[k]?.value_en || '') : (profiles[k]?.value_en || profiles[k]?.value_id || '');
     const dk = appTheme === 'dark';
@@ -181,37 +181,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, organ
 
                 <hr className={`my-8 ${dk ? 'border-neutral-800' : 'border-neutral-200'}`} />
 
-                {/* ═══ ORGANIZATIONS / EXPERIENCE SUMMARY ═══ */}
-                {organizations.length > 0 && <>
-                    <section className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-xl font-bold">{t('Organizations & Community', 'Organisasi & Komunitas')}</h2>
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {organizations.slice(0, 4).map((org, i) => (
-                                <motion.div key={org.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                                    <div className={`flex items-start gap-3 rounded-xl border p-4 transition-all ${dk ? 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700' : 'border-neutral-100 bg-white hover:border-neutral-200 hover:shadow-sm'}`}>
-                                        <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg ${dk ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-600'}`}>
-                                            {org.logo ? (
-                                                <img src={`/storage/${org.logo}`} alt="" className="h-full w-full object-contain p-1" />
-                                            ) : (
-                                                <span className="text-sm font-black">{org.name?.charAt(0) || 'O'}</span>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold">{lang === 'id' ? org.role : (org.role_en || org.role)}</h3>
-                                            <p className={`text-sm ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>{lang === 'id' ? org.name : (org.name_en || org.name)}</p>
-                                            <span className={`mt-2 inline-block rounded bg-opacity-20 px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold ${org.is_current ? (dk ? 'bg-emerald-500 text-emerald-400' : 'bg-emerald-500 text-emerald-700') : (dk ? 'bg-neutral-500 text-neutral-400' : 'bg-neutral-500 text-neutral-600')}`}>
-                                                {org.is_current ? t('Active', 'Aktif') : new Date(org.start_date).getFullYear()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </section>
-                    <hr className={`my-8 ${dk ? 'border-neutral-800' : 'border-neutral-200'}`} />
-                </>}
+
 
                 {/* ═══ SKILLS (Satria Bahari Style) ═══ */}
                 {skillCategories.length > 0 && <>
@@ -320,6 +290,49 @@ export default function Home({ profiles, skillCategories, projects, blogs, organ
                                     })}
                             </AnimatePresence>
                         </motion.div>
+                    </section>
+                    <hr className={`my-12 ${dk ? 'border-neutral-800' : 'border-neutral-200'}`} />
+                </>}
+
+                {/* ═══ TESTIMONIALS SUMMARY ═══ */}
+                {testimonials.length > 0 && <>
+                    <section className="space-y-5">
+                        <div className="flex items-center justify-between">
+                            <h2 className="flex items-center gap-2 text-xl font-bold"><MessageSquare className="h-5 w-5" /> {t('Client Feedback', 'Umpan Balik Klien')}</h2>
+                            <Link href="/testimonials" className={`flex items-center gap-1 text-sm transition-colors ${dk ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-800'}`}>
+                                {t('View All', 'Lihat Semua')} <ArrowUpRight className="h-3.5 w-3.5" />
+                            </Link>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {testimonials.slice(0, 3).map((testi, i) => (
+                                <motion.div key={testi.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                                    transition={{ delay: i * 0.1, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}>
+                                    <div className={`group relative flex h-full flex-col gap-4 overflow-hidden p-5 ${cardBase} ${dk ? 'bg-transparent hover:bg-white/[0.02]' : 'bg-white hover:bg-neutral-50'}`}>
+                                        <div className="flex items-center gap-3 relative z-10">
+                                            <div className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border ${dk ? 'border-neutral-800 bg-neutral-800 text-neutral-300' : 'border-neutral-200 bg-neutral-100 text-neutral-600'}`}>
+                                                {testi.image ? (
+                                                    <img src={`/storage/${testi.image}`} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                ) : (
+                                                    <span className="text-lg font-black">{testi.client_name.charAt(0)}</span>
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className={`truncate font-bold text-base leading-tight transition-colors ${dk ? 'text-neutral-200 group-hover:text-indigo-400' : 'text-neutral-800 group-hover:text-indigo-600'}`}>
+                                                    {testi.client_name}
+                                                </h3>
+                                                <p className={`truncate text-xs mt-0.5 ${dk ? 'text-neutral-500' : 'text-neutral-500'}`}>
+                                                    {[lang === 'id' ? testi.position : (testi.position_en || testi.position), lang === 'id' ? testi.company : (testi.company_en || testi.company)].filter(Boolean).join(' at ')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p className={`relative z-10 text-sm italic leading-relaxed line-clamp-4 ${dk ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                                            "{lang === 'id' ? (testi.content_id || testi.content_en) : (testi.content_en || testi.content_id)}"
+                                        </p>
+                                        <MessageSquare className={`absolute right-4 top-4 h-12 w-12 opacity-5 transition-transform duration-500 group-hover:scale-110 group-hover:opacity-10 group-hover:-rotate-12 ${dk ? 'text-white' : 'text-indigo-900'}`} />
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
                     </section>
                     <hr className={`my-12 ${dk ? 'border-neutral-800' : 'border-neutral-200'}`} />
                 </>}

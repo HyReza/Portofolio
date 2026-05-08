@@ -16,6 +16,7 @@ Route::get('/projects', [PublicController::class, 'projects'])->name('projects')
 Route::get('/blog', [PublicController::class, 'blog'])->name('blog');
 Route::get('/blog/{blog}', [PublicController::class, 'blogShow'])->name('blog.show');
 Route::get('/certificates', [PublicController::class, 'certificates'])->name('certificates');
+Route::get('/testimonials', [PublicController::class, 'testimonials'])->name('testimonials');
 Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
 Route::get('/projects/{project}', [PublicController::class, 'projectShow'])->name('projects.show');
 
@@ -99,6 +100,13 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('certificates/{certificate}', [Admin\CertificateController::class, 'update'])->name('certificates.update');
     Route::delete('certificates/{certificate}', [Admin\CertificateController::class, 'destroy'])->name('certificates.destroy');
     Route::post('certificates/reorder', [Admin\CertificateController::class, 'reorder'])->name('certificates.reorder');
+
+    // Testimonials
+    Route::get('testimonials', [Admin\TestimonialController::class, 'index'])->name('testimonials.index');
+    Route::post('testimonials', [Admin\TestimonialController::class, 'store'])->name('testimonials.store');
+    Route::put('testimonials/{testimonial}', [Admin\TestimonialController::class, 'update'])->name('testimonials.update');
+    Route::delete('testimonials/{testimonial}', [Admin\TestimonialController::class, 'destroy'])->name('testimonials.destroy');
+    Route::post('testimonials/reorder', [Admin\TestimonialController::class, 'reorder'])->name('testimonials.reorder');
 
     // Contacts
     Route::get('contacts', [Admin\ContactController::class, 'index'])->name('contacts.index');
