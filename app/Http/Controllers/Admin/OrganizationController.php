@@ -37,7 +37,8 @@ class OrganizationController extends Controller
             'description_id' => 'nullable|string',
             'description_en' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
-            'sort_order' => 'integer'
+            'sort_order' => 'integer',
+            'show_in_cv' => 'boolean'
         ]);
 
         if ($request->hasFile('logo')) {
@@ -63,7 +64,8 @@ class OrganizationController extends Controller
             'description_id' => 'nullable|string',
             'description_en' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
-            'sort_order' => 'integer'
+            'sort_order' => 'integer',
+            'show_in_cv' => 'boolean'
         ]);
 
         if ($request->hasFile('logo')) {

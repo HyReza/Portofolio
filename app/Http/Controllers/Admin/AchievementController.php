@@ -29,6 +29,7 @@ class AchievementController extends Controller
             'date' => ['nullable', 'date'],
             'type' => ['required', 'in:academic,professional,award'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         Achievement::create($validated);
@@ -46,6 +47,7 @@ class AchievementController extends Controller
             'date' => ['nullable', 'date'],
             'type' => ['required', 'in:academic,professional,award'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         $achievement->update($validated);

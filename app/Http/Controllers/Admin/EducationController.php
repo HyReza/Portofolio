@@ -43,6 +43,7 @@ class EducationController extends Controller
             'logo' => ['nullable', 'image', 'max:2048'],
             'type' => ['required', 'string', 'in:formal,informal'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         if ($request->hasFile('logo')) {
@@ -74,6 +75,7 @@ class EducationController extends Controller
             'logo' => ['nullable', 'image', 'max:2048'],
             'type' => ['required', 'string', 'in:formal,informal'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         if ($request->hasFile('logo')) {

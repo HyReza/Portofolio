@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
@@ -18,7 +19,7 @@ interface Certificate {
     issued_date: string | null; expiry_date: string | null;
     description_id: string | null; description_en: string | null;
     skills: string[] | null; category: string | null; category_en: string | null;
-    sort_order: number;
+    sort_order: number; show_in_cv: boolean;
 }
 
 export default function CertificateIndex({ certificates }: { certificates: Certificate[] }) {
@@ -33,7 +34,7 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
         credential_type: '', credential_type_en: '',
         image: null as File | null, issued_date: '', expiry_date: '',
         description_id: '', description_en: '',
-        skills: '', category: '', category_en: '', sort_order: 0,
+        skills: '', category: '', category_en: '', sort_order: 0, show_in_cv: true,
     });
 
     const handleEdit = (cert: Certificate) => {
@@ -55,6 +56,7 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
             category: cert.category || '',
             category_en: cert.category_en || '',
             sort_order: cert.sort_order || 0,
+            show_in_cv: cert.show_in_cv ?? true,
         });
         setImagePreview(cert.image ? `/storage/${cert.image}` : null);
         setDialogOpen(true);
@@ -66,6 +68,8 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
         Object.entries(form.data).forEach(([key, value]) => {
             if (key === 'image') {
                 if (value instanceof File) formData.append('image', value);
+            } else if (key === 'show_in_cv') {
+                formData.append(key, value ? '1' : '0');
             } else {
                 formData.append(key, String(value ?? ''));
             }
@@ -322,6 +326,26 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                                 </div>
                             </fieldset>
 
+                            {/* ── Section 10: Show in CV ── */}
+                            <div className="flex items-center space-x-3 p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-neutral-50 dark:bg-neutral-900/30">
+                                <Checkbox 
+                                    id="show_in_cv" 
+                                    checked={form.data.show_in_cv} 
+                                    onCheckedChange={(checked) => form.setData('show_in_cv', checked === true)}
+                                />
+                                <div className="grid gap-1.5 leading-none">
+                                    <label
+                                        htmlFor="show_in_cv"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                    >
+                                        Tampilkan di CV (Show in CV)
+                                    </label>
+                                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                                        Jika dicentang, sertifikat ini akan disertakan saat mengunduh CV PDF.
+                                    </p>
+                                </div>
+                            </div>
+
                             {/* ── Submit ── */}
                             <Button type="submit" disabled={form.processing} className="w-full bg-indigo-600 hover:bg-indigo-700 h-11 text-sm font-semibold">
                                 {form.processing ? 'Saving...' : (editingId ? 'Update Certificate' : 'Save Certificate')}
@@ -400,7 +424,12 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                                 <div className="flex items-start justify-between gap-4 mb-2">
                                     <h3 className="font-bold text-neutral-900 dark:text-white line-clamp-2 leading-tight">{cert.title}</h3>
                                 </div>
-                                <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-4">{cert.issuer}</p>
+                                <div className="flex items-center justify-between mb-4">
+                                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{cert.issuer}</p>
+                                    {cert.show_in_cv && (
+                                        <Badge variant="outline" className="text-[9px] uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">In CV</Badge>
+                                    )}
+                                </div>
 
                                 {cert.skills && cert.skills.length > 0 && (
                                     <div className="flex flex-wrap gap-1.5 mb-4">

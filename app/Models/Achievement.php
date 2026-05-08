@@ -19,6 +19,7 @@ class Achievement extends Model
         'date',
         'type',
         'sort_order',
+        'show_in_cv',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class Achievement extends Model
         return [
             'date' => 'date',
             'sort_order' => 'integer',
+            'show_in_cv' => 'boolean',
         ];
     }
 

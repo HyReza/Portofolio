@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 
@@ -24,6 +25,7 @@ interface Organization {
     description_en: string | null;
     logo: string | null;
     sort_order: number;
+    show_in_cv: boolean;
 }
 
 interface Props {
@@ -48,6 +50,7 @@ export default function OrganizationsIndex({ organizations }: Props) {
         description_en: '',
         logo: null as File | null,
         sort_order: 0,
+        show_in_cv: true,
     });
 
     const handleEdit = (org: Organization) => {
@@ -64,6 +67,7 @@ export default function OrganizationsIndex({ organizations }: Props) {
             description_en: org.description_en || '',
             logo: null,
             sort_order: org.sort_order || 0,
+            show_in_cv: org.show_in_cv ?? true,
         });
         setLogoPreview(org.logo ? `/storage/${org.logo}` : null);
         setDialogOpen(true);
@@ -75,7 +79,7 @@ export default function OrganizationsIndex({ organizations }: Props) {
         Object.entries(form.data).forEach(([key, value]) => {
             if (key === 'logo') {
                 if (value instanceof File) formData.append('logo', value);
-            } else if (key === 'is_current') {
+            } else if (key === 'is_current' || key === 'show_in_cv') {
                 formData.append(key, value ? '1' : '0');
             } else {
                 formData.append(key, String(value ?? ''));
@@ -221,6 +225,26 @@ export default function OrganizationsIndex({ organizations }: Props) {
                                     </div>
                                 </div>
 
+                                {/* Show in CV */}
+                                <div className="flex items-center space-x-3 p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-neutral-50 dark:bg-neutral-900/30">
+                                    <Checkbox 
+                                        id="show_in_cv" 
+                                        checked={form.data.show_in_cv} 
+                                        onCheckedChange={(checked) => form.setData('show_in_cv', checked === true)}
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <label
+                                            htmlFor="show_in_cv"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            Tampilkan di CV (Show in CV)
+                                        </label>
+                                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                                            Jika dicentang, pengalaman organisasi ini akan disertakan saat mengunduh CV PDF.
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <Button type="submit" disabled={form.processing} className="w-full bg-indigo-600 hover:bg-indigo-700">
                                     {form.processing ? 'Saving...' : (editingId ? 'Update Entry' : 'Save Entry')}
                                 </Button>
@@ -259,6 +283,9 @@ export default function OrganizationsIndex({ organizations }: Props) {
                                                     <h3 className="font-bold text-neutral-900 dark:text-neutral-100">{org.role}</h3>
                                                     {org.role_en && <span className="text-xs text-neutral-400">/ {org.role_en}</span>}
                                                     {org.is_current && <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200 text-[10px]">Current</Badge>}
+                                                    {org.show_in_cv && (
+                                                        <Badge variant="outline" className="text-[9px] uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">In CV</Badge>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
                                                     <Building2 size={14} className="shrink-0" />

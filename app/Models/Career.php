@@ -27,6 +27,7 @@ class Career extends Model
         'branch_label',
         'branch_color',
         'sort_order',
+        'show_in_cv',
     ];
 
     protected function casts(): array
@@ -36,6 +37,7 @@ class Career extends Model
             'end_date' => 'date',
             'is_current' => 'boolean',
             'sort_order' => 'integer',
+            'show_in_cv' => 'boolean',
         ];
     }
 

@@ -30,6 +30,7 @@ interface Project {
     is_featured: boolean;
     status: 'draft' | 'published';
     published_at: string | null;
+    show_in_cv: boolean;
 }
 
 interface Props {
@@ -59,6 +60,7 @@ export default function EditProject({ project }: Props) {
         is_featured: project.is_featured,
         status: project.status,
         published_at: project.published_at ?? '',
+        show_in_cv: project.show_in_cv ?? true,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -279,9 +281,16 @@ export default function EditProject({ project }: Props) {
                                     <Input type="datetime-local" value={data.published_at} onChange={(e) => setData('published_at', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 mt-4">
                                 <Checkbox id="is_featured" checked={data.is_featured} onCheckedChange={(c) => setData('is_featured', !!c)} />
                                 <Label htmlFor="is_featured">Featured Project</Label>
+                            </div>
+                            <div className="flex items-center space-x-2 mt-2">
+                                <Checkbox id="show_in_cv" checked={data.show_in_cv} onCheckedChange={(c) => setData('show_in_cv', !!c)} />
+                                <div className="grid gap-1.5 leading-none">
+                                    <Label htmlFor="show_in_cv">Tampilkan di CV (Show in CV)</Label>
+                                    <p className="text-[11px] text-neutral-500">Jika dicentang, proyek ini akan disertakan di PDF CV.</p>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

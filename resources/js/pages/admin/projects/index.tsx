@@ -15,6 +15,7 @@ interface Project {
     tech_stack: string[] | null;
     published_at: string | null;
     created_at: string;
+    show_in_cv: boolean;
 }
 
 interface PaginatedData {
@@ -85,6 +86,7 @@ export default function ProjectIndex({ projects }: Props) {
                                                         {project.status}
                                                     </Badge>
                                                     {project.is_featured && <Badge className="bg-amber-500/10 text-amber-600 border-amber-200">Featured</Badge>}
+                                                    {project.show_in_cv && <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">In CV</Badge>}
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-1.5">

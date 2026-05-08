@@ -31,6 +31,7 @@ class Project extends Model
         'is_featured',
         'status',
         'published_at',
+        'show_in_cv',
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ class Project extends Model
             'tech_stack' => 'array',
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
+            'show_in_cv' => 'boolean',
         ];
     }
 

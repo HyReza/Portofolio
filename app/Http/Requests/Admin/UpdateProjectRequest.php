@@ -36,6 +36,7 @@ class UpdateProjectRequest extends FormRequest
             'is_featured' => ['boolean'],
             'status' => ['required', 'in:draft,published'],
             'published_at' => ['nullable', 'date'],
+            'show_in_cv' => ['boolean'],
         ];
     }
 }

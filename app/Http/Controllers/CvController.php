@@ -15,9 +15,23 @@ class CvController extends Controller
     public function download(string $lang): Response
     {
         $profiles  = Profile::ordered()->get()->keyBy('key');
-        $educations = Education::ordered()->get();
-        $careers   = Career::with('children')->roots()->chronological()->get();
+        
+        $educations = Education::where('show_in_cv', true)->ordered()->get();
+        
+        $careers   = Career::where('show_in_cv', true)
+            ->with(['children' => function($q) {
+                $q->where('show_in_cv', true)->orderBy('sort_order')->orderBy('start_date', 'desc');
+            }])
+            ->roots()
+            ->chronological()
+            ->get();
+            
         $skillCategories = SkillCategory::withOrderedSkills()->ordered()->get();
+        
+        $projects = \App\Models\Project::where('show_in_cv', true)->orderBy('published_at', 'desc')->get();
+        $certificates = \App\Models\Certificate::where('show_in_cv', true)->orderBy('issued_date', 'desc')->get();
+        $organizations = \App\Models\Organization::where('show_in_cv', true)->ordered()->get();
+        $achievements = \App\Models\Achievement::where('show_in_cv', true)->ordered()->get();
 
         $pv = fn (string $key) => $lang === 'id'
             ? ($profiles[$key]->value_id ?? $profiles[$key]->value_en ?? '')
@@ -33,9 +47,14 @@ class CvController extends Controller
             'bio'        => $pv('bio'),
             'github'     => $pv('github_url'),
             'linkedin'   => $pv('linkedin_url'),
+            'website'    => $pv('website_url'),
             'educations' => $educations,
             'careers'    => $careers,
             'skillCategories' => $skillCategories,
+            'projects' => $projects,
+            'certificates' => $certificates,
+            'organizations' => $organizations,
+            'achievements' => $achievements,
         ];
 
         $pdf = Pdf::loadView('cv.template', $data);

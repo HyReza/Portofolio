@@ -27,6 +27,7 @@ class Certificate extends Model
         'category',
         'category_en',
         'sort_order',
+        'show_in_cv',
     ];
 
     protected function casts(): array
@@ -36,6 +37,7 @@ class Certificate extends Model
             'expiry_date' => 'date',
             'skills' => 'array',
             'sort_order' => 'integer',
+            'show_in_cv' => 'boolean',
         ];
     }
 

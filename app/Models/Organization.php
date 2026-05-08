@@ -22,12 +22,14 @@ class Organization extends Model
         'description_en',
         'logo',
         'sort_order',
+        'show_in_cv',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'is_current' => 'boolean',
+        'show_in_cv' => 'boolean',
     ];
 
     public function scopeOrdered(Builder $query)

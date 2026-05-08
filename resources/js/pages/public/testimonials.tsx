@@ -5,6 +5,7 @@ import { PublicLayout } from '@/layouts/PublicLayout';
 import { useApp } from '@/hooks/useApp';
 import { Quote, ExternalLink, Star, Users } from 'lucide-react';
 import { TextReveal, FadeUp } from '@/components/animations';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface Testimonial {
     id: number;
@@ -41,6 +42,7 @@ export default function Testimonials({ testimonials }: { testimonials: Testimoni
     const { lang, theme: appTheme, t } = useApp();
     const dk = appTheme === 'dark';
     const [hoveredId, setHoveredId] = useState<number | null>(null);
+    const [selectedTesti, setSelectedTesti] = useState<Testimonial | null>(null);
 
     const getContent = (testi: Testimonial) =>
         lang === 'id' ? (testi.content_id || testi.content_en) : (testi.content_en || testi.content_id);
@@ -132,9 +134,10 @@ export default function Testimonials({ testimonials }: { testimonials: Testimoni
                                 <motion.div
                                     key={testi.id}
                                     variants={cardVariants}
-                                    className="h-full"
+                                    className="h-full cursor-pointer"
                                     onMouseEnter={() => setHoveredId(testi.id)}
                                     onMouseLeave={() => setHoveredId(null)}
+                                    onClick={() => setSelectedTesti(testi)}
                                 >
                                     <div className={`relative h-full overflow-hidden rounded-2xl border p-6 transition-all duration-500 flex flex-col ${dk
                                         ? `bg-[#121212] border-neutral-800 ${isHovered ? 'border-indigo-500/40 shadow-lg shadow-indigo-500/5 -translate-y-1' : 'hover:border-neutral-700'}`
@@ -208,6 +211,73 @@ export default function Testimonials({ testimonials }: { testimonials: Testimoni
                     </FadeUp>
                 )}
             </div>
+
+            {/* ── POPUP DIALOG FOR FULL TESTIMONIAL ── */}
+            <Dialog open={!!selectedTesti} onOpenChange={(open) => !open && setSelectedTesti(null)}>
+                <DialogContent className={`sm:max-w-2xl border ${dk ? 'bg-[#121212] border-neutral-800' : 'bg-white border-neutral-200'} rounded-3xl p-0 overflow-hidden shadow-2xl`}>
+                    {selectedTesti && (() => {
+                        const color = avatarColors[testimonials.findIndex(t => t.id === selectedTesti.id) % avatarColors.length];
+                        return (
+                            <>
+                                {/* Dialog Header / Author Background */}
+                                <div className={`relative px-8 pt-8 pb-6 ${dk ? 'bg-neutral-900/50' : 'bg-neutral-50/50'}`}>
+                                    <DialogHeader>
+                                        <DialogTitle className="sr-only">Testimonial Details</DialogTitle>
+                                        <DialogDescription className="sr-only">Full review details</DialogDescription>
+                                    </DialogHeader>
+
+                                    {/* Quote watermark */}
+                                    <Quote className={`absolute right-6 top-6 h-24 w-24 opacity-[0.03] -rotate-12 ${dk ? 'text-white' : 'text-indigo-900'}`} />
+
+                                    <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                                        <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full shadow-md h-20 w-20 text-2xl font-bold ${selectedTesti.image ? '' : `${color.bg} ${color.text}`}`}>
+                                            {selectedTesti.image
+                                                ? <img src={`/storage/${selectedTesti.image}`} alt={selectedTesti.client_name} className="h-full w-full object-cover" />
+                                                : selectedTesti.client_name.charAt(0)}
+                                        </div>
+                                        <div className="text-center sm:text-left">
+                                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white">{selectedTesti.client_name}</h3>
+                                            <div className={`text-sm mt-1 font-medium ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                                                {[getPosition(selectedTesti), getCompany(selectedTesti)].filter(Boolean).join(' · ')}
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                                                {getRelation(selectedTesti) && (
+                                                    <span className={`inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${dk ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                        {getRelation(selectedTesti)}
+                                                    </span>
+                                                )}
+                                                {selectedTesti.project_url && (
+                                                    <a
+                                                        href={selectedTesti.project_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${dk ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700' : 'bg-neutral-200 text-neutral-600 hover:bg-neutral-300'}`}
+                                                    >
+                                                        <ExternalLink className="h-3 w-3" /> Project
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Full Content */}
+                                <div className={`px-8 py-8 ${dk ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                                    <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${dk ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-500'}`}>
+                                        <Quote className="h-5 w-5" />
+                                    </div>
+                                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                                        {getContent(selectedTesti)?.split('\n').map((paragraph, i) => (
+                                            paragraph.trim() && <p key={i} className="leading-relaxed text-base">{paragraph}</p>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
+                </DialogContent>
+            </Dialog>
+
         </PublicLayout>
     );
 }

@@ -29,6 +29,7 @@ class Education extends Model
         'logo',
         'type',
         'sort_order',
+        'show_in_cv',
     ];
 
     protected function casts(): array
@@ -37,6 +38,7 @@ class Education extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'sort_order' => 'integer',
+            'show_in_cv' => 'boolean',
         ];
     }
 

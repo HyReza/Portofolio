@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 interface Career {
@@ -28,6 +29,7 @@ interface Career {
     branch_label: string | null;
     branch_color: string | null;
     children: Career[];
+    show_in_cv: boolean;
 }
 
 interface Props {
@@ -64,6 +66,7 @@ export default function CareersIndex({ careers }: Props) {
         branch_label: '',
         branch_color: '#6366f1',
         sort_order: 0,
+        show_in_cv: true,
     });
 
     const handleEdit = (career: Career) => {
@@ -83,6 +86,7 @@ export default function CareersIndex({ careers }: Props) {
             branch_label: career.branch_label || '',
             branch_color: career.branch_color || '#6366f1',
             sort_order: 0,
+            show_in_cv: career.show_in_cv ?? true,
         });
         setLogoPreview(career.logo ? `/storage/${career.logo}` : null);
         setDialogOpen(true);
@@ -95,7 +99,7 @@ export default function CareersIndex({ careers }: Props) {
         Object.entries(payload).forEach(([key, value]) => {
             if (key === 'logo') {
                 if (value instanceof File) formData.append('logo', value);
-            } else if (key === 'is_current') {
+            } else if (key === 'is_current' || key === 'show_in_cv') {
                 formData.append(key, value ? '1' : '0');
             } else {
                 formData.append(key, String(value ?? ''));
@@ -159,6 +163,9 @@ export default function CareersIndex({ careers }: Props) {
                                 <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider" style={{ borderColor: career.branch_color || undefined, color: career.branch_color || undefined }}>
                                     {career.branch_label}
                                 </Badge>
+                            )}
+                            {career.show_in_cv && (
+                                <Badge variant="outline" className="text-[9px] uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">In CV</Badge>
                             )}
                         </div>
                         <div className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
@@ -329,6 +336,26 @@ export default function CareersIndex({ careers }: Props) {
                                             <Input type="color" value={form.data.branch_color} onChange={(e) => form.setData('branch_color', e.target.value)} className="h-10 w-20 p-1" />
                                             <span className="text-xs text-neutral-500 font-mono uppercase">{form.data.branch_color}</span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Show in CV */}
+                                <div className="flex items-center space-x-3 p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-neutral-50 dark:bg-neutral-900/30">
+                                    <Checkbox 
+                                        id="show_in_cv" 
+                                        checked={form.data.show_in_cv} 
+                                        onCheckedChange={(checked) => form.setData('show_in_cv', checked === true)}
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <label
+                                            htmlFor="show_in_cv"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            Tampilkan di CV (Show in CV)
+                                        </label>
+                                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                                            Jika dicentang, karir ini akan disertakan saat mengunduh CV PDF.
+                                        </p>
                                     </div>
                                 </div>
 

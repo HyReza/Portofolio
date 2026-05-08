@@ -48,6 +48,7 @@ class CertificateController extends Controller
             'category' => ['nullable', 'string', 'max:255'],
             'category_en' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         // Auto-assign sort_order: new cert goes to top (0), push all existing down
@@ -96,6 +97,7 @@ class CertificateController extends Controller
             'category' => ['nullable', 'string', 'max:255'],
             'category_en' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         if ($request->hasFile('image')) {

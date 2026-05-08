@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 interface Achievement {
@@ -21,6 +22,7 @@ interface Achievement {
     date: string | null;
     icon: string | null;
     sort_order: number;
+    show_in_cv: boolean;
 }
 
 interface Props { achievements: Achievement[]; }
@@ -31,7 +33,7 @@ export default function AchievementIndex({ achievements }: Props) {
 
     const form = useForm({
         title_id: '', title_en: '', description_id: '', description_en: '',
-        icon: '', date: '', type: 'professional' as string, sort_order: 0,
+        icon: '', date: '', type: 'professional' as string, sort_order: 0, show_in_cv: true,
     });
 
     const handleEdit = (a: Achievement) => {
@@ -45,6 +47,7 @@ export default function AchievementIndex({ achievements }: Props) {
             date: a.date ? a.date.split('T')[0] : '',
             type: a.type || 'professional',
             sort_order: a.sort_order || 0,
+            show_in_cv: a.show_in_cv ?? true,
         });
         setDialogOpen(true);
     };
@@ -119,6 +122,23 @@ export default function AchievementIndex({ achievements }: Props) {
                                     </div>
                                     <div className="space-y-2"><Label>Date</Label><Input type="date" value={form.data.date} onChange={(e) => form.setData('date', e.target.value)} /></div>
                                 </div>
+                                
+                                {/* Show in CV */}
+                                <div className="flex items-center space-x-3 p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-neutral-50 dark:bg-neutral-900/30">
+                                    <Checkbox 
+                                        id="show_in_cv" 
+                                        checked={form.data.show_in_cv} 
+                                        onCheckedChange={(checked) => form.setData('show_in_cv', checked === true)}
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <label
+                                            htmlFor="show_in_cv"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            Tampilkan di CV (Show in CV)
+                                        </label>
+                                    </div>
+                                </div>
                                 <Button type="submit" disabled={form.processing} className="w-full bg-indigo-600 hover:bg-indigo-700">
                                     {form.processing ? 'Saving...' : (editingId ? 'Update Achievement' : 'Save Achievement')}
                                 </Button>
@@ -142,6 +162,9 @@ export default function AchievementIndex({ achievements }: Props) {
                                                 {a.description_en && <p className="text-muted-foreground text-xs line-clamp-2">{a.description_en}</p>}
                                                 <div className="flex items-center gap-2 pt-0.5">
                                                     <Badge className={`text-[10px] ${typeColor[a.type] || ''}`}>{a.type}</Badge>
+                                                    {a.show_in_cv && (
+                                                        <Badge variant="outline" className="text-[9px] uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">In CV</Badge>
+                                                    )}
                                                     {a.date && <span className="text-muted-foreground text-xs">{a.date}</span>}
                                                 </div>
                                             </div>

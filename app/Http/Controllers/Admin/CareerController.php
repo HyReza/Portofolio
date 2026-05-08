@@ -44,6 +44,7 @@ class CareerController extends Controller
             'branch_label' => ['nullable', 'string', 'max:100'],
             'branch_color' => ['nullable', 'string', 'max:20'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         if ($request->hasFile('logo')) {
@@ -73,6 +74,7 @@ class CareerController extends Controller
             'branch_label' => ['nullable', 'string', 'max:100'],
             'branch_color' => ['nullable', 'string', 'max:20'],
             'sort_order' => ['integer'],
+            'show_in_cv' => ['boolean'],
         ]);
 
         if ($request->hasFile('logo')) {
