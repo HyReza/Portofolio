@@ -14,12 +14,18 @@ class Education extends Model
 
     protected $fillable = [
         'institution',
+        'institution_en',
         'degree',
+        'degree_en',
         'field',
+        'field_en',
+        'gpa',
         'start_date',
         'end_date',
         'description_id',
         'description_en',
+        'activities_id',
+        'activities_en',
         'logo',
         'type',
         'sort_order',

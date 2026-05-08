@@ -12,7 +12,9 @@ class Organization extends Model
 
     protected $fillable = [
         'name',
+        'name_en',
         'role',
+        'role_en',
         'start_date',
         'end_date',
         'is_current',

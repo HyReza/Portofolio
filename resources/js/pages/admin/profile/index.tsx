@@ -47,6 +47,10 @@ export default function ProfileIndex({ profiles }: Props) {
             // Bio
             { key: 'bio', value_id: getVal('bio', 'value_id'), value_en: getVal('bio', 'value_en'), type: 'text' },
             { key: 'about_short', value_id: getVal('about_short', 'value_id'), value_en: getVal('about_short', 'value_en'), type: 'text' },
+            // About Page (Separate from Homepage for SEO)
+            { key: 'about_page_title', value_id: getVal('about_page_title', 'value_id'), value_en: getVal('about_page_title', 'value_en'), type: 'text' },
+            { key: 'about_page_subtitle', value_id: getVal('about_page_subtitle', 'value_id'), value_en: getVal('about_page_subtitle', 'value_en'), type: 'text' },
+            { key: 'about_page_bio', value_id: getVal('about_page_bio', 'value_id'), value_en: getVal('about_page_bio', 'value_en'), type: 'text' },
             // Socials
             { key: 'github_url', value_id: getVal('github_url', 'value_id'), value_en: getVal('github_url', 'value_en'), type: 'text' },
             { key: 'linkedin_url', value_id: getVal('linkedin_url', 'value_id'), value_en: getVal('linkedin_url', 'value_en'), type: 'text' },
@@ -80,16 +84,16 @@ export default function ProfileIndex({ profiles }: Props) {
         });
     };
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
         if (e.target.files && e.target.files[0]) {
             const formData = new FormData();
             formData.append('photo', e.target.files[0]);
-            const toastId = toast.loading('Uploading photo...');
+            formData.append('key', key);
+            const toastId = toast.loading(`Uploading ${key.replace('_', ' ')}...`);
             router.post('/admin/profile/photo', formData, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    toast.success('Profile photo updated successfully!', { id: toastId });
-                    // The page will reload and getVal will have the new photo, but we can also manually update the form if needed.
+                    toast.success('Photo updated successfully!', { id: toastId });
                 },
                 onError: (errors) => {
                     console.error(errors);
@@ -326,11 +330,11 @@ export default function ProfileIndex({ profiles }: Props) {
                                         <User size={16} className="text-indigo-500" />
                                         <Label className="text-xs font-semibold">Profile Photo Upload</Label>
                                     </div>
-                                    <Input type="file" accept="image/*" onChange={handlePhotoUpload} className="h-9 cursor-pointer" />
+                                    <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'profile_photo')} className="h-9 cursor-pointer" />
                                     {fv('profile_photo') && (
                                         <div className="flex items-center gap-3 rounded-lg border border-neutral-100 dark:border-neutral-800 p-3">
                                             <img src={fv('profile_photo')} alt="preview" className="h-12 w-12 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                                            <span className="text-xs text-neutral-500">Current photo: {fv('profile_photo')}</span>
+                                            <span className="text-xs text-neutral-500 line-clamp-1" title={fv('profile_photo')}>Current photo: {fv('profile_photo')}</span>
                                         </div>
                                     )}
                                 </div>
@@ -389,6 +393,36 @@ export default function ProfileIndex({ profiles }: Props) {
                         <CardContent className="mt-6 space-y-6">
                             {renderInputPair('about_short', 'Short Headline', <ZapIcon size={16} />, true, 'A brief tagline shown in the dashboard...')}
                             {renderInputPair('bio', 'Full Bio / Description', <FileTextIcon size={16} />, true, 'Shown on the homepage hero and the about page...')}
+                        </CardContent>
+                    </Card>
+
+                    {/* ═══ ABOUT PAGE (SEPARATE SEO) ═══ */}
+                    <Card className="overflow-hidden border-none shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-800">
+                        <CardHeader className="bg-neutral-50/50 dark:bg-neutral-900/50">
+                            <div className="flex items-center gap-2">
+                                <Layout className="h-5 w-5 text-indigo-500" />
+                                <CardTitle className="text-lg">About Page Content</CardTitle>
+                            </div>
+                            <CardDescription>Separate content for the /about page. If left empty, falls back to the homepage bio. Setting these separately improves SEO.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="mt-6 space-y-6">
+                            {renderInputPair('about_page_title', 'About Page Heading', <ZapIcon size={16} />, false, 'e.g. Crafting Digital Experiences / Menciptakan Pengalaman Digital')}
+                            {renderInputPair('about_page_subtitle', 'About Page Subtitle', <FileTextIcon size={16} />, false, 'e.g. Full-Stack Developer & Creative Technologist')}
+                            {renderInputPair('about_page_bio', 'About Page Bio (separate from homepage)', <FileTextIcon size={16} />, true, 'A longer, more detailed bio specifically for the about page...')}
+                            
+                            <div className="pt-4 space-y-4 border-t border-neutral-100 dark:border-neutral-800">
+                                <div className="flex items-center gap-2">
+                                    <Image size={16} className="text-indigo-500" />
+                                    <Label className="text-xs font-semibold">About Page Photo (Optional override)</Label>
+                                </div>
+                                <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'about_page_photo')} className="h-9 cursor-pointer" />
+                                {fv('about_page_photo') && (
+                                    <div className="flex items-center gap-3 rounded-lg border border-neutral-100 dark:border-neutral-800 p-3">
+                                        <img src={fv('about_page_photo')} alt="preview" className="h-12 w-12 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                        <span className="text-xs text-neutral-500 line-clamp-1" title={fv('about_page_photo')}>Current photo: {fv('about_page_photo')}</span>
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 

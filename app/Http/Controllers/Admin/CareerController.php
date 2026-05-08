@@ -31,7 +31,9 @@ class CareerController extends Controller
     {
         $validated = $request->validate([
             'company' => ['required', 'string', 'max:255'],
-            'position' => ['required', 'string', 'max:255'],
+            'company_en' => ['nullable', 'string', 'max:255'],
+            'position_id' => ['required', 'string', 'max:255'],
+            'position_en' => ['nullable', 'string', 'max:255'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'description_id' => ['nullable', 'string'],
@@ -58,7 +60,9 @@ class CareerController extends Controller
     {
         $validated = $request->validate([
             'company' => ['required', 'string', 'max:255'],
-            'position' => ['required', 'string', 'max:255'],
+            'company_en' => ['nullable', 'string', 'max:255'],
+            'position_id' => ['required', 'string', 'max:255'],
+            'position_en' => ['nullable', 'string', 'max:255'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'description_id' => ['nullable', 'string'],

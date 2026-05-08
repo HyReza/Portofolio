@@ -53,14 +53,17 @@ class ProfileController extends Controller
     {
         $request->validate([
             'photo' => ['required', 'image', 'max:5120'], // max 5MB
+            'key' => ['nullable', 'string', 'in:profile_photo,about_page_photo'],
         ]);
+
+        $key = $request->input('key', 'profile_photo');
 
         $result = $this->mediaService->upload($request->file('photo'), 'profile');
         $photoPath = '/storage/' . $result['path'];
 
         // Save to both value_id and value_en (same photo for both languages)
-        $this->profileService->upsert('profile_photo', [
-            'key' => 'profile_photo',
+        $this->profileService->upsert($key, [
+            'key' => $key,
             'value_id' => $photoPath,
             'value_en' => $photoPath,
             'type' => 'text',
@@ -68,7 +71,7 @@ class ProfileController extends Controller
 
         Cache::forget('site_profile');
 
-        return back()->with('success', 'Profile photo uploaded successfully.');
+        return back()->with('success', 'Photo uploaded successfully.');
     }
 
     public function destroy(Profile $profile): RedirectResponse

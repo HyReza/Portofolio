@@ -15,7 +15,7 @@ interface Skill { id: number; name_id: string; name_en: string; description_id: 
 interface SkillCategory { id: number; name_en: string; name_id: string; skills: Skill[]; }
 interface Project { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; tech_stack: string[] | null; demo_url: string | null; }
 interface BlogPost { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; published_at: string | null; tags: { id: number; name: string; }[]; }
-interface Organization { id: number; name: string; role: string; start_date: string; end_date: string | null; is_current: boolean; }
+interface Organization { id: number; name: string; name_en: string | null; role: string; role_en: string | null; start_date: string; end_date: string | null; is_current: boolean; logo: string | null; }
 interface Props { profiles: Record<string, Profile>; skillCategories: SkillCategory[]; projects: Project[]; blogs: BlogPost[]; organizations: Organization[]; }
 
 import { ReactIconRender } from '@/components/ReactIconRender';
@@ -191,12 +191,16 @@ export default function Home({ profiles, skillCategories, projects, blogs, organ
                             {organizations.slice(0, 4).map((org, i) => (
                                 <motion.div key={org.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
                                     <div className={`flex items-start gap-3 rounded-xl border p-4 transition-all ${dk ? 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700' : 'border-neutral-100 bg-white hover:border-neutral-200 hover:shadow-sm'}`}>
-                                        <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${dk ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-600'}`}>
-                                            <Wrench className="h-5 w-5" />
+                                        <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg ${dk ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-600'}`}>
+                                            {org.logo ? (
+                                                <img src={`/storage/${org.logo}`} alt="" className="h-full w-full object-contain p-1" />
+                                            ) : (
+                                                <span className="text-sm font-black">{org.name?.charAt(0) || 'O'}</span>
+                                            )}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold">{org.role}</h3>
-                                            <p className={`text-sm ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>{org.name}</p>
+                                            <h3 className="font-bold">{lang === 'id' ? org.role : (org.role_en || org.role)}</h3>
+                                            <p className={`text-sm ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>{lang === 'id' ? org.name : (org.name_en || org.name)}</p>
                                             <span className={`mt-2 inline-block rounded bg-opacity-20 px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold ${org.is_current ? (dk ? 'bg-emerald-500 text-emerald-400' : 'bg-emerald-500 text-emerald-700') : (dk ? 'bg-neutral-500 text-neutral-400' : 'bg-neutral-500 text-neutral-600')}`}>
                                                 {org.is_current ? t('Active', 'Aktif') : new Date(org.start_date).getFullYear()}
                                             </span>

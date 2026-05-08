@@ -25,7 +25,7 @@ class PublicController extends Controller
     {
         return Inertia::render('public/about', [
             'profiles'   => $this->profiles(),
-            'educations' => Education::ordered()->get(),
+            'educations' => Education::chronological()->get(),
             'careers'    => Career::with('children')->roots()->chronological()->get(),
             'organizations' => Organization::ordered()->get(),
             'skillCategories' => SkillCategory::withOrderedSkills()->ordered()->get(),
