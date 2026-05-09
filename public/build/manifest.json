@@ -1123,7 +1123,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BjihFEVd.css",
+    "file": "assets/app-D_gyH_PV.css",
     "name": "app",
     "names": [
       "app.css"
@@ -1132,7 +1132,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-D4pXS5wZ.js",
+    "file": "assets/app-BXo6FCKh.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1376,7 +1376,7 @@
     ]
   },
   "resources/js/pages/admin/education/index.tsx": {
-    "file": "assets/education-D6Ckgf3Z.js",
+    "file": "assets/education-CbRSsLsB.js",
     "name": "education",
     "src": "resources/js/pages/admin/education/index.tsx",
     "isDynamicEntry": true,
@@ -1397,6 +1397,7 @@
       "_AutoTranslateButton-CyKgxFBI.js",
       "_x-CFKHnMIh.js",
       "_dist-CyK9q4Pa.js",
+      "_badge-Bv0Jnx_q.js",
       "_card-BsVOhm_X.js",
       "_dialog-CDb97l0l.js",
       "_input-BVm7w1sa.js"
