@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 interface Education {
