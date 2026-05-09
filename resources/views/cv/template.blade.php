@@ -306,7 +306,7 @@
     <div class="cv-entry-compact">
         <table class="cv-row"><tr>
             <td class="cv-l">
-                {{ $lang === 'id' ? ($cert->name_id ?: $cert->name_en) : ($cert->name_en ?: $cert->name_id) }}
+                {{ $lang === 'id' ? ($cert->title ?: $cert->title_en) : ($cert->title_en ?: $cert->title) }}
                 @if($cert->credential_url)<a href="{{ $cert->credential_url }}" class="cv-link">[Verify]</a>@endif
             </td>
             <td class="cv-r">{{ \Carbon\Carbon::parse($cert->issued_date)->format('M Y') }}</td>

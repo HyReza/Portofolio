@@ -221,6 +221,7 @@ interface AchievementContextType {
     unlock: (id: string) => void;
     isUnlocked: (id: string) => boolean;
     toast: Achievement | null;
+    dismissToast: () => void;
     progress: number; // 0-100
     totalUnlocked: number;
     totalBadges: number;
@@ -231,6 +232,7 @@ const AchievementContext = createContext<AchievementContextType>({
     unlock: () => {},
     isUnlocked: () => false,
     toast: null,
+    dismissToast: () => {},
     progress: 0,
     totalUnlocked: 0,
     totalBadges: ACHIEVEMENTS.length,
@@ -285,11 +287,13 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    const dismissToast = useCallback(() => setToast(null), []);
+
     const totalUnlocked = unlocked.length;
     const progress = Math.round((totalUnlocked / ACHIEVEMENTS.length) * 100);
 
     return (
-        <AchievementContext.Provider value={{ unlocked, unlock, isUnlocked, toast, progress, totalUnlocked, totalBadges: ACHIEVEMENTS.length }}>
+        <AchievementContext.Provider value={{ unlocked, unlock, isUnlocked, toast, dismissToast, progress, totalUnlocked, totalBadges: ACHIEVEMENTS.length }}>
             {children}
         </AchievementContext.Provider>
     );
@@ -350,7 +354,7 @@ export function useAutoAchievements(pathname: string) {
 /* ═══════════════════════════════════════════
    ACHIEVEMENT TOAST COMPONENT
    ═══════════════════════════════════════════ */
-export function AchievementToast({ achievement }: { achievement: Achievement | null }) {
+export function AchievementToast({ achievement, onDismiss }: { achievement: Achievement | null; onDismiss?: () => void }) {
     if (!achievement) return null;
 
     const rarity = RARITY_COLORS[achievement.rarity];
@@ -362,7 +366,9 @@ export function AchievementToast({ achievement }: { achievement: Achievement | n
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: -60, opacity: 0, scale: 0.9 }}
                 transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                className="fixed top-6 left-1/2 z-[250] -translate-x-1/2"
+                className="fixed top-6 left-1/2 z-[250] -translate-x-1/2 cursor-pointer select-none"
+                onClick={onDismiss}
+                title="Click to dismiss"
             >
                 <div className={`flex items-center gap-4 rounded-2xl border px-5 py-3.5 shadow-2xl backdrop-blur-xl ${rarity.border} bg-neutral-950/90`}
                     style={{ boxShadow: `0 20px 40px -8px rgba(0,0,0,0.4)` }}

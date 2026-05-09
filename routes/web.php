@@ -147,6 +147,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('settings', [Admin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings/api-key', [Admin\SettingController::class, 'updateApiKey'])->name('settings.api-key.update');
     Route::delete('settings/api-key', [Admin\SettingController::class, 'removeApiKey'])->name('settings.api-key.destroy');
+    Route::post('settings/qwen-api-key', [Admin\SettingController::class, 'updateQwenApiKey'])->name('settings.qwen-api-key.update');
+    Route::delete('settings/qwen-api-key', [Admin\SettingController::class, 'removeQwenApiKey'])->name('settings.qwen-api-key.destroy');
     Route::put('settings/ai', [Admin\SettingController::class, 'updateAiSettings'])->name('settings.ai.update');
     Route::post('settings/ai/reset-exhausted', [Admin\SettingController::class, 'resetExhausted'])->name('settings.ai.reset');
 

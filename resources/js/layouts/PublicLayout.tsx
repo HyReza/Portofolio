@@ -68,7 +68,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     const { url, props } = usePage<{ siteProfile?: Record<string, { value_id: string | null; value_en: string | null }> }>();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [konamiActive, setKonamiActive] = useState(false);
-    const { toast, unlock } = useAchievements();
+    const { toast, dismissToast, unlock } = useAchievements();
     const dk = appTheme === 'dark';
     const pathname = url;
     useAutoAchievements(pathname);
@@ -115,10 +115,10 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <div className={`flex h-full min-h-screen w-full flex-col font-sans ${dk ? 'dark' : ''}`}>
+            <div className={`relative flex h-full min-h-screen w-full flex-col font-sans overflow-x-hidden ${dk ? 'dark' : ''}`}>
                 <SpotlightSearch />
                 <KonamiOverlay active={konamiActive} onClose={() => setKonamiActive(false)} />
-                <AchievementToast achievement={toast} />
+                <AchievementToast achievement={toast} onDismiss={dismissToast} />
 
                 <div className="relative flex min-h-screen w-full flex-col bg-white transition-colors duration-500 dark:bg-[#121212]">
                     <div className="pointer-events-none fixed inset-0 z-0 h-full w-full bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
@@ -332,7 +332,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                             </div>
                         </aside>
 
-                        <main className={`relative flex-1 transition-all duration-500 ${layout === 'sidebar' ? 'lg:ml-[88px]' : 'pt-20 lg:pt-24'}`}>
+                        <main className={`relative flex-1 transition-all duration-500 pt-20 ${layout === 'sidebar' ? 'lg:ml-[88px] lg:pt-0' : 'lg:pt-24'}`}>
                             <div className="mx-auto max-w-5xl px-4 py-8 sm:px-12 lg:py-16">
                                 <motion.div 
                                     key={url} 

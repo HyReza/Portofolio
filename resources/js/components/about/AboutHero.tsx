@@ -21,7 +21,7 @@ export function AboutHero({ profiles }: Props) {
     const profilePhoto = pv('about_page_photo') || pv('profile_photo') || '/assets/img/profil.jpeg';
 
     return (
-        <section className="py-20 sm:py-28">
+        <section className="py-20 sm:py-28 overflow-hidden">
             <div className="mx-auto max-w-7xl px-5 sm:px-8">
                 <div className="grid items-center gap-12 lg:grid-cols-5">
                     {/* Text Content */}
@@ -78,23 +78,23 @@ export function AboutHero({ profiles }: Props) {
 
                     {/* Profile Photo with Modern Gimmicks */}
                     <FadeLeft delay={0.4}>
-                        <div className="lg:col-span-2 flex justify-center perspective-[1000px]">
+                        <div className="lg:col-span-2 flex justify-center perspective-[1000px] py-8 lg:py-0">
                             <motion.div 
                                 className="relative group cursor-pointer"
                                 whileHover={{ rotateY: -5, rotateX: 5, scale: 1.02 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                                 style={{ transformStyle: 'preserve-3d' }}
                             >
-                                {/* Decorative tech circles */}
-                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }} className={`absolute -inset-10 rounded-full border border-dashed ${dk ? 'border-indigo-500/20' : 'border-indigo-200'} opacity-50`} />
-                                <motion.div animate={{ rotate: -360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }} className={`absolute -inset-16 rounded-full border ${dk ? 'border-purple-500/10' : 'border-purple-100'} opacity-30`} />
+                                {/* Decorative tech circles — hidden on mobile to prevent overflow */}
+                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }} className={`absolute -inset-10 rounded-full border border-dashed hidden sm:block ${dk ? 'border-indigo-500/20' : 'border-indigo-200'} opacity-50`} />
+                                <motion.div animate={{ rotate: -360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }} className={`absolute -inset-16 rounded-full border hidden sm:block ${dk ? 'border-purple-500/10' : 'border-purple-100'} opacity-30`} />
                                 
                                 {/* Photo Container */}
                                 <motion.div
                                     initial={{ scale: 0.8, opacity: 0, y: 20 }}
                                     animate={{ scale: 1, opacity: 1, y: 0 }}
                                     transition={{ delay: 0.3, duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
-                                    className={`relative h-64 w-64 overflow-hidden rounded-3xl sm:h-80 sm:w-80 ${dk ? 'bg-[#121212] ring-1 ring-white/10 shadow-[0_0_40px_rgba(99,102,241,0.15)]' : 'bg-white ring-1 ring-neutral-200 shadow-2xl shadow-indigo-500/10'}`}
+                                    className={`relative h-56 w-56 overflow-hidden rounded-3xl sm:h-80 sm:w-80 ${dk ? 'bg-[#121212] ring-1 ring-white/10 shadow-[0_0_40px_rgba(99,102,241,0.15)]' : 'bg-white ring-1 ring-neutral-200 shadow-2xl shadow-indigo-500/10'}`}
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-transparent to-purple-500/20 mix-blend-overlay z-10 opacity-60 transition-opacity group-hover:opacity-100" />
                                     <img
@@ -106,45 +106,43 @@ export function AboutHero({ profiles }: Props) {
                                     <div className={`absolute inset-0 ${dk ? 'bg-gradient-to-t from-[#121212]/80 via-transparent to-transparent' : 'bg-gradient-to-t from-white/80 via-transparent to-transparent'} z-10`} />
                                 </motion.div>
 
-                                {/* Floating Glassmorphism Cards */}
+                                {/* Floating Glassmorphism Cards — repositioned for mobile */}
                                 <motion.div
                                     initial={{ scale: 0, x: 20 }}
                                     animate={{ scale: 1, x: 0 }}
                                     transition={{ delay: 0.8, type: 'spring', stiffness: 200 }}
-                                    className={`absolute -bottom-6 -right-6 z-20 flex items-center gap-3 rounded-2xl backdrop-blur-md px-5 py-3 shadow-xl ring-1 ${dk ? 'bg-white/10 ring-white/20' : 'bg-white/70 ring-neutral-200'}`}
+                                    className={`absolute -bottom-4 -right-2 sm:-bottom-6 sm:-right-6 z-20 flex items-center gap-2 sm:gap-3 rounded-2xl backdrop-blur-md px-3 py-2 sm:px-5 sm:py-3 shadow-xl ring-1 ${dk ? 'bg-white/10 ring-white/20' : 'bg-white/70 ring-neutral-200'}`}
                                     style={{ transform: 'translateZ(30px)' }}
                                 >
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-inner">
-                                        <Code2 size={20} />
+                                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-inner">
+                                        <Code2 size={16} className="sm:hidden" />
+                                        <Code2 size={20} className="hidden sm:block" />
                                     </div>
                                     <div>
-                                        <p className={`text-[10px] font-bold uppercase tracking-wider ${dk ? 'text-indigo-300' : 'text-indigo-600'}`}>{t('Developer', 'Pengembang')}</p>
-                                        <p className={`text-sm font-black ${dk ? 'text-white' : 'text-neutral-900'}`}>Full-Stack</p>
+                                        <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${dk ? 'text-indigo-300' : 'text-indigo-600'}`}>{t('Developer', 'Pengembang')}</p>
+                                        <p className={`text-xs sm:text-sm font-black ${dk ? 'text-white' : 'text-neutral-900'}`}>Full-Stack</p>
                                     </div>
                                 </motion.div>
 
                                 <motion.div
                                     initial={{ scale: 0, x: -20 }}
-                                    animate={{ scale: 1, x: 0 }}
-                                    transition={{ delay: 1, type: 'spring', stiffness: 200 }}
-                                    className={`absolute top-6 -left-8 z-20 flex items-center justify-center rounded-2xl backdrop-blur-md h-12 w-12 shadow-xl ring-1 ${dk ? 'bg-indigo-500/20 ring-indigo-500/30 text-indigo-400' : 'bg-white/70 ring-neutral-200 text-indigo-600'}`}
-                                    style={{ transform: 'translateZ(40px)' }}
-                                    animate={{ y: [-5, 5, -5] }}
+                                    animate={{ scale: 1, x: 0, y: [-5, 5, -5] }}
                                     transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                                    className={`absolute top-4 -left-2 sm:top-6 sm:-left-8 z-20 flex items-center justify-center rounded-2xl backdrop-blur-md h-10 w-10 sm:h-12 sm:w-12 shadow-xl ring-1 ${dk ? 'bg-indigo-500/20 ring-indigo-500/30 text-indigo-400' : 'bg-white/70 ring-neutral-200 text-indigo-600'}`}
+                                    style={{ transform: 'translateZ(40px)' }}
                                 >
-                                    <Terminal size={20} />
+                                    <Terminal size={18} />
                                 </motion.div>
 
                                 <motion.div
                                     initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ delay: 1.2, type: 'spring', stiffness: 200 }}
-                                    className="absolute -top-4 -right-4 z-20 text-amber-400"
-                                    style={{ transform: 'translateZ(20px)' }}
-                                    animate={{ rotate: [0, 15, -15, 0] }}
+                                    animate={{ scale: 1, rotate: [0, 15, -15, 0] }}
                                     transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
+                                    className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 z-20 text-amber-400"
+                                    style={{ transform: 'translateZ(20px)' }}
                                 >
-                                    <Sparkles size={28} />
+                                    <Sparkles size={22} className="sm:hidden" />
+                                    <Sparkles size={28} className="hidden sm:block" />
                                 </motion.div>
                             </motion.div>
                         </div>
