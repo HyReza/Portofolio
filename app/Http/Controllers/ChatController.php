@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChatMessage;
+use App\Models\MessageReaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
@@ -14,13 +15,7 @@ class ChatController extends Controller
      */
     public function index()
     {
-        $messages = ChatMessage::where('is_show', true)
-            ->orderBy('created_at', 'asc')
-            ->get();
-
-        return Inertia::render('public/chat', [
-            'messages' => $messages,
-        ]);
+        return Inertia::render('public/chat');
     }
 
     /**
@@ -28,7 +23,9 @@ class ChatController extends Controller
      */
     public function messages()
     {
-        $messages = ChatMessage::where('is_show', true)
+        // Fetch all messages flat — frontend builds the threaded tree via parent_id
+        $messages = ChatMessage::with(['user:id,name,avatar,email', 'reactions', 'reactions.user:id,name'])
+            ->where('is_show', true)
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -41,37 +38,37 @@ class ChatController extends Controller
     public function store(Request $request, \App\Services\AiChatService $aiService)
     {
         $request->validate([
-            'name' => 'required|string|max:100',
             'message' => 'required|string|max:1000',
-            'email' => 'nullable|email|max:255',
-            'avatar' => 'nullable|string|max:500',
-            'is_reply' => 'boolean',
-            'reply_to' => 'nullable|string|max:100',
+            'parent_id' => 'nullable|uuid|exists:chat_messages,id',
         ]);
 
+        $user = auth()->user();
         $msgId = Str::uuid()->toString();
 
         $msg = ChatMessage::create([
             'id' => $msgId,
-            'name' => $request->name,
-            'email' => $request->email,
-            'avatar' => $request->avatar,
+            'user_id' => $user->id,
+            'name' => $user->name, // fallback
+            'email' => $user->email, // fallback
+            'avatar' => $user->avatar, // fallback
             'message' => $request->message,
-            'is_reply' => $request->boolean('is_reply', false),
-            'reply_to' => $request->reply_to,
+            'is_reply' => $request->filled('parent_id'),
+            'parent_id' => $request->parent_id,
             'is_show' => true,
         ]);
 
-        // If it's a general message or mentioning the AI, trigger AI reply
+        // Load relations before returning
+        $msg->load(['user:id,name,avatar,email', 'reactions']);
+
+        // Trigger AI reply if it's general or AI is mentioned
         $shouldReply = false;
-        if (!$request->boolean('is_reply')) {
+        if (!$request->filled('parent_id')) {
             $shouldReply = true;
-        } elseif (Str::contains(strtolower($request->reply_to ?? ''), ['reza-sync', 'ai', 'admin'])) {
+        } elseif (Str::contains(strtolower($request->message), ['ai', 'bot', 'admin', 'reza'])) {
             $shouldReply = true;
         }
 
-        if ($shouldReply) {
-            // Get last few messages for context
+        if ($shouldReply && $user->id !== 1) {
             $history = ChatMessage::where('is_show', true)
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
@@ -80,26 +77,31 @@ class ChatController extends Controller
                 ->map(function ($m) {
                     return [
                         'message' => $m->message,
-                        'is_ai' => $m->email === 'admin@example.com',
+                        'is_ai' => $m->user_id === 1,
                     ];
                 })
                 ->toArray();
 
-            // Run AI request in background so it doesn't block the user's request
-            dispatch(function () use ($request, $aiService, $history) {
+            dispatch(function () use ($request, $aiService, $history, $msgId) {
                 $replyText = $aiService->generateReply($request->message, $history);
                 
                 if ($replyText) {
-                    ChatMessage::create([
-                        'id' => Str::uuid()->toString(),
-                        'name' => 'Reza-Sync',
-                        'email' => 'admin@example.com', // Admin email indicates AI/Owner
-                        'avatar' => '/assets/img/profil.jpeg', // Same avatar
-                        'message' => $replyText,
-                        'is_reply' => true,
-                        'reply_to' => $request->name,
-                        'is_show' => true,
-                    ]);
+                    // Find admin user to attribute AI reply
+                    $admin = \App\Models\User::find(1);
+                    
+                    if ($admin) {
+                        ChatMessage::create([
+                            'id' => Str::uuid()->toString(),
+                            'user_id' => $admin->id,
+                            'name' => $admin->name,
+                            'email' => $admin->email,
+                            'avatar' => $admin->avatar,
+                            'message' => $replyText,
+                            'is_reply' => true,
+                            'parent_id' => $msgId,
+                            'is_show' => true,
+                        ]);
+                    }
                 }
             })->afterResponse();
         }
@@ -108,12 +110,66 @@ class ChatController extends Controller
     }
 
     /**
-     * Delete a chat message (admin only).
+     * Edit message
+     */
+    public function update(Request $request, string $id)
+    {
+        $request->validate(['message' => 'required|string|max:1000']);
+        
+        $msg = ChatMessage::findOrFail($id);
+        $user = auth()->user();
+
+        // Admin can edit anything, User can edit their own
+        if ($user->id !== 1 && $msg->user_id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $msg->update(['message' => $request->message]);
+        
+        return response()->json($msg->load(['user:id,name,avatar,email', 'reactions']));
+    }
+
+    /**
+     * Delete a chat message.
      */
     public function destroy(string $id)
     {
         $msg = ChatMessage::findOrFail($id);
+        $user = auth()->user();
+
+        if ($user->id !== 1 && $msg->user_id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Reactions and replies will cascade delete due to DB constraints
         $msg->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Toggle Reaction
+     */
+    public function react(Request $request, string $id)
+    {
+        $request->validate(['reaction' => 'required|string|max:50']);
+        
+        $user = auth()->user();
+        
+        $existing = MessageReaction::where('chat_message_id', $id)
+            ->where('user_id', $user->id)
+            ->where('reaction', $request->reaction)
+            ->first();
+
+        if ($existing) {
+            $existing->delete(); // Toggle off
+        } else {
+            MessageReaction::create([
+                'chat_message_id' => $id,
+                'user_id' => $user->id,
+                'reaction' => $request->reaction
+            ]); // Toggle on
+        }
 
         return response()->json(['success' => true]);
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\LinkedinController;
 use App\Http\Controllers\InstagramController;
 use App\Http\Controllers\CvController;
+use App\Http\Controllers\Auth\GoogleController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public Pages ──
@@ -23,8 +24,18 @@ Route::get('/projects/{project}', [PublicController::class, 'projectShow'])->nam
 // Chat Room
 Route::get('/chat', [ChatController::class, 'index'])->name('chat');
 Route::get('/api/chat', [ChatController::class, 'messages'])->name('chat.messages');
-Route::post('/api/chat', [ChatController::class, 'store'])->name('chat.store');
-Route::delete('/api/chat/{id}', [ChatController::class, 'destroy'])->name('chat.destroy')->middleware(['auth']);
+
+// Auth Required for interactions
+Route::middleware(['auth'])->group(function () {
+    Route::post('/api/chat', [ChatController::class, 'store'])->name('chat.store');
+    Route::put('/api/chat/{id}', [ChatController::class, 'update'])->name('chat.update');
+    Route::delete('/api/chat/{id}', [ChatController::class, 'destroy'])->name('chat.destroy');
+    Route::post('/api/chat/{id}/react', [ChatController::class, 'react'])->name('chat.react');
+});
+
+// Google OAuth
+Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
 
 // Content Pages
 Route::get('/linkedin', [LinkedinController::class, 'index'])->name('linkedin');

@@ -337,9 +337,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                         </main>
                     </div>
 
-                    <Link href="/chat" className={`fixed bottom-8 right-8 z-50 flex h-16 w-16 items-center justify-center rounded-2xl shadow-2xl transition-all hover:scale-110 hover:-rotate-6 active:scale-95 ${dk ? 'bg-amber-400 text-black shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-indigo-600/20'}`}>
-                        <PiChatTeardropDotsBold size={32} />
-                        <span className="absolute -right-1 -top-1 flex h-5 w-5 animate-bounce items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#121212]">
+                    <Link href="/chat" className={`fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-50 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl shadow-2xl transition-all hover:scale-110 hover:-rotate-6 active:scale-95 ${dk ? 'bg-amber-400 text-black shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-indigo-600/20'}`}>
+                        <PiChatTeardropDotsBold className="h-6 w-6 sm:h-8 sm:w-8" />
+                        <span className="absolute -right-1 -top-1 flex h-4 w-4 sm:h-5 sm:w-5 animate-bounce items-center justify-center rounded-full bg-red-500 text-[8px] sm:text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#121212]">
                             AI
                         </span>
                     </Link>

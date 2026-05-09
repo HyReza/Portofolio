@@ -237,13 +237,44 @@ html { scroll-behavior: smooth; }
 }
 
 /* ═══ Chat room styling ═══ */
-.chat-bubble {
-    border-radius: 1rem;
-    border-top-left-radius: 0.2rem;
+
+/* Themed scrollbar for chat messages area */
+.chat-scroll::-webkit-scrollbar {
+    width: 5px;
 }
-.chat-bubble-author {
-    border-radius: 1rem;
-    border-top-right-radius: 0.2rem;
+.chat-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+    background: rgba(150, 150, 150, 0.3);
+    border-radius: 99px;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(150, 150, 150, 0.5);
+}
+.chat-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(150, 150, 150, 0.3) transparent;
+}
+
+/* Dark themed scrollbar */
+.dark .chat-scroll::-webkit-scrollbar-thumb {
+    background: rgba(100, 100, 100, 0.4);
+}
+.dark .chat-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.6);
+}
+.dark .chat-scroll {
+    scrollbar-color: rgba(100, 100, 100, 0.4) transparent;
+}
+
+/* Hide scrollbar completely (for textarea) */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* ═══ Codebayu font utility ═══ */

@@ -17,6 +17,8 @@ class ChatMessage extends Model
         'message',
         'is_reply',
         'reply_to',
+        'parent_id',
+        'user_id',
         'is_show',
     ];
 
@@ -24,4 +26,24 @@ class ChatMessage extends Model
         'is_reply' => 'boolean',
         'is_show' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function reactions()
+    {
+        return $this->hasMany(MessageReaction::class, 'chat_message_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(ChatMessage::class, 'parent_id');
+    }
+
+    public function replies()
+    {
+        return $this->hasMany(ChatMessage::class, 'parent_id');
+    }
 }
