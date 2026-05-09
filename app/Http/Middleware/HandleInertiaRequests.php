@@ -52,6 +52,7 @@ class HandleInertiaRequests extends Middleware
                 'value_id' => $p->value_id,
                 'value_en' => $p->value_en,
             ]),
+            'aiAssistantEnabled' => fn () => (bool) \App\Models\SiteSetting::getValue('ai_assistant_enabled', true),
         ];
     }
 }

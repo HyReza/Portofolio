@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\Profile;
+use App\Mail\ContactMessageNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 
 class ContactController extends Controller
@@ -11,9 +14,9 @@ class ContactController extends Controller
     public function store(Request $request)
     {
         $executed = RateLimiter::attempt(
-            'contact-form:' . $request->ip(),
+            'contact-form-v3:' . $request->ip(),
             $maxAttempts = 3,
-            function() use ($request) {
+            function () use ($request) {
                 $validated = $request->validate([
                     'name' => 'required|string|max:255',
                     'email' => 'required|email|max:255',
@@ -21,19 +24,30 @@ class ContactController extends Controller
                 ]);
 
                 // Store in database
-                Contact::create([
+                $newContact = Contact::create([
                     'name' => strip_tags($validated['name']),
                     'email' => $validated['email'],
                     'message' => strip_tags($validated['message']),
                     'status' => 'unread'
                 ]);
 
-                // TODO: Send email notification (Phase 2B)
+                // Send email notification
+                $profile = Profile::where('key', 'email')->first();
+                $toEmail = $profile ? ($profile->value_en ?: $profile->value_id) : env('MAIL_FROM_ADDRESS', 'admin@example.com');
+
+                if ($toEmail) {
+                    try {
+                        Mail::to($toEmail)->send(new ContactMessageNotification($newContact));
+                    } catch (\Exception $e) {
+                        // Log error but don't fail the request
+                        \Illuminate\Support\Facades\Log::error('Failed to send contact notification email: ' . $e->getMessage());
+                    }
+                }
             },
             $decaySeconds = 3600 // 1 hour per 3 messages
         );
 
-        if (! $executed) {
+        if (!$executed) {
             return response()->json([
                 'message' => 'Too many messages sent. Please try again later.'
             ], 429);

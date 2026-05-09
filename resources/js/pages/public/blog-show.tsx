@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, Eye, Tag, Github, Linkedin, Instagram } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
+import { useAchievements, trackBlogRead } from '@/hooks/useGimmicks';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { SeoHead } from '@/components/SeoHead';
 
@@ -42,6 +43,7 @@ const gradients = ['from-purple-500 via-pink-500 to-orange-400', 'from-cyan-500 
 
 export default function BlogShow({ blog, related }: Props) {
     const { lang, theme: appTheme, t } = useApp();
+    const { unlock } = useAchievements();
     const { props } = usePage<{ siteProfile?: Record<string, { value_id: string | null; value_en: string | null }> }>();
     const sp = props.siteProfile || {};
     const authorName = (lang === 'id' ? (sp['name']?.value_id || sp['name']?.value_en) : (sp['name']?.value_en || sp['name']?.value_id)) || 'Reza Edi Saputra';
@@ -60,7 +62,14 @@ export default function BlogShow({ blog, related }: Props) {
             const rect = el.getBoundingClientRect();
             const scrolled = Math.max(0, -rect.top);
             const total = el.scrollHeight - window.innerHeight;
-            setProgress(total > 0 ? Math.min(100, (scrolled / total) * 100) : 0);
+            const p = total > 0 ? Math.min(100, (scrolled / total) * 100) : 0;
+            setProgress(p);
+            // Bookworm: read >80%
+            if (p > 80) {
+                unlock('bookworm');
+                const reads = trackBlogRead(blog.slug);
+                if (reads.length >= 3) unlock('scholar');
+            }
         };
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);

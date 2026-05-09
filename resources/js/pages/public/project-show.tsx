@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowUpRight, Github, Calendar, Eye, Clock } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
+import { useAchievements, trackProjectView } from '@/hooks/useGimmicks';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { SeoHead } from '@/components/SeoHead';
 
@@ -63,10 +64,20 @@ const reveal = {
 
 export default function ProjectShow({ project, related = [] }: Props) {
     const { lang, theme: appTheme, t } = useApp();
+    const { unlock } = useAchievements();
     const { props } = usePage<{ siteProfile?: Record<string, { value_id: string | null; value_en: string | null }> }>();
     const sp = props.siteProfile || {};
     const authorName = (lang === 'id' ? (sp['name']?.value_id || sp['name']?.value_en) : (sp['name']?.value_en || sp['name']?.value_id)) || 'Reza Edi Saputra';
     const dk = appTheme === 'dark';
+
+    // Track project view for achievements
+    useEffect(() => {
+        if (project?.slug) {
+            unlock('recruiter');
+            const views = trackProjectView(project.slug);
+            if (views.length >= 3) unlock('art_critic');
+        }
+    }, [project?.slug, unlock]);
 
     // Fallback if project is missing (should not happen with standard Inertia/Laravel binding)
     if (!project) return null;

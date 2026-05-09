@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } fr
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, Reply, Edit2, MessageCircle, X, Lock, Sparkles, Code, Bold, Italic, ArrowDown } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
+import { useAchievements } from '@/hooks/useGimmicks';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import ChatBubble from '@/components/chat/ChatBubble';
 import ChatSkeleton from '@/components/chat/ChatSkeleton';
@@ -10,6 +11,7 @@ import type { Message } from '@/components/chat/ChatBubble';
 
 export default function ChatPage() {
     const { theme: appTheme, t, lang } = useApp();
+    const { unlock } = useAchievements();
     const dk = appTheme === 'dark';
     const { props } = usePage<any>();
     const auth = props.auth as { user: { id: number; name: string; email: string; avatar: string | null } | null };
@@ -180,6 +182,7 @@ export default function ChatPage() {
             }
             setInput('');
             fetchMessages();
+            unlock('socializer');
             setTimeout(() => scrollToBottom('smooth'), 200);
         } catch (e) { console.error(e); }
         finally { setIsSending(false); inputRef.current?.focus(); }
@@ -207,6 +210,7 @@ export default function ChatPage() {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf() },
             body: JSON.stringify({ reaction: emoji }),
         });
+        unlock('supporter');
         fetchMessages();
     }, [fetchMessages]);
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\LinkedinController;
 use App\Http\Controllers\InstagramController;
 use App\Http\Controllers\CvController;
@@ -19,6 +20,7 @@ Route::get('/blog/{blog}', [PublicController::class, 'blogShow'])->name('blog.sh
 Route::get('/certificates', [PublicController::class, 'certificates'])->name('certificates');
 Route::get('/testimonials', [PublicController::class, 'testimonials'])->name('testimonials');
 Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
+Route::get('/badges', [PublicController::class, 'badges'])->name('badges');
 Route::get('/projects/{project}', [PublicController::class, 'projectShow'])->name('projects.show');
 
 // Chat Room
@@ -46,6 +48,10 @@ Route::get('/cv/{lang}', [CvController::class, 'download'])->name('cv.download')
 
 // Public API
 Route::post('/api/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
+
+// AI Assistant (public, rate limited)
+Route::post('/api/ai-chat', [AiChatController::class, 'chat'])->middleware('throttle:10,1')->name('ai.chat');
+Route::get('/api/ai-chat/history', [AiChatController::class, 'history'])->name('ai.history');
 
 // ── Admin Routes (Auth Required) ──
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
@@ -122,6 +128,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     // Contacts
     Route::get('contacts', [Admin\ContactController::class, 'index'])->name('contacts.index');
     Route::get('contacts/{contact}', [Admin\ContactController::class, 'show'])->name('contacts.show');
+    Route::put('contacts/{contact}', [Admin\ContactController::class, 'update'])->name('contacts.update');
     Route::delete('contacts/{contact}', [Admin\ContactController::class, 'destroy'])->name('contacts.destroy');
 
     // LinkedIn
@@ -140,6 +147,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('settings', [Admin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings/api-key', [Admin\SettingController::class, 'updateApiKey'])->name('settings.api-key.update');
     Route::delete('settings/api-key', [Admin\SettingController::class, 'removeApiKey'])->name('settings.api-key.destroy');
+    Route::put('settings/ai', [Admin\SettingController::class, 'updateAiSettings'])->name('settings.ai.update');
+    Route::post('settings/ai/reset-exhausted', [Admin\SettingController::class, 'resetExhausted'])->name('settings.ai.reset');
 
     // TipTap Editor Image Upload
     Route::post('upload-image', [Admin\ImageUploadController::class, 'store'])->name('upload-image');

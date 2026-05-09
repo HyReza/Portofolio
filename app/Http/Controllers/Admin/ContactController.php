@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +26,15 @@ class ContactController extends Controller
         ]);
     }
 
-    public function destroy(Contact $contact): RedirectResponse
+    public function update(Request $request, Contact $contact): \Illuminate\Http\RedirectResponse
+    {
+        if ($request->has('is_read') && $request->boolean('is_read')) {
+            $contact->markAsRead();
+        }
+        return redirect()->back();
+    }
+
+    public function destroy(Contact $contact): \Illuminate\Http\RedirectResponse
     {
         $contact->delete();
         return redirect()->route('admin.contacts.index')

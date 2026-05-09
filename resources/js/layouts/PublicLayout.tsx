@@ -4,15 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/hooks/useApp';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { SpotlightSearch } from '@/components/landing/SpotlightSearch';
-import { useKonami, KonamiOverlay, useAchievements, AchievementToast } from '@/hooks/useGimmicks';
+import { useKonami, KonamiOverlay, useAchievements, useAutoAchievements, AchievementToast, AchievementProvider } from '@/hooks/useGimmicks';
 
 /* react-icons — EXACT same icons codebayu uses */
-import { BiHomeSmile, BiLeaf, BiEditAlt, BiArchive, BiPaperPlane, BiMessageDetail } from 'react-icons/bi';
+import { BiHomeSmile, BiLeaf, BiEditAlt, BiArchive, BiPaperPlane, BiMessageDetail, BiTrophy } from 'react-icons/bi';
 import { BsCloudSun, BsCloudMoon, BsLinkedin, BsInstagram } from 'react-icons/bs';
 import { PiChatTeardropDotsBold, PiCertificate } from 'react-icons/pi';
 import { MdVerified } from 'react-icons/md';
 import { PanelLeft, PanelTop } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import AiChatWidget from '@/components/ai/AiChatWidget';
+import ScrollToTop from '@/components/ui/ScrollToTop';
 
 /* ─── PREMIUM TOGGLE COMPONENT ─── */
 function PremiumToggle({ isActive, onClick, iconLeft, iconRight, textLeft, textRight, dk, tooltipText, forceShowTooltip, side = "bottom" }: any) {
@@ -57,6 +59,7 @@ const MENU_ITEMS = [
     { title: 'Certificates', titleId: 'Sertifikat', href: '/certificates', icon: <PiCertificate />, isShow: true },
     { title: 'Testimonials', titleId: 'Testimoni', href: '/testimonials', icon: <BiMessageDetail />, isShow: true },
     { title: 'Chat Room', titleId: 'Ruang Chat', href: '/chat', icon: <PiChatTeardropDotsBold />, isShow: true },
+    { title: 'Badges', titleId: 'Badge', href: '/badges', icon: <BiTrophy />, isShow: true },
     { title: 'Contact', titleId: 'Kontak', href: '/contact', icon: <BiPaperPlane />, isShow: true },
 ];
 
@@ -68,6 +71,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     const { toast, unlock } = useAchievements();
     const dk = appTheme === 'dark';
     const pathname = url;
+    useAutoAchievements(pathname);
 
     // Dynamic profile helper
     const sp = props.siteProfile || {};
@@ -78,6 +82,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     const profileUsername = pv('username') || 'rezaedisaputra';
     const statusActive = pv('status_active') === '1' || pv('status_active') === ''; // default to active if not set
     const statusText = pv('status_text') || 'Hire me.';
+    const aiAssistantEnabled = props.aiAssistantEnabled ?? true;
 
     useSmoothScroll();
     useKonami(() => { setKonamiActive(true); unlock('konami'); });
@@ -87,8 +92,8 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         return () => { document.body.style.overflow = 'auto'; };
     }, [mobileOpen]);
 
-    const toggleTheme = () => setTheme(dk ? 'light' : 'dark');
-    const toggleLang = () => setLang(lang === 'en' ? 'id' : 'en');
+    const toggleTheme = () => { setTheme(dk ? 'light' : 'dark'); unlock('shape_shifter'); };
+    const toggleLang = () => { setLang(lang === 'en' ? 'id' : 'en'); unlock('polyglot'); };
     const toggleLayout = () => setLayout(layout === 'sidebar' ? 'topbar' : 'sidebar');
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const sidebarScrollRef = useRef<HTMLDivElement>(null);
@@ -337,12 +342,15 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                         </main>
                     </div>
 
-                    <Link href="/chat" className={`fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-50 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl shadow-2xl transition-all hover:scale-110 hover:-rotate-6 active:scale-95 ${dk ? 'bg-amber-400 text-black shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-indigo-600/20'}`}>
-                        <PiChatTeardropDotsBold className="h-6 w-6 sm:h-8 sm:w-8" />
-                        <span className="absolute -right-1 -top-1 flex h-4 w-4 sm:h-5 sm:w-5 animate-bounce items-center justify-center rounded-full bg-red-500 text-[8px] sm:text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#121212]">
-                            AI
-                        </span>
-                    </Link>
+                    {/* AI Chat Widget */}
+                    {aiAssistantEnabled && (
+                        <div className="z-50">
+                            <AiChatWidget />
+                        </div>
+                    )}
+
+                    {/* Scroll to Top */}
+                    <ScrollToTop />
                 </div>
             </div>
         </TooltipProvider>

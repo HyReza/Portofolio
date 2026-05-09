@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, X, ArrowRight, FileText, FolderKanban, BookOpen } from 'lucide-react';
+import { useAchievements } from '@/hooks/useGimmicks';
 
 interface SearchItem { type: 'project' | 'blog' | 'page'; title: string; href: string; }
 
@@ -16,10 +17,15 @@ export function SpotlightSearch() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
+    const { unlock } = useAchievements();
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setOpen(true); }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { 
+                e.preventDefault(); 
+                setOpen(true); 
+                unlock('detective');
+            }
             if (e.key === 'Escape') setOpen(false);
         };
         window.addEventListener('keydown', handler);

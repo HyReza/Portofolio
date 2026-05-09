@@ -23,6 +23,9 @@ class SettingController extends Controller
                 'gemini_api_key_set' => !empty($apiKey),
                 'gemini_api_valid' => (bool) SiteSetting::getValue('gemini_api_valid', false),
                 'gemini_api_error' => SiteSetting::getValue('gemini_api_error', ''),
+                'gemini_model' => SiteSetting::getValue('gemini_model', 'gemini-2.0-flash'),
+                'ai_token_exhausted' => (bool) SiteSetting::getValue('ai_token_exhausted', false),
+                'ai_assistant_enabled' => (bool) SiteSetting::getValue('ai_assistant_enabled', true),
             ],
         ]);
     }
@@ -34,12 +37,13 @@ class SettingController extends Controller
         ]);
 
         $apiKey = $validated['gemini_api_key'];
+        $model = SiteSetting::getValue('gemini_model', 'gemini-2.0-flash');
 
         // Test the API key
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}", [
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
                 'contents' => [
                     ['parts' => [['text' => 'Hello, respond with just "OK"']]]
                 ],
@@ -49,6 +53,7 @@ class SettingController extends Controller
                 SiteSetting::setValue('gemini_api_key', $apiKey, 'api');
                 SiteSetting::setValue('gemini_api_valid', true, 'api');
                 SiteSetting::setValue('gemini_api_error', '', 'api');
+                SiteSetting::setValue('ai_token_exhausted', false, 'api');
 
                 return back()->with('success', 'API Key valid dan berhasil disimpan!');
             } else {
@@ -75,5 +80,24 @@ class SettingController extends Controller
         SiteSetting::setValue('gemini_api_error', '', 'api');
 
         return back()->with('success', 'API Key dihapus.');
+    }
+
+    public function updateAiSettings(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'gemini_model' => ['required', 'string', 'max:100'],
+            'ai_assistant_enabled' => ['required', 'boolean'],
+        ]);
+
+        SiteSetting::setValue('gemini_model', $validated['gemini_model'], 'api');
+        SiteSetting::setValue('ai_assistant_enabled', $validated['ai_assistant_enabled'], 'api');
+
+        return back()->with('success', 'AI Assistant settings updated.');
+    }
+
+    public function resetExhausted(): RedirectResponse
+    {
+        SiteSetting::setValue('ai_token_exhausted', false, 'api');
+        return back()->with('success', 'Token exhaustion flag has been reset.');
     }
 }

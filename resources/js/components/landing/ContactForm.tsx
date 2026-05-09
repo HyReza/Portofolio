@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
+import { useAchievements } from '@/hooks/useGimmicks';
 
 export function ContactForm() {
     const { theme: appTheme, t } = useApp();
+    const { unlock } = useAchievements();
     const dk = appTheme === 'dark';
     const [form, setForm] = useState({ name: '', email: '', message: '' });
     const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
@@ -19,7 +21,12 @@ export function ContactForm() {
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token || '', Accept: 'application/json' },
                 body: JSON.stringify(form),
             });
-            if (res.ok) { setStatus('success'); setForm({ name: '', email: '', message: '' }); setTimeout(() => setStatus('idle'), 5000); }
+            if (res.ok) { 
+                setStatus('success'); 
+                setForm({ name: '', email: '', message: '' }); 
+                unlock('connector');
+                setTimeout(() => setStatus('idle'), 5000); 
+            }
             else { const d = await res.json(); setErrorMsg(d.message || 'Failed'); setStatus('error'); setTimeout(() => setStatus('idle'), 5000); }
         } catch { setErrorMsg('Network error'); setStatus('error'); setTimeout(() => setStatus('idle'), 5000); }
     };

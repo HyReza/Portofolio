@@ -105,4 +105,9 @@ class PublicController extends Controller
             'profiles' => $this->profiles(),
         ]);
     }
+
+    public function badges(): Response
+    {
+        return Inertia::render('public/badges');
+    }
 }

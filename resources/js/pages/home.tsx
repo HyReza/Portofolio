@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Code2, Newspaper, Wrench, ChevronDown, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useApp } from '@/hooks/useApp';
+import { useAchievements } from '@/hooks/useGimmicks';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { OnboardingScreen } from '@/components/landing/OnboardingScreen';
 import { SeoHead } from '@/components/SeoHead';
@@ -82,10 +83,22 @@ const reveal = { hidden: { opacity: 0, y: 20 }, visible: (i: number) => ({ opaci
 
 export default function Home({ profiles, skillCategories, projects, blogs, testimonials }: Props) {
     const { lang, theme: appTheme, t } = useApp();
+    const { unlock } = useAchievements();
     const pv = (k: string) => lang === 'id' ? (profiles[k]?.value_id || profiles[k]?.value_en || '') : (profiles[k]?.value_en || profiles[k]?.value_id || '');
     const dk = appTheme === 'dark';
     const [onboardingDone, setOnboardingDone] = useState(() => typeof window !== 'undefined' && sessionStorage.getItem('onboarding_done') === '1');
     const [activeSkillFilter, setActiveSkillFilter] = useState('All');
+
+    // Scroll to bottom detection for scroll_master badge
+    useEffect(() => {
+        const handler = () => {
+            if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 100) {
+                unlock('scroll_master');
+            }
+        };
+        window.addEventListener('scroll', handler, { passive: true });
+        return () => window.removeEventListener('scroll', handler);
+    }, [unlock]);
 
     const cardBase = `rounded-xl border shadow-sm transition-all duration-300 lg:hover:shadow-md ${dk ? 'border-neutral-700' : 'border-neutral-200'}`;
 
@@ -163,12 +176,12 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
-                                    <a href="/cv/en" target="_blank" rel="noopener" className="flex flex-col items-center justify-center p-6 border-2 border-neutral-200 dark:border-neutral-800 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 transition-all group">
+                                    <a href="/cv/en" target="_blank" rel="noopener" onClick={() => unlock('cv_collector')} className="flex flex-col items-center justify-center p-6 border-2 border-neutral-200 dark:border-neutral-800 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 transition-all group">
                                         <span className="text-4xl mb-3 transition-transform group-hover:scale-110">🇺🇸</span>
                                         <span className="font-bold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">English</span>
                                         <span className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider font-semibold">International</span>
                                     </a>
-                                    <a href="/cv/id" target="_blank" rel="noopener" className="flex flex-col items-center justify-center p-6 border-2 border-neutral-200 dark:border-neutral-800 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 transition-all group">
+                                    <a href="/cv/id" target="_blank" rel="noopener" onClick={() => unlock('cv_collector')} className="flex flex-col items-center justify-center p-6 border-2 border-neutral-200 dark:border-neutral-800 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 transition-all group">
                                         <span className="text-4xl mb-3 transition-transform group-hover:scale-110">🇮🇩</span>
                                         <span className="font-bold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Indonesia</span>
                                         <span className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider font-semibold">Bahasa</span>
@@ -299,7 +312,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                     <section className="space-y-5">
                         <div className="flex items-center justify-between">
                             <h2 className="flex items-center gap-2 text-xl font-bold"><MessageSquare className="h-5 w-5" /> {t('Client Feedback', 'Umpan Balik Klien')}</h2>
-                            <Link href="/testimonials" className={`flex items-center gap-1 text-sm transition-colors ${dk ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-800'}`}>
+                            <Link href="/testimonials" onClick={() => unlock('curious_cat')} className={`flex items-center gap-1 text-sm transition-colors ${dk ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-800'}`}>
                                 {t('View All', 'Lihat Semua')} <ArrowUpRight className="h-3.5 w-3.5" />
                             </Link>
                         </div>
@@ -342,7 +355,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                     <section className="space-y-5">
                         <div className="flex items-center justify-between">
                             <h2 className="flex items-center gap-2 text-xl font-bold"><Code2 className="h-5 w-5" /> {t('Projects', 'Proyek')}</h2>
-                            <Link href="/projects" className={`flex items-center gap-1 text-sm transition-colors ${dk ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-800'}`}>
+                            <Link href="/projects" onClick={() => unlock('curious_cat')} className={`flex items-center gap-1 text-sm transition-colors ${dk ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-800'}`}>
                                 {t('View All', 'Lihat Semua')} <ArrowUpRight className="h-3.5 w-3.5" />
                             </Link>
                         </div>
@@ -390,7 +403,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                     <section className="space-y-5">
                         <div className="flex items-center justify-between">
                             <h2 className="flex items-center gap-2 text-xl font-bold"><Newspaper className="h-5 w-5" /> {t('Latest Articles', 'Artikel Terbaru')}</h2>
-                            <Link href="/blog" className={`flex items-center gap-1 text-sm transition-colors ${dk ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-800'}`}>
+                            <Link href="/blog" onClick={() => unlock('curious_cat')} className={`flex items-center gap-1 text-sm transition-colors ${dk ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-800'}`}>
                                 {t('View All', 'Lihat Semua')} <ArrowUpRight className="h-3.5 w-3.5" />
                             </Link>
                         </div>
