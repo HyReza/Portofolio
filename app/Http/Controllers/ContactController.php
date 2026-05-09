@@ -28,7 +28,8 @@ class ContactController extends Controller
                     'name' => strip_tags($validated['name']),
                     'email' => $validated['email'],
                     'message' => strip_tags($validated['message']),
-                    'status' => 'unread'
+                    'is_read' => false,
+                    'ip_address' => $request->ip(),
                 ]);
 
                 // Send email notification
