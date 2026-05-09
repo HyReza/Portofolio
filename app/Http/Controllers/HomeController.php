@@ -18,8 +18,8 @@ class HomeController extends Controller
             'profiles' => Profile::ordered()->get()->keyBy('key'),
             'testimonials' => \App\Models\Testimonial::ordered()->get(),
             'skillCategories' => SkillCategory::withOrderedSkills()->ordered()->limit(6)->get(),
-            'projects' => Project::published()->featured()->orderByDesc('published_at')->limit(3)->get(),
-            'blogs' => Blog::with('tags')->latestPublished()->limit(3)->get(),
+            'projects' => Project::with('seoMeta')->published()->featured()->orderByDesc('published_at')->limit(3)->get(),
+            'blogs' => Blog::with(['tags', 'seoMeta'])->latestPublished()->limit(3)->get(),
         ]);
     }
 }

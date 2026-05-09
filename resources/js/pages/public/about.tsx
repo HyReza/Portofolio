@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { SeoHead } from '@/components/SeoHead';
 import { useApp } from '@/hooks/useApp';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { AboutHero } from '@/components/about/AboutHero';
@@ -40,11 +40,11 @@ export default function About({ profiles, educations, careers, skillCategories, 
 
     return (
         <PublicLayout>
-            <Head>
-                <title>{pageTitle}</title>
-                <meta name="description" content={pv('about_page_bio') || pv('bio') || ''} />
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(skillsSchema) }} />
-            </Head>
+            <SeoHead
+                title={pageTitle}
+                description={pv('about_page_bio') || pv('bio') || ''}
+                schemaMarkup={skillsSchema}
+            />
 
             <AboutHero profiles={profiles} />
             <AboutSkills skillCategories={skillCategories} />

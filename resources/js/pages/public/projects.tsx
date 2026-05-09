@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
+import { SeoHead } from '@/components/SeoHead';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Github, Search, Filter } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
@@ -51,7 +52,10 @@ export default function Projects({ projects }: { projects: Project[] }) {
 
     return (
         <PublicLayout>
-            <Head title={t('Projects', 'Proyek')} />
+            <SeoHead 
+                title={t('Projects', 'Proyek')} 
+                description={t('My portfolio of software engineering projects, applications, and experiments.', 'Portofolio proyek software engineering, aplikasi, dan eksperimen saya.')}
+            />
             <section className="py-24 sm:py-32">
                 <div className="mx-auto max-w-7xl px-5 sm:px-8">
                     <FadeUp><p className={`text-xs font-bold uppercase tracking-[0.25em] ${dk ? 'text-indigo-400/50' : 'text-indigo-500'}`}>Portfolio</p></FadeUp>

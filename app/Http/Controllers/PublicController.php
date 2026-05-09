@@ -45,7 +45,7 @@ class PublicController extends Controller
         $project->load('seoMeta');
 
         // Get related projects (same tech stack overlap)
-        $related = Project::published()
+        $related = Project::with('seoMeta')->published()
             ->where('id', '!=', $project->id)
             ->limit(3)
             ->get();
@@ -59,7 +59,7 @@ class PublicController extends Controller
     public function blog(): Response
     {
         return Inertia::render('public/blog', [
-            'blogs' => Blog::with('tags')->latestPublished()->paginate(12),
+            'blogs' => Blog::with(['tags', 'seoMeta'])->latestPublished()->paginate(12),
         ]);
     }
 
@@ -70,7 +70,7 @@ class PublicController extends Controller
 
         // Get related articles by shared tags
         $tagIds = $blog->tags->pluck('id');
-        $related = Blog::with('tags')
+        $related = Blog::with(['tags', 'seoMeta'])
             ->published()
             ->where('id', '!=', $blog->id)
             ->when($tagIds->isNotEmpty(), function ($q) use ($tagIds) {

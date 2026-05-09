@@ -137,7 +137,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                         <img src={profilePhoto} alt="profile" className="h-full w-full object-cover" />
                                     </div>
                                     <div>
-                                        <h2 className="font-bold text-sm leading-tight text-neutral-900 dark:text-white">{profileName}</h2>
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <h2 className="font-bold text-sm leading-tight text-neutral-900 dark:text-white">{profileName}</h2>
+                                        </div>
                                         <div className="flex items-center gap-1 text-[10px] text-neutral-500">
                                             <MdVerified className="text-blue-500" />
                                             <span>{profileTitle}</span>
@@ -184,7 +186,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                         <img src={profilePhoto} alt="profile" className="h-full w-full object-cover" />
                                     </div>
                                     <div className="min-w-0">
-                                        <h2 className="truncate font-bold text-sm leading-tight text-neutral-900 dark:text-white">{profileName}</h2>
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <h2 className="truncate font-bold text-sm leading-tight text-neutral-900 dark:text-white">{profileName}</h2>
+                                        </div>
                                         <div className="flex items-center gap-1 text-[10px] text-neutral-500">
                                             <MdVerified className="text-blue-500" />
                                             <span>{profileTitle}</span>
@@ -274,7 +278,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
                                         <div className="flex flex-col items-center text-center mt-3 w-full transition-all duration-500 overflow-hidden">
                                             <div className="opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto transition-all duration-500 overflow-hidden">
-                                                <div className="flex items-center gap-1.5 whitespace-nowrap px-2">
+                                                <div className="flex items-center justify-center gap-1.5 whitespace-nowrap px-2">
                                                     <h2 className="font-sora text-sm font-bold text-neutral-900 dark:text-white truncate">{profileName}</h2>
                                                     <MdVerified className="text-blue-500 shrink-0" size={14} />
                                                 </div>

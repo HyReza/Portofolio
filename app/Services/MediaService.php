@@ -31,6 +31,14 @@ class MediaService
                 // Silently fail — original image is still available
                 report($e);
             }
+        } else if ($this->isImage($file)) {
+            // Fallback: Native PHP GD Compression & Resizing
+            try {
+                $this->compressNativeImage(Storage::disk('public')->path($path), $file->getMimeType());
+                $result['size'] = filesize(Storage::disk('public')->path($path));
+            } catch (\Exception $e) {
+                report($e);
+            }
         }
 
         return $result;
@@ -61,6 +69,51 @@ class MediaService
             ->save($webpFullPath);
 
         return $webpPath;
+    }
+
+    /**
+     * Native GD Library Image Compression & Resizing fallback.
+     * Prevents giant 5MB+ images from slowing down the website.
+     */
+    protected function compressNativeImage(string $fullPath, string $mime): void
+    {
+        if (!in_array($mime, ['image/jpeg', 'image/png'])) return;
+
+        $image = $mime === 'image/jpeg' ? @imagecreatefromjpeg($fullPath) : @imagecreatefrompng($fullPath);
+        if ($image === false) return;
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $maxWidth = 1920; // 1080p max width for excellent quality
+
+        // Resize if too large
+        if ($width > $maxWidth) {
+            $newWidth = $maxWidth;
+            $newHeight = (int)($height * ($maxWidth / $width));
+            
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+            
+            // Preserve transparency for PNG
+            if ($mime === 'image/png') {
+                imagealphablending($resized, false);
+                imagesavealpha($resized, true);
+                $transparent = imagecolorallocatealpha($resized, 255, 255, 255, 127);
+                imagefilledrectangle($resized, 0, 0, $newWidth, $newHeight, $transparent);
+            }
+            
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            imagedestroy($image);
+            $image = $resized;
+        }
+
+        // Save compressed image back to disk
+        if ($mime === 'image/jpeg') {
+            imagejpeg($image, $fullPath, 85); // 85% high quality
+        } else if ($mime === 'image/png') {
+            imagepng($image, $fullPath, 8); // PNG compression 0-9
+        }
+        
+        imagedestroy($image);
     }
 
     /**

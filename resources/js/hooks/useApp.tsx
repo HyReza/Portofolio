@@ -10,6 +10,7 @@ interface AppCtx {
     layout: LayoutMode;
     setLayout: (l: LayoutMode) => void;
     t: (en: string, id: string) => string;
+    dk: boolean;
 }
 
 const Ctx = createContext<AppCtx>({} as AppCtx);
@@ -55,5 +56,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, [theme]);
 
-    return <Ctx.Provider value={{ lang, setLang, theme, setTheme, layout, setLayout, t }}>{children}</Ctx.Provider>;
+    const dk = theme === 'dark';
+
+    return <Ctx.Provider value={{ lang, setLang, theme, setTheme, layout, setLayout, t, dk }}>{children}</Ctx.Provider>;
 }

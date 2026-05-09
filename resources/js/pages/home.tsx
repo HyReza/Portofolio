@@ -362,10 +362,11 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {projects.map((p, i) => (
                                 <motion.div key={p.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                                    transition={{ delay: i * 0.1, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}>
+                                    transition={{ delay: i * 0.1, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
+                                    className="flex flex-col h-full">
                                     <Link href={`/projects/${p.slug}`}
-                                        className={`group block overflow-hidden p-4 md:p-6 ${cardBase} ${dk ? 'bg-transparent' : 'bg-white'}`}>
-                                        <div className={`mb-4 aspect-video overflow-hidden rounded-lg ${dk ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
+                                        className={`group flex flex-col h-full overflow-hidden p-4 md:p-6 ${cardBase} ${dk ? 'bg-transparent' : 'bg-white'}`}>
+                                        <div className={`mb-4 aspect-video overflow-hidden rounded-lg shrink-0 ${dk ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
                                             {p.thumbnail ? <ImageReveal src={`/storage/${p.thumbnail}`} alt={p.title_en || ''} className="h-full w-full" /> :
                                                 <div className={`flex h-full items-center justify-center bg-gradient-to-br ${gradients[i % gradients.length]}`}>
                                                     <span className="text-5xl font-black text-white/20">{(p.title_en || p.title_id).charAt(0)}</span>
@@ -376,13 +377,13 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                                 {t('Project', 'Proyek')}
                                             </span>
                                         </div>
-                                        <div className="mt-4 space-y-2">
+                                        <div className="mt-4 space-y-2 flex-1">
                                             <h3 className={`text-xl font-bold transition-colors ${dk ? 'group-hover:text-indigo-400' : 'group-hover:text-indigo-600'}`}>
                                                 {lang === 'id' ? (p.title_id || p.title_en) : (p.title_en || p.title_id)}
                                             </h3>
                                         </div>
-
-                                        <div className="mt-6 flex items-center justify-between">
+ 
+                                        <div className="mt-auto pt-6 flex items-center justify-between">
                                             <div className="flex flex-wrap gap-1.5">
                                                 {p.tech_stack?.slice(0, 3)?.map(tech => <span key={tech} className={`rounded-md px-2 py-1 text-[10px] font-medium ${dk ? 'bg-white/5 text-neutral-400' : 'bg-neutral-100 text-neutral-500'}`}>{tech}</span>)}
                                             </div>
@@ -414,9 +415,9 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                             {blogs.map((b, i) => (
                                 <motion.div key={b.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                                     transition={{ delay: i * 0.1, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
-                                    className="min-w-[220px] sm:min-w-0">
-                                    <Link href={`/blog/${b.slug}`} className={`group block overflow-hidden ${cardBase} ${dk ? 'bg-transparent' : 'bg-white'}`}>
-                                        <div className="aspect-[16/10] overflow-hidden">
+                                    className="min-w-[220px] sm:min-w-0 flex flex-col">
+                                    <Link href={`/blog/${b.slug}`} className={`group flex flex-col h-full overflow-hidden ${cardBase} ${dk ? 'bg-transparent' : 'bg-white'}`}>
+                                        <div className="aspect-[16/10] overflow-hidden shrink-0">
                                             {b.thumbnail ? (
                                                 <img src={`/storage/${b.thumbnail}`} alt="" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                             ) : (
@@ -425,10 +426,10 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="p-4">
+                                        <div className="p-4 flex flex-col flex-1">
                                             <h3 className={`text-base font-bold line-clamp-2 ${dk ? 'text-neutral-200 group-hover:text-indigo-400' : 'text-neutral-800 group-hover:text-indigo-600'} transition-colors`}>{lang === 'id' ? (b.title_id || b.title_en) : (b.title_en || b.title_id)}</h3>
                                             {(b.excerpt_en || b.excerpt_id) && <p className={`mt-2 line-clamp-2 text-sm ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>{lang === 'id' ? (b.excerpt_id || b.excerpt_en) : (b.excerpt_en || b.excerpt_id)}</p>}
-                                            <div className="mt-4 flex items-center justify-between">
+                                            <div className="mt-auto pt-4 flex items-center justify-between">
                                                 <p className={`text-xs font-medium uppercase tracking-wider ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>
                                                     {b.published_at ? new Date(b.published_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
                                                 </p>

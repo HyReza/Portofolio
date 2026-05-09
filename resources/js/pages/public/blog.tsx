@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
+import { SeoHead } from '@/components/SeoHead';
 import { motion } from 'framer-motion';
 import { Sparkles, Search, Filter } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
@@ -45,7 +46,10 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
 
     return (
         <PublicLayout>
-            <Head title="Blog" />
+            <SeoHead 
+                title={t('Blog', 'Blog')} 
+                description={t('Thoughts, tutorials & insights about software development.', 'Pemikiran, tutorial & wawasan tentang pengembangan perangkat lunak.')}
+            />
             <section className="py-24 sm:py-32">
                 <div className="mx-auto max-w-7xl px-5 sm:px-8">
                     <FadeUp><p className={`text-xs font-bold uppercase tracking-[0.25em] ${dk ? 'text-indigo-400/50' : 'text-indigo-500'}`}>{t('Articles', 'Artikel')}</p></FadeUp>
@@ -126,16 +130,16 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
                                 <motion.article key={b.id} initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-30px' }}
                                     transition={{ delay: (i % 6) * 0.1, duration: 0.7, ease: [0.25,0.4,0.25,1] }}
                                     whileHover={{ y: -8 }}
-                                    className={`group overflow-hidden rounded-3xl ${dk ? 'bg-white/[0.02] border border-white/5 hover:border-indigo-500/15 hover:bg-white/[0.04]' : 'bg-white border border-gray-100 hover:shadow-2xl'}`}>
-                                    <Link href={`/blog/${b.slug}`} className="block h-full">
-                                        <div className="overflow-hidden aspect-[16/10]">
+                                    className={`group flex flex-col h-full overflow-hidden rounded-3xl ${dk ? 'bg-white/[0.02] border border-white/5 hover:border-indigo-500/15 hover:bg-white/[0.04]' : 'bg-white border border-gray-100 hover:shadow-2xl'}`}>
+                                    <Link href={`/blog/${b.slug}`} className="flex flex-col h-full w-full">
+                                        <div className="overflow-hidden aspect-[16/10] shrink-0">
                                             {b.thumbnail ? <ImageReveal src={`/storage/${b.thumbnail}`} alt={b.title_en || ''} className="h-full w-full" /> :
                                             <div className={`flex h-full items-center justify-center ${dk ? 'bg-indigo-500/[0.03]' : 'bg-indigo-50/50'}`}><Sparkles className="h-12 w-12 text-indigo-500/10" /></div>}
                                         </div>
-                                        <div className="p-6">
+                                        <div className="p-6 flex flex-col flex-1">
                                             <h2 className={`font-bold group-hover:text-indigo-400 transition-colors line-clamp-2 text-lg`}>{lang === 'id' ? (b.title_id || b.title_en) : (b.title_en || b.title_id)}</h2>
                                             {(b.excerpt_en || b.excerpt_id) && <p className={`mt-3 line-clamp-2 text-sm ${dk ? 'text-white/40' : 'text-gray-500'}`}>{lang === 'id' ? (b.excerpt_id || b.excerpt_en) : (b.excerpt_en || b.excerpt_id)}</p>}
-                                            {b.published_at && <p className={`mt-5 text-xs font-semibold uppercase tracking-wider ${dk ? 'text-white/20' : 'text-gray-400'}`}>{new Date(b.published_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
+                                            {b.published_at && <p className={`mt-auto pt-5 text-xs font-semibold uppercase tracking-wider ${dk ? 'text-white/20' : 'text-gray-400'}`}>{new Date(b.published_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
                                         </div>
                                     </Link>
                                 </motion.article>
