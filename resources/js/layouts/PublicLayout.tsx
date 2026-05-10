@@ -254,69 +254,75 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                             onMouseEnter={() => { setMobileOpen(false); setIsSidebarHovered(true); }} 
                             onMouseLeave={() => setIsSidebarHovered(false)}
                             onWheel={handleSidebarWheel}
-                            className={`group fixed bottom-0 left-0 top-0 z-50 hidden flex-col transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] lg:flex ${layout === 'sidebar' ? 'w-[88px] hover:w-64' : 'w-0 opacity-0 pointer-events-none p-0'} ${dk ? 'bg-[#121212] border-r border-neutral-800/50 shadow-[4px_0_24px_rgba(0,0,0,0.5)] hover:shadow-[8px_0_40px_rgba(0,0,0,0.7)]' : 'bg-white border-r border-neutral-100 shadow-[4px_0_24px_rgba(0,0,0,0.05)] hover:shadow-[8px_0_40px_rgba(0,0,0,0.1)]'}`}
+                            className={`group fixed bottom-0 left-0 top-0 z-50 hidden flex-col transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] lg:flex ${layout === 'sidebar' ? 'w-[88px] hover:w-64 translate-x-0' : 'w-0 opacity-0 pointer-events-none -translate-x-full'} ${dk ? 'bg-[#0f0f0f]/95 backdrop-blur-md border-r border-white/5 shadow-[10px_0_40px_rgba(0,0,0,0.4)]' : 'bg-white/95 backdrop-blur-md border-r border-neutral-100 shadow-[10px_0_40px_rgba(0,0,0,0.03)]'}`}
                         >
-                            <div ref={sidebarScrollRef} className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-4 overscroll-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                                <div className="flex flex-col items-center mb-2 group-hover:mb-6 shrink-0 transition-all duration-500">
-                                    <div className="relative w-full flex flex-col items-center pb-2">
+                            <div ref={sidebarScrollRef} className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-5 overscroll-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                                {/* Profile Section */}
+                                <div className="flex flex-col items-center mb-8 shrink-0">
+                                    <div className="relative w-full flex flex-col items-center">
                                         {statusActive && (
-                                            <div className={`absolute top-0 left-0 z-10 rounded-br-xl transition-all duration-500 opacity-0 group-hover:opacity-100 translate-x-[-20px] group-hover:translate-x-0 ${dk ? 'inverted-border-radius-dark bg-[#121212]' : 'inverted-border-radius bg-white'} pb-2 pr-2`}>
-                                                <div className="relative flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-2 py-1 dark:border-neutral-700 dark:bg-[#121212]">
-                                                    <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                                                    <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400">{statusText}</span>
+                                            <div className={`absolute -top-1 -left-1 z-20 transition-all duration-500 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 ${dk ? 'bg-[#0f0f0f]' : 'bg-white'} pb-2 pr-2 rounded-br-2xl`}>
+                                                <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-2.5 py-1">
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">{statusText}</span>
                                                 </div>
                                             </div>
                                         )}
                                         
-                                        <div className={`w-full overflow-hidden rounded-2xl ${statusActive ? 'rounded-tl-none' : ''} transition-all duration-500 ${dk ? 'brightness-50 bg-neutral-800' : 'bg-neutral-100'} h-0 opacity-0 group-hover:h-24 group-hover:opacity-100`}>
-                                            <div className="w-full h-full bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-800 dark:to-neutral-700 opacity-50" />
+                                        <div className={`w-full overflow-hidden rounded-2xl transition-all duration-500 ${dk ? 'bg-neutral-800/50' : 'bg-neutral-50'} h-0 opacity-0 group-hover:h-28 group-hover:opacity-100`}>
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent" />
                                         </div>
 
-                                        <div className="z-10 mt-0 rounded-full border-[3px] border-white dark:border-[#121212] bg-white dark:bg-[#121212] shadow-md transition-all duration-500 group-hover:scale-110 group-hover:-mt-10">
-                                            <img src={profilePhoto} alt="profile" className="h-12 w-12 group-hover:h-20 group-hover:w-20 rounded-full object-cover" />
+                                        <div className="z-10 -mt-0 group-hover:-mt-12 rounded-full p-1.5 border-4 border-transparent bg-gradient-to-tr from-indigo-500/50 to-purple-500/50 transition-all duration-500 group-hover:scale-110 shadow-xl shadow-indigo-500/10">
+                                            <img src={profilePhoto} alt="profile" className="h-12 w-12 group-hover:h-20 group-hover:w-20 rounded-full object-cover ring-2 ring-white dark:ring-[#0f0f0f]" />
                                         </div>
 
-                                        <div className="flex flex-col items-center text-center mt-3 w-full transition-all duration-500 overflow-hidden">
-                                            <div className="opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto transition-all duration-500 overflow-hidden">
-                                                <div className="flex items-center justify-center gap-1.5 whitespace-nowrap px-2">
-                                                    <h2 className="font-sora text-sm font-bold text-neutral-900 dark:text-white truncate">{profileName}</h2>
-                                                    <MdVerified className="text-blue-500 shrink-0" size={14} />
+                                        <div className="flex flex-col items-center text-center mt-3 w-full transition-all duration-500">
+                                            <div className="opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto transition-all duration-500 overflow-hidden px-2">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <h2 className="font-sora text-[15px] font-extrabold text-neutral-900 dark:text-white truncate">{profileName}</h2>
+                                                    <MdVerified className="text-blue-500 shrink-0" size={16} />
                                                 </div>
-                                                <p className="font-sora text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5 mb-4">@{profileUsername}</p>
+                                                <p className="font-medium text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 mb-6">@{profileUsername}</p>
                                             </div>
 
-                                            <div className="flex flex-col group-hover:flex-row items-center gap-2 w-full justify-center pb-2 transition-all duration-500">
-                                                <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={12}/>} iconRight={<BsCloudMoon size={12}/>} tooltipText={t('Toggle Theme', 'Ganti Tema')} side="bottom" />
+                                            <div className="flex flex-col group-hover:flex-row items-center gap-2.5 w-full justify-center py-2">
+                                                <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14}/>} iconRight={<BsCloudMoon size={14}/>} tooltipText={t('Toggle Theme', 'Ganti Tema')} side="right" />
                                                 
-                                                <div className="flex flex-col group-hover:flex-row items-center gap-2 opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto overflow-hidden transition-all duration-500">
-                                                    <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" tooltipText={t('Switch Language', 'Ganti Bahasa')} side="bottom" />
-                                                    <PremiumToggle dk={dk} isActive={layout === 'topbar'} onClick={toggleLayout} iconLeft={<PanelLeft size={12}/>} iconRight={<PanelTop size={12}/>} tooltipText={t('Layout Style', 'Gaya Tata Letak')} side="bottom" />
+                                                <div className="flex flex-col group-hover:flex-row items-center gap-2.5 opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto overflow-hidden transition-all duration-500">
+                                                    <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" tooltipText={t('Switch Language', 'Ganti Bahasa')} side="right" />
+                                                    <PremiumToggle dk={dk} isActive={layout === 'topbar'} onClick={toggleLayout} iconLeft={<PanelLeft size={14}/>} iconRight={<PanelTop size={14}/>} tooltipText={t('Layout Style', 'Gaya Tata Letak')} side="right" />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <nav className="flex flex-col gap-1.5 flex-1 px-1 border-t pt-3 group-hover:pt-6 dark:border-neutral-800/50 border-neutral-100 transition-all duration-500">
+                                {/* Navigation Section */}
+                                <nav className="flex flex-col gap-1.5 flex-1 border-t border-neutral-100 dark:border-neutral-800/50 pt-6">
                                     {filteredMenu.map((item) => {
                                         const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
                                         return (
                                             <Link 
                                                 key={item.href}
                                                 href={item.href}
-                                                className={`relative flex items-center rounded-xl transition-all duration-300 px-4 py-3 gap-5 group/item ${isActive ? (dk ? 'bg-neutral-800 text-neutral-100 font-bold' : 'bg-neutral-100 text-neutral-900 font-bold shadow-sm') : (dk ? 'text-neutral-500 hover:bg-neutral-800/40 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900')}`}
+                                                className={`relative flex items-center rounded-xl transition-all duration-300 px-3 py-3.5 gap-5 group/item ${isActive ? (dk ? 'bg-indigo-500/10 text-indigo-400 font-bold' : 'bg-indigo-50 text-indigo-600 font-bold') : (dk ? 'text-neutral-500 hover:bg-neutral-800/60 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900')}`}
                                             >
-                                                <span className={`text-xl transition-transform duration-300 group-hover/item:scale-110 ${isActive ? 'scale-110' : ''}`}>
-                                                    {item.icon}
-                                                </span>
-                                                <span className="text-[13px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-[-10px] group-hover:translate-x-0 overflow-hidden">
+                                                <div className={`relative flex items-center justify-center transition-transform duration-300 group-hover/item:scale-110 ${isActive ? 'scale-110' : ''}`}>
+                                                    <span className="text-2xl">{item.icon}</span>
+                                                    {isActive && <motion.span layoutId="active-dot" className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50" />}
+                                                </div>
+                                                <span className="text-[13px] font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-[-10px] group-hover:translate-x-0 overflow-hidden">
                                                     {lang === 'id' ? item.titleId : item.title}
                                                 </span>
                                                 
                                                 {isActive && (
                                                     <motion.div 
-                                                        layoutId="sidebar-active"
-                                                        className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full"
+                                                        layoutId="sidebar-active-line"
+                                                        className="absolute right-0 w-1 h-6 bg-indigo-500 rounded-l-full"
                                                     />
                                                 )}
                                             </Link>
@@ -324,9 +330,10 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                     })}
                                 </nav>
 
-                                <div className="mt-auto pt-6 shrink-0 transition-all duration-500 group-hover:opacity-100 opacity-0 h-0 group-hover:h-auto overflow-hidden border-t border-neutral-100 dark:border-neutral-800/50">
-                                    <div className="text-center w-full px-2 pb-4">
-                                        <p className="text-[9px] font-medium text-neutral-400 whitespace-nowrap uppercase tracking-tighter">© {new Date().getFullYear()} REZA EDI SAPUTRA</p>
+                                {/* Footer Copyright */}
+                                <div className="mt-auto pt-6 shrink-0 transition-all duration-500 group-hover:opacity-100 opacity-0 h-0 group-hover:h-auto overflow-hidden">
+                                    <div className="text-center w-full pb-4">
+                                        <p className="text-[9px] font-bold text-neutral-400 dark:text-neutral-600 whitespace-nowrap uppercase tracking-widest opacity-50">© {new Date().getFullYear()} REZA EDI SAPUTRA</p>
                                     </div>
                                 </div>
                             </div>

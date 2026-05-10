@@ -4,7 +4,7 @@ import { Reply, Trash2, Edit2, MoreVertical, SmilePlus, Shield } from 'lucide-re
 import { useApp } from '@/hooks/useApp';
 
 // Types
-interface User { id: number; name: string; email: string; avatar: string | null; }
+interface User { id: number; name: string; email: string; avatar: string | null; role?: string; }
 interface Reaction { id: number; chat_message_id: string; user_id: number; reaction: string; user: { id: number; name: string }; }
 export interface Message {
     id: string; user_id: number; name: string; email: string | null; avatar: string | null;
@@ -17,10 +17,16 @@ const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '�
 // Markdown parser
 function parseMarkdown(text: string) {
     let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Bold
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Inline code
     html = html.replace(/`(.*?)`/g, '<code class="bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded text-xs font-mono">$1</code>');
-    html = html.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline text-blue-400 hover:text-blue-300">$1</a>');
+    // Markdown Links [text](url)
+    html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="underline text-indigo-500 hover:text-indigo-400">$1</a>');
+    // Bare URLs
+    html = html.replace(/(?<!href=")(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline text-blue-400 hover:text-blue-300">$1</a>');
     return html;
 }
 
@@ -62,9 +68,9 @@ interface ChatBubbleProps {
 
 function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, isChild = false, onReply, onEdit, onDelete, onReact, pickerOpenId, setPickerOpenId, menuOpenId, setMenuOpenId }: ChatBubbleProps) {
     const { t, lang } = useApp();
-    const isAuthor = msg.user_id === 1;
+    const isAuthor = msg.user?.role === 'admin';
     const isMine = user?.id === msg.user_id;
-    const isAdmin = user?.id === 1;
+    const isAdmin = user?.role === 'admin';
     const isOwnBubble = isMine && !isAuthor;
 
     // Reactions
@@ -137,7 +143,12 @@ function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, is
                             {t('Author', 'Penulis')}
                         </span>
                     )}
-                    <span className={`text-[10px] ${dk ? 'text-neutral-600' : 'text-neutral-400'}`}>{timeAgo(msg.created_at, lang)}</span>
+                    <span className={`text-[10px] ${dk ? 'text-neutral-600' : 'text-neutral-400'}`}>
+                        {timeAgo(msg.created_at, lang)}
+                        {msg.updated_at !== msg.created_at && (
+                            <span className="ml-1 opacity-70">({t('edited', 'diedit')})</span>
+                        )}
+                    </span>
                 </div>
 
                 {/* Bubble */}
@@ -146,14 +157,23 @@ function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, is
                     <div className={`text-[13px] leading-relaxed break-words whitespace-pre-wrap ${dk ? 'text-neutral-200' : 'text-neutral-800'}`}
                         dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.message) }} />
 
-                    {/* Hover Actions */}
-                    {user && hovered && (
-                        <div className={`absolute ${isOwnBubble ? 'left-0 -translate-x-full pl-0 pr-1' : 'right-0 translate-x-full pr-0 pl-1'} top-0 flex items-center gap-0.5 z-10`}>
+                    {/* Hover Actions - Always visible "More" for mobile/owner/admin */}
+                    {user && (
+                        <div className={`absolute ${isOwnBubble ? 'left-0 -translate-x-full pl-0 pr-1' : 'right-0 translate-x-full pr-0 pl-1'} top-0 flex items-center gap-0.5 z-10 ${hovered ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100 transition-opacity'}`}>
                             <ActionBtn dk={dk} onClick={togglePicker} title="React"><SmilePlus className="w-3 h-3" /></ActionBtn>
                             <ActionBtn dk={dk} onClick={onReply} title="Reply"><Reply className="w-3 h-3" /></ActionBtn>
                             {(isMine || isAdmin) && (
                                 <ActionBtn dk={dk} onClick={toggleMenu} title="More"><MoreVertical className="w-3 h-3" /></ActionBtn>
                             )}
+                        </div>
+                    )}
+
+                    {/* Mobile/Always visible toggle for touch devices or if not hovered */}
+                    {user && !hovered && (isMine || isAdmin) && (
+                        <div className={`lg:hidden absolute ${isOwnBubble ? 'left-1' : 'right-1'} top-1 z-10`}>
+                             <button onClick={toggleMenu} className={`p-1 rounded-full ${dk ? 'bg-black/20 text-neutral-400' : 'bg-white/40 text-neutral-500'}`}>
+                                <MoreVertical className="w-3 h-3" />
+                             </button>
                         </div>
                     )}
 

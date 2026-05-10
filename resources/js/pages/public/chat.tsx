@@ -14,7 +14,7 @@ export default function ChatPage() {
     const { unlock } = useAchievements();
     const dk = appTheme === 'dark';
     const { props } = usePage<any>();
-    const auth = props.auth as { user: { id: number; name: string; email: string; avatar: string | null } | null };
+    const auth = props.auth as { user: { id: number; name: string; email: string; avatar: string | null; role?: string } | null };
     const flash = props.flash as { error?: string; success?: string } | undefined;
     const user = auth.user;
 

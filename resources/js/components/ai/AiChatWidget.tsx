@@ -95,16 +95,17 @@ export default function AiChatWidget() {
     }, [input]);
 
     // ── Send message ──
-    const handleSend = async (text: string = input) => {
-        if (!text.trim() || isLoading) return;
-        setError('');
-        setShowWelcome(false);
+    const handleSend = async (overrideText?: string) => {
+        const msgText = overrideText || input;
+        if (!msgText.trim() || isLoading) return;
 
-        const userMsg: AiMessage = { id: Date.now().toString(), role: 'user', content: text.trim(), created_at: new Date().toISOString() };
-        setMessages(prev => [...prev, userMsg]);
+        const textToSend = msgText.trim();
         setInput('');
+        setMessages(p => [...p, { id: Date.now().toString(), role: 'user', content: textToSend, created_at: new Date().toISOString() }]);
         setIsLoading(true);
         setIsTyping(true);
+        setError('');
+        setShowWelcome(false);
 
         // Track AI questions for achievement
         const qCount = trackAiQuestion();
@@ -120,7 +121,7 @@ export default function AiChatWidget() {
             const res = await fetch('/api/ai-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf },
-                body: JSON.stringify({ message: text.trim(), lang }),
+                body: JSON.stringify({ message: textToSend, lang }),
                 signal: abortController.current.signal
             });
 
@@ -128,18 +129,25 @@ export default function AiChatWidget() {
             setIsTyping(false);
 
             if (res.ok && data.success) {
-                // Typewriter effect
-                setStreamingText('');
                 const full = data.message;
+                setStreamingText('');
+                
+                // Switch to word-by-word to avoid "broken markdown" glitches (typos)
+                const words = full.split(/(\s+)/); // Preserve spaces
                 let i = 0;
+                let current = '';
+                
                 const iv = setInterval(() => {
-                    if (i < full.length) { setStreamingText(p => p + full.charAt(i)); i++; }
-                    else {
+                    if (i < words.length) {
+                        current += words[i];
+                        setStreamingText(current);
+                        i++;
+                    } else {
                         clearInterval(iv);
                         setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', content: full, created_at: new Date().toISOString() }]);
                         setStreamingText('');
                     }
-                }, 12);
+                }, 30); // Faster word-by-word flow
             } else {
                 setError(data.message || (lang === 'id' ? 'Terjadi kesalahan.' : 'An error occurred.'));
             }
@@ -160,16 +168,53 @@ export default function AiChatWidget() {
         if (lastUserMsg) { setError(''); handleSend(lastUserMsg.content); }
     };
 
+    // ── Suggestions ──
+    const getSuggestions = () => {
+        if (lang === 'id') return [
+            'Apa saja keahlian utama Reza?',
+            'Lihat proyek terbaru',
+            'Baca blog terbaru',
+            'Bagaimana cara menghubungi Reza?'
+        ];
+        return [
+            "What are Reza's main skills?",
+            "Show me the latest projects",
+            "Read the latest blog posts",
+            "How can I contact Reza?"
+        ];
+    };
+
+    const handleSuggestion = (txt: string) => {
+        setInput(txt);
+        setTimeout(() => {
+            handleSend(txt);
+        }, 100);
+    };
+
     // ── Clear chat ──
-    const clearChat = () => {
-        setMessages([{
-            id: 'greeting-' + Date.now(),
-            role: 'assistant',
-            content: lang === 'id' ? 'Halo! 👋 Ada yang bisa saya bantu?' : 'Hello! 👋 How can I help you?',
-            created_at: new Date().toISOString()
-        }]);
-        setError('');
-        setStreamingText('');
+    const clearChat = async () => {
+        if (messages.length <= 1) return;
+        
+        try {
+            const match = document.cookie.match(/(^| )XSRF-TOKEN=([^;]+)/);
+            const xsrf = match ? decodeURIComponent(match[2]) : '';
+
+            await fetch('/api/ai-chat', {
+                method: 'DELETE',
+                headers: { 'X-XSRF-TOKEN': xsrf }
+            });
+
+            setMessages([{
+                id: 'greeting-' + Date.now(),
+                role: 'assistant',
+                content: lang === 'id' ? 'Halo! 👋 Ada yang bisa saya bantu?' : 'Hello! 👋 How can I help you?',
+                created_at: new Date().toISOString()
+            }]);
+            setError('');
+            setStreamingText('');
+        } catch (err) {
+            console.error('Failed to clear chat:', err);
+        }
     };
 
     // ── Toggle ──
@@ -179,10 +224,6 @@ export default function AiChatWidget() {
         setShowWelcome(false);
         if (next) setTimeout(() => { scrollToBottom(false); if (!/Mobi|Android/i.test(navigator.userAgent)) inputRef.current?.focus(); }, 150);
     };
-
-    const suggestions = lang === 'id'
-        ? ['Siapa Reza?', 'Skill apa saja?', 'Proyek terbaru?', 'Pengalaman kerjanya?']
-        : ['Who is Reza?', 'What skills?', 'Latest projects?', 'Work experience?'];
 
     // ── Render ──
     return (
@@ -289,21 +330,6 @@ export default function AiChatWidget() {
                                     </button>
                                 </motion.div>
                             )}
-
-                            {/* Quick Suggestions */}
-                            {messages.length <= 2 && !isTyping && !streamingText && (
-                                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                                    className="flex flex-wrap gap-1.5 mt-3 justify-center">
-                                    {suggestions.map((s, i) => (
-                                        <button key={i} onClick={() => handleSend(s)} disabled={isLoading}
-                                            className={`text-[11px] px-2.5 py-1.5 rounded-lg border transition-colors ${
-                                                dk ? 'border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200' : 'border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'
-                                            }`}>
-                                            {s}
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            )}
                         </div>
 
                         {/* ─── Scroll-to-Bottom Button ─── */}
@@ -322,28 +348,113 @@ export default function AiChatWidget() {
 
                         {/* ─── Input ─── */}
                         <div className={`p-3 border-t ${dk ? 'border-neutral-800' : 'border-neutral-100'}`}>
-                            <div className={`flex items-end rounded-xl border transition-colors ${
-                                dk ? 'border-neutral-800 bg-neutral-900 focus-within:border-indigo-500/40' : 'border-neutral-200 bg-neutral-50 focus-within:border-indigo-400'
-                            }`}>
-                                <textarea ref={inputRef} value={input}
-                                    onChange={e => setInput(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                                    placeholder={t('Ask me anything...', 'Tanya apa saja...')}
-                                    rows={1} disabled={isLoading}
-                                    className={`w-full resize-none bg-transparent pl-3 pr-2 py-2.5 text-[13px] leading-5 outline-none scrollbar-hide ${
-                                        dk ? 'text-white placeholder:text-neutral-600' : 'text-neutral-900 placeholder:text-neutral-400'
-                                    }`}
-                                    style={{ minHeight: '38px', maxHeight: '100px' }}
-                                />
-                                <button onClick={() => handleSend()} disabled={!input.trim() || isLoading}
-                                    className={`shrink-0 m-1.5 flex items-center justify-center h-8 w-8 rounded-lg transition-all ${
-                                        input.trim() && !isLoading
-                                            ? 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95'
-                                            : dk ? 'bg-neutral-800 text-neutral-600' : 'bg-neutral-200 text-neutral-400'
-                                    }`}>
-                                    <Send size={14} />
-                                </button>
+                                {/* Suggestions (Fixed Greeting Only) */}
+                                <AnimatePresence>
+                                    {!isLoading && messages.length < 3 && (
+                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                            className="px-3 pb-3 flex flex-wrap gap-2">
+                                            {getSuggestions().map((s, i) => (
+                                                <button key={i} onClick={() => handleSuggestion(s)}
+                                                    className={`px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all hover:scale-105 active:scale-95 ${
+                                                        dk ? 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:bg-neutral-700' : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                                                    }`}>
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                            <div className={`relative rounded-xl border transition-all duration-200 ${
+                                dk ? 'border-neutral-800 bg-neutral-900 focus-within:border-indigo-500/40 focus-within:ring-1 focus-within:ring-indigo-500/10' : 'border-neutral-200 bg-neutral-50 focus-within:border-indigo-400 focus-within:shadow-sm'
+                            } ${input.length > 500 || (input.trim() && input.trim().split(/\s+/).length > 50) ? 'border-red-500/50 ring-1 ring-red-500/20 bg-red-50/5' : ''}`}>
+                                <div className="flex items-end">
+                                    <textarea ref={inputRef} value={input}
+                                        onChange={e => setInput(e.target.value)}
+                                        onKeyDown={e => { 
+                                            const wordCount = input.trim().split(/\s+/).length;
+                                            if (e.key === 'Enter' && !e.shiftKey && input.trim() && input.length <= 500 && wordCount <= 50) { 
+                                                e.preventDefault(); 
+                                                handleSend(); 
+                                            } 
+                                        }}
+                                        placeholder={t('Ask me anything...', 'Tanya apa saja...')}
+                                        rows={1} disabled={isLoading}
+                                        maxLength={505} // Give a tiny buffer so they can see the red indicator
+                                        className={`w-full resize-none bg-transparent pl-3 pr-2 py-2.5 text-[13px] leading-5 outline-none scrollbar-hide ${
+                                            dk ? 'text-white placeholder:text-neutral-600' : 'text-neutral-900 placeholder:text-neutral-400'
+                                        }`}
+                                        style={{ minHeight: '38px', maxHeight: '100px' }}
+                                    />
+                                    <button onClick={() => handleSend()} disabled={!input.trim() || input.length > 500 || input.trim().split(/\s+/).length > 50 || isLoading}
+                                        className={`shrink-0 m-1.5 flex items-center justify-center h-8 w-8 rounded-lg transition-all ${
+                                            input.trim() && input.length <= 500 && input.trim().split(/\s+/).length <= 50 && !isLoading
+                                                ? 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-lg shadow-indigo-500/20'
+                                                : dk ? 'bg-neutral-800 text-neutral-600 opacity-50 cursor-not-allowed' : 'bg-neutral-200 text-neutral-400 opacity-50 cursor-not-allowed'
+                                        }`}>
+                                        <Send size={14} />
+                                    </button>
+                                </div>
+                                
+                                {/* Status bar inside the box */}
+                                <div className={`px-3 py-1.5 flex items-center justify-between border-t min-h-[28px] ${
+                                    dk ? 'border-neutral-800/50 bg-black/20' : 'border-neutral-200/50 bg-neutral-100/30'
+                                }`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1">
+                                            <span className={`text-[10px] font-bold ${
+                                                input.length > 500 ? 'text-red-500' : input.length > 400 ? 'text-amber-500' : dk ? 'text-neutral-200' : 'text-neutral-600'
+                                            }`}>
+                                                {input.length}
+                                            </span>
+                                            <span className={`text-[9px] ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>/ 500 {t('chars', 'karakter')}</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-1 border-l pl-3 border-neutral-800/30">
+                                            <span className={`text-[10px] font-bold ${
+                                                (input.trim() && input.trim().split(/\s+/).length > 50) ? 'text-red-500' : (input.trim() && input.trim().split(/\s+/).length > 40) ? 'text-amber-500' : dk ? 'text-neutral-200' : 'text-neutral-600'
+                                            }`}>
+                                                {input.trim() ? input.trim().split(/\s+/).length : 0}
+                                            </span>
+                                            <span className={`text-[9px] ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>/ 50 {t('words', 'kata')}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {(input.length > 500 || (input.trim() && input.trim().split(/\s+/).length > 50)) && (
+                                        <span className="text-[9px] text-red-500 font-bold animate-pulse uppercase tracking-tight">
+                                            {t('Limit exceeded!', 'Melebihi batas!')}
+                                        </span>
+                                    )}
+                                    
+                                    {isLoading && (
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="flex gap-0.5">
+                                                <span className="w-0.5 h-0.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                <span className="w-0.5 h-0.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                <span className="w-0.5 h-0.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                            </div>
+                                            <span className="text-[9px] text-indigo-500 font-medium italic">AI is typing...</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Connection Error Message */}
+                            <AnimatePresence>
+                                {error && (
+                                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                        className="mt-2 p-2 rounded-lg bg-red-50 border border-red-100 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                        <p className="text-[10px] text-red-600 font-medium">
+                                            {t('Connection lost. Please try again.', 'Koneksi terputus. Silakan coba lagi.')}
+                                        </p>
+                                        <button onClick={() => handleSend()} className="ml-auto text-[9px] text-red-500 font-bold hover:underline">
+                                            {t('Retry', 'Coba lagi')}
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             {/* Powered by AI footer */}
                             <p className={`text-center text-[9px] mt-1.5 select-none ${dk ? 'text-neutral-700' : 'text-neutral-400'}`}>
                                 Powered by AI · {t('Answers may vary', 'Jawaban dapat bervariasi')}

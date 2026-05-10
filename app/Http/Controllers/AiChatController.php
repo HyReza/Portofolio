@@ -3,73 +3,91 @@
 namespace App\Http\Controllers;
 
 use App\Services\AiAssistantService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Session;
 
 class AiChatController extends Controller
 {
-    public function __construct(
-        private AiAssistantService $aiService
-    ) {}
+    protected $aiService;
+
+    public function __construct(AiAssistantService $aiService)
+    {
+        $this->aiService = $aiService;
+    }
 
     /**
-     * Handle AI chat message.
+     * Handle chat message request.
      */
-    public function chat(Request $request): JsonResponse
+    public function chat(Request $request)
     {
         $request->validate([
-            'message' => ['required', 'string', 'max:500'],
-            'lang' => ['sometimes', 'string', 'in:en,id'],
+            'message' => 'required|string|max:500',
+            'lang' => 'nullable|string|in:id,en',
         ]);
 
-        // Get or generate session ID for this visitor
-        $sessionId = $request->session()->get('ai_session_v6_id');
-        if (!$sessionId) {
-            $sessionId = Str::uuid()->toString();
-            $request->session()->put('ai_session_v6_id', $sessionId);
-        }
+        $sessionId = Session::getId();
+        $lang = $request->input('lang', 'en');
 
-        // Rate limit check
-        if ($this->aiService->isRateLimited($sessionId)) {
-            $lang = $request->input('lang', 'en');
-            return response()->json([
-                'success' => false,
-                'message' => $lang === 'id'
-                    ? 'Anda telah mencapai batas pesan harian. Silakan coba lagi besok.'
-                    : 'You have reached the daily message limit. Please try again tomorrow.',
-            ], 429);
-        }
-
-        // Get or create conversation
         $conversation = $this->aiService->getConversation(
             $sessionId,
             $request->ip(),
             $request->userAgent()
         );
 
-        $lang = $request->input('lang', 'en');
-        $result = $this->aiService->chat($conversation, $request->input('message'), $lang);
+        $result = $this->aiService->chat($conversation, $request->message, $lang);
 
-        return response()->json($result, $result['success'] ? 200 : 503);
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message']
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message']
+        ]);
     }
 
     /**
-     * Get conversation history for current session.
+     * Get chat history.
      */
-    public function history(Request $request): JsonResponse
+    public function history()
     {
-        $sessionId = $request->session()->get('ai_session_v6_id');
-        if (!$sessionId) {
-            return response()->json(['messages' => []]);
-        }
-
+        $sessionId = Session::getId();
         $conversation = $this->aiService->getConversation($sessionId);
-        $messages = $conversation->messages()
-            ->orderBy('created_at')
-            ->limit(50)
-            ->get(['id', 'role', 'content', 'created_at']);
 
-        return response()->json(['messages' => $messages]);
+        $messages = $conversation->messages()
+            ->select(['role', 'content', 'created_at'])
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'role' => $m->role,
+                    'content' => $m->content,
+                    'time' => $m->created_at->diffForHumans()
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'messages' => $messages
+        ]);
+    }
+
+    /**
+     * Clear chat history.
+     */
+    public function destroy()
+    {
+        $sessionId = Session::getId();
+        $conversation = $this->aiService->getConversation($sessionId);
+        
+        $conversation->messages()->delete();
+        $conversation->update(['messages_count' => 0]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'History cleared'
+        ]);
     }
 }

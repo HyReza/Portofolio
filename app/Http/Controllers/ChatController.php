@@ -24,7 +24,7 @@ class ChatController extends Controller
     public function messages()
     {
         // Fetch all messages flat — frontend builds the threaded tree via parent_id
-        $messages = ChatMessage::with(['user:id,name,avatar,email', 'reactions', 'reactions.user:id,name'])
+        $messages = ChatMessage::with(['user:id,name,avatar,email,role', 'reactions', 'reactions.user:id,name'])
             ->where('is_show', true)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -68,7 +68,7 @@ class ChatController extends Controller
             $shouldReply = true;
         }
 
-        if ($shouldReply && $user->id !== 1) {
+        if ($shouldReply && !$user->isAdmin()) {
             $history = ChatMessage::where('is_show', true)
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
@@ -77,7 +77,7 @@ class ChatController extends Controller
                 ->map(function ($m) {
                     return [
                         'message' => $m->message,
-                        'is_ai' => $m->user_id === 1,
+                        'is_ai' => $m->user?->isAdmin() ?? false,
                     ];
                 })
                 ->toArray();
@@ -87,7 +87,7 @@ class ChatController extends Controller
                 
                 if ($replyText) {
                     // Find admin user to attribute AI reply
-                    $admin = \App\Models\User::find(1);
+                    $admin = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->first();
                     
                     if ($admin) {
                         ChatMessage::create([
@@ -120,7 +120,7 @@ class ChatController extends Controller
         $user = auth()->user();
 
         // Admin can edit anything, User can edit their own
-        if ($user->id !== 1 && $msg->user_id !== $user->id) {
+        if (!$user->isAdmin() && $msg->user_id !== $user->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -137,7 +137,7 @@ class ChatController extends Controller
         $msg = ChatMessage::findOrFail($id);
         $user = auth()->user();
 
-        if ($user->id !== 1 && $msg->user_id !== $user->id) {
+        if (!$user->isAdmin() && $msg->user_id !== $user->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

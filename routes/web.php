@@ -52,9 +52,10 @@ Route::post('/api/contact', [\App\Http\Controllers\ContactController::class, 'st
 // AI Assistant (public, rate limited)
 Route::post('/api/ai-chat', [AiChatController::class, 'chat'])->middleware('throttle:10,1')->name('ai.chat');
 Route::get('/api/ai-chat/history', [AiChatController::class, 'history'])->name('ai.history');
+Route::delete('/api/ai-chat', [AiChatController::class, 'destroy'])->name('ai.clear');
 
 // ── Admin Routes (Auth Required) ──
-Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
 
     // Translation API

@@ -21,34 +21,46 @@ export function AboutHero({ profiles }: Props) {
     const profilePhoto = pv('about_page_photo') || pv('profile_photo') || '/assets/img/profil.jpeg';
 
     return (
-        <section className="py-20 sm:py-28 overflow-hidden">
-            <div className="mx-auto max-w-7xl px-5 sm:px-8">
-                <div className="grid items-center gap-12 lg:grid-cols-5">
+        <section className="relative py-20 lg:py-32 overflow-hidden">
+            {/* Background decorative blob */}
+            <div className={`absolute top-0 right-0 -z-10 h-[500px] w-[500px] rounded-full blur-[120px] opacity-20 ${dk ? 'bg-indigo-500/20' : 'bg-indigo-100'}`} />
+            
+            <div className="mx-auto max-w-7xl px-6 sm:px-10">
+                <div className="grid items-center gap-12 lg:gap-20 lg:grid-cols-12">
                     {/* Text Content */}
-                    <div className="lg:col-span-3 space-y-6">
-                        <FadeUp>
-                            <p className={`text-xs font-bold uppercase tracking-[0.3em] ${dk ? 'text-indigo-400/60' : 'text-indigo-500'}`}>
-                                {t('About Me', 'Tentang Saya')}
-                            </p>
-                        </FadeUp>
-                        <TextReveal className="text-4xl font-black leading-[1.1] sm:text-5xl lg:text-[3.2rem]" delay={0.2}>
-                            {heroTitle}
-                        </TextReveal>
-                        <FadeUp delay={0.5}>
-                            <p className={`text-lg font-semibold ${dk ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                {heroSubtitle}
-                            </p>
-                        </FadeUp>
-                        <FadeUp delay={0.7}>
-                            <p className={`text-base leading-relaxed sm:text-lg ${dk ? 'text-white/45' : 'text-gray-500'}`}>
-                                {heroBio}
-                            </p>
-                        </FadeUp>
+                    <div className="lg:col-span-7 space-y-8 order-2 lg:order-1 text-center lg:text-left">
+                        <div className="space-y-4">
+                            <FadeUp>
+                                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 border border-indigo-500/20 bg-indigo-500/5 dark:bg-indigo-500/10">
+                                    <Sparkles className="h-3 w-3 text-indigo-500" />
+                                    <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${dk ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                        {t('About Me', 'Tentang Saya')}
+                                    </span>
+                                </div>
+                            </FadeUp>
+                            <TextReveal className="text-4xl font-black leading-[1.1] sm:text-5xl lg:text-6xl xl:text-7xl tracking-tight" delay={0.2}>
+                                {heroTitle}
+                            </TextReveal>
+                        </div>
+
+                        <div className="space-y-6">
+                            <FadeUp delay={0.5}>
+                                <p className={`text-lg lg:text-xl font-bold tracking-tight ${dk ? 'text-indigo-300' : 'text-indigo-600'}`}>
+                                    {heroSubtitle}
+                                </p>
+                            </FadeUp>
+                            <FadeUp delay={0.7}>
+                                <p className={`text-base leading-relaxed sm:text-lg lg:max-w-2xl ${dk ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                                    {heroBio}
+                                </p>
+                            </FadeUp>
+                        </div>
+
                         <FadeUp delay={0.9}>
-                            <div className="flex flex-wrap gap-3 pt-2">
+                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-4">
                                 <Dialog>
-                                    <DialogTrigger className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20 hover:shadow-xl hover:shadow-indigo-600/30 hover:-translate-y-0.5`}>
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    <DialogTrigger className={`inline-flex items-center gap-2 rounded-full px-8 py-4 text-sm font-bold transition-all duration-300 bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-1 active:scale-95`}>
+                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                         {t('Download CV', 'Unduh CV')}
                                     </DialogTrigger>
                                     <DialogContent className="sm:max-w-md bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl">
@@ -76,77 +88,67 @@ export function AboutHero({ profiles }: Props) {
                         </FadeUp>
                     </div>
 
-                    {/* Profile Photo with Modern Gimmicks */}
-                    <FadeLeft delay={0.4}>
-                        <div className="lg:col-span-2 flex justify-center perspective-[1000px] py-8 lg:py-0">
+                    {/* Profile Photo Area */}
+                    <div className="lg:col-span-5 order-1 lg:order-2 flex justify-center perspective-[1200px]">
+                        <FadeLeft delay={0.4} className="w-full max-w-sm sm:max-w-md">
                             <motion.div 
-                                className="relative group cursor-pointer"
-                                whileHover={{ rotateY: -5, rotateX: 5, scale: 1.02 }}
-                                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                className="relative group mx-auto"
+                                whileHover={{ rotateY: -8, rotateX: 5, scale: 1.02 }}
+                                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
                                 style={{ transformStyle: 'preserve-3d' }}
                             >
-                                {/* Decorative tech circles — hidden on mobile to prevent overflow */}
-                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }} className={`absolute -inset-10 rounded-full border border-dashed hidden sm:block ${dk ? 'border-indigo-500/20' : 'border-indigo-200'} opacity-50`} />
-                                <motion.div animate={{ rotate: -360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }} className={`absolute -inset-16 rounded-full border hidden sm:block ${dk ? 'border-purple-500/10' : 'border-purple-100'} opacity-30`} />
+                                {/* Decorative elements */}
+                                <div className={`absolute -inset-4 rounded-[40px] border-2 border-dashed opacity-20 ${dk ? 'border-indigo-500' : 'border-indigo-300'} animate-[spin_20s_linear_infinite]`} />
+                                <div className={`absolute -inset-8 rounded-full border border-indigo-500/10 opacity-30 animate-[spin_30s_linear_infinite_reverse]`} />
                                 
                                 {/* Photo Container */}
-                                <motion.div
-                                    initial={{ scale: 0.8, opacity: 0, y: 20 }}
-                                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3, duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
-                                    className={`relative h-56 w-56 overflow-hidden rounded-3xl sm:h-80 sm:w-80 ${dk ? 'bg-[#121212] ring-1 ring-white/10 shadow-[0_0_40px_rgba(99,102,241,0.15)]' : 'bg-white ring-1 ring-neutral-200 shadow-2xl shadow-indigo-500/10'}`}
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-transparent to-purple-500/20 mix-blend-overlay z-10 opacity-60 transition-opacity group-hover:opacity-100" />
+                                <div className={`relative aspect-[4/5] w-full overflow-hidden rounded-[32px] border-4 ${dk ? 'border-neutral-800 bg-neutral-900 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]' : 'border-white bg-white shadow-[0_32px_64px_-16px_rgba(79,70,229,0.2)]'}`}>
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600/20 via-transparent to-transparent z-10 opacity-60" />
                                     <img
                                         src={profilePhoto}
                                         alt={pv('name') || 'Profile'}
                                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         onError={(e) => { (e.target as HTMLImageElement).src = '/assets/img/profil.jpeg'; }}
                                     />
-                                    <div className={`absolute inset-0 ${dk ? 'bg-gradient-to-t from-[#121212]/80 via-transparent to-transparent' : 'bg-gradient-to-t from-white/80 via-transparent to-transparent'} z-10`} />
-                                </motion.div>
+                                    <div className={`absolute inset-0 ${dk ? 'bg-gradient-to-t from-neutral-950 via-transparent to-transparent' : 'bg-gradient-to-t from-white/40 via-transparent to-transparent'} z-10`} />
+                                </div>
 
-                                {/* Floating Glassmorphism Cards — repositioned for mobile */}
+                                {/* Floating Glass Cards */}
                                 <motion.div
-                                    initial={{ scale: 0, x: 20 }}
+                                    initial={{ scale: 0, x: 30 }}
                                     animate={{ scale: 1, x: 0 }}
-                                    transition={{ delay: 0.8, type: 'spring', stiffness: 200 }}
-                                    className={`absolute -bottom-4 -right-2 sm:-bottom-6 sm:-right-6 z-20 flex items-center gap-2 sm:gap-3 rounded-2xl backdrop-blur-md px-3 py-2 sm:px-5 sm:py-3 shadow-xl ring-1 ${dk ? 'bg-white/10 ring-white/20' : 'bg-white/70 ring-neutral-200'}`}
-                                    style={{ transform: 'translateZ(30px)' }}
+                                    transition={{ delay: 1, type: 'spring', stiffness: 200 }}
+                                    className={`absolute -bottom-6 -right-4 sm:-right-8 z-20 flex items-center gap-3 rounded-2xl backdrop-blur-xl px-5 py-4 shadow-2xl ring-1 ${dk ? 'bg-neutral-900/80 ring-white/10' : 'bg-white/80 ring-black/5'}`}
+                                    style={{ transform: 'translateZ(50px)' }}
                                 >
-                                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-inner">
-                                        <Code2 size={16} className="sm:hidden" />
-                                        <Code2 size={20} className="hidden sm:block" />
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30">
+                                        <Code2 size={22} />
                                     </div>
-                                    <div>
-                                        <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${dk ? 'text-indigo-300' : 'text-indigo-600'}`}>{t('Developer', 'Pengembang')}</p>
-                                        <p className={`text-xs sm:text-sm font-black ${dk ? 'text-white' : 'text-neutral-900'}`}>Full-Stack</p>
+                                    <div className="pr-2">
+                                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${dk ? 'text-indigo-400' : 'text-indigo-600'}`}>{t('Developer', 'Pengembang')}</p>
+                                        <p className={`text-base font-black ${dk ? 'text-white' : 'text-neutral-900'}`}>Full-Stack</p>
                                     </div>
                                 </motion.div>
 
                                 <motion.div
-                                    initial={{ scale: 0, x: -20 }}
-                                    animate={{ scale: 1, x: 0, y: [-5, 5, -5] }}
-                                    transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                                    className={`absolute top-4 -left-2 sm:top-6 sm:-left-8 z-20 flex items-center justify-center rounded-2xl backdrop-blur-md h-10 w-10 sm:h-12 sm:w-12 shadow-xl ring-1 ${dk ? 'bg-indigo-500/20 ring-indigo-500/30 text-indigo-400' : 'bg-white/70 ring-neutral-200 text-indigo-600'}`}
-                                    style={{ transform: 'translateZ(40px)' }}
+                                    initial={{ scale: 0, x: -30 }}
+                                    animate={{ scale: 1, x: 0, y: [0, -10, 0] }}
+                                    transition={{ 
+                                        scale: { delay: 1.2 },
+                                        y: { repeat: Infinity, duration: 4, ease: 'easeInOut' } 
+                                    }}
+                                    className={`absolute top-10 -left-6 sm:-left-12 z-20 flex items-center justify-center rounded-2xl backdrop-blur-xl h-14 w-14 shadow-2xl ring-1 ${dk ? 'bg-indigo-500/20 ring-indigo-500/30 text-indigo-400' : 'bg-white/90 ring-black/5 text-indigo-600'}`}
+                                    style={{ transform: 'translateZ(60px)' }}
                                 >
-                                    <Terminal size={18} />
+                                    <Terminal size={24} />
                                 </motion.div>
 
-                                <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1, rotate: [0, 15, -15, 0] }}
-                                    transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
-                                    className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 z-20 text-amber-400"
-                                    style={{ transform: 'translateZ(20px)' }}
-                                >
-                                    <Sparkles size={22} className="sm:hidden" />
-                                    <Sparkles size={28} className="hidden sm:block" />
-                                </motion.div>
+                                <div className="absolute -top-4 -right-4 z-20 text-amber-400 animate-pulse">
+                                    <Sparkles size={32} />
+                                </div>
                             </motion.div>
-                        </div>
-                    </FadeLeft>
+                        </FadeLeft>
+                    </div>
                 </div>
             </div>
         </section>

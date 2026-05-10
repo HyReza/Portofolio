@@ -46,36 +46,38 @@ const inboxNavItems: NavItem[] = [
 
 export function AppSidebar() {
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+        <Sidebar collapsible="icon" variant="sidebar" className="border-r-0 shadow-none">
+            <SidebarHeader className="pt-6 px-4">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
                             <Link href="/admin" prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild variant="outline" className="mt-2">
-                            <Link href="/">
-                                <Zap className="h-4 w-4 text-orange-500" />
-                                <span>View Website</span>
+                    <SidebarMenuItem className="mt-4">
+                        <SidebarMenuButton asChild variant="default" className="bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white shadow-md transition-all duration-200 h-10">
+                            <Link href="/" target="_blank">
+                                <Zap className="h-4 w-4" />
+                                <span className="font-semibold">Live Website</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent className="space-y-4">
-                <NavMain title="Main" items={mainNavItems} />
-                <NavMain title="Personal" items={personalNavItems} />
-                <NavMain title="Portfolio" items={contentNavItems} />
-                <NavMain title="Social Media" items={socialNavItems} />
-                <NavMain title="Inbox" items={inboxNavItems} />
+            <SidebarContent className="px-2 mt-4 custom-scrollbar">
+                <div className="space-y-6">
+                    <NavMain title="Core" items={mainNavItems} />
+                    <NavMain title="Personal" items={personalNavItems} />
+                    <NavMain title="Content Management" items={contentNavItems} />
+                    <NavMain title="Engagement" items={inboxNavItems} />
+                    <NavMain title="Socials" items={socialNavItems} />
+                </div>
             </SidebarContent>
 
-            <SidebarFooter>
+            <SidebarFooter className="p-4 border-t border-neutral-100 dark:border-neutral-800">
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

@@ -40,6 +40,31 @@ export default function Profile({
                 >
                     {({ processing, errors }) => (
                         <>
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <img
+                                        src={auth.user.avatar || '/assets/img/profil.jpeg'}
+                                        alt={auth.user.name}
+                                        className="h-20 w-20 rounded-full object-cover ring-2 ring-neutral-200 dark:ring-neutral-800"
+                                        onError={(e) => { (e.target as HTMLImageElement).src = '/assets/img/profil.jpeg'; }}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="avatar">Profile Photo</Label>
+                                    <Input
+                                        id="avatar"
+                                        name="avatar"
+                                        type="file"
+                                        accept="image/*"
+                                        className="mt-1 block w-full"
+                                    />
+                                    <InputError
+                                        className="mt-2"
+                                        message={errors.avatar}
+                                    />
+                                </div>
+                            </div>
+
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
 
