@@ -110,7 +110,8 @@ class ChatController extends Controller
     }
 
     /**
-     * Edit message
+     * Edit message — only the message owner can edit their own message.
+     * Admin can only edit their own messages (not others').
      */
     public function update(Request $request, string $id)
     {
@@ -119,14 +120,14 @@ class ChatController extends Controller
         $msg = ChatMessage::findOrFail($id);
         $user = auth()->user();
 
-        // Admin can edit anything, User can edit their own
-        if (!$user->isAdmin() && $msg->user_id !== $user->id) {
+        // Only the message owner can edit their own message
+        if ($msg->user_id !== $user->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         $msg->update(['message' => $request->message]);
         
-        return response()->json($msg->load(['user:id,name,avatar,email', 'reactions']));
+        return response()->json($msg->load(['user:id,name,avatar,email,role', 'reactions']));
     }
 
     /**

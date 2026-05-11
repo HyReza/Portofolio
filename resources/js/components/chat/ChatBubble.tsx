@@ -9,7 +9,7 @@ interface Reaction { id: number; chat_message_id: string; user_id: number; react
 export interface Message {
     id: string; user_id: number; name: string; email: string | null; avatar: string | null;
     message: string; is_reply: boolean; parent_id: string | null; is_show: boolean;
-    created_at: string; reactions: Reaction[]; user?: User;
+    created_at: string; updated_at: string; reactions: Reaction[]; user?: User;
 }
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '🎉'];
@@ -194,9 +194,11 @@ function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, is
                                     <Edit2 className="w-3 h-3" /> {t('Edit', 'Edit')}
                                 </button>
                             )}
-                            <button onClick={() => onDelete(msg.id)} className={`flex items-center gap-2 px-3 py-1.5 text-xs text-red-500 ${dk ? 'hover:bg-neutral-800' : 'hover:bg-red-50'}`}>
-                                <Trash2 className="w-3 h-3" /> {t('Delete', 'Hapus')}
-                            </button>
+                            {(isMine || isAdmin) && (
+                                <button onClick={() => onDelete(msg.id)} className={`flex items-center gap-2 px-3 py-1.5 text-xs text-red-500 ${dk ? 'hover:bg-neutral-800' : 'hover:bg-red-50'}`}>
+                                    <Trash2 className="w-3 h-3" /> {t('Delete', 'Hapus')}
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
