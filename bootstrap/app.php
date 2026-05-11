@@ -38,13 +38,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ])
                     ->toResponse($request)
                     ->setStatusCode($status);
-            } elseif ($status === 404) {
+            } elseif (in_array($status, [404, 403])) {
                 return inertia('errors/error', [
-                    'status' => 404,
+                    'status' => $status,
                     'message' => $exception->getMessage() ?: null
                 ])
                     ->toResponse($request)
-                    ->setStatusCode(404);
+                    ->setStatusCode($status);
             }
             return $response;
         });

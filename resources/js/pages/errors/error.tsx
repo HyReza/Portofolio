@@ -22,11 +22,11 @@ function Particle({ dk, delay, x, y, size }: { dk: boolean; delay: number; x: st
     );
 }
 
-export default function ErrorPage({ status }: Props) {
+export default function ErrorPage({ status, message }: Props) {
     const { theme: appTheme, t } = useApp();
     const dk = appTheme === 'dark';
 
-    const config: Record<number, { icon: typeof SearchX; title: string; desc: string; accent: string }> = {
+    const config: Record<number, { icon: typeof SearchX; title: string; desc: string; accent: string; border: string }> = {
         404: {
             icon: SearchX,
             title: '404',
@@ -35,6 +35,7 @@ export default function ErrorPage({ status }: Props) {
                 'Halaman yang Anda cari sepertinya sudah menghilang ke kehampaan.'
             ),
             accent: 'text-violet-500',
+            border: 'border-violet-500',
         },
         403: {
             icon: ShieldX,
@@ -44,6 +45,7 @@ export default function ErrorPage({ status }: Props) {
                 'Anda tidak memiliki izin untuk mengakses area ini. Zona ini dibatasi.'
             ),
             accent: 'text-amber-500',
+            border: 'border-amber-500',
         },
         500: {
             icon: ServerCrash,
@@ -53,6 +55,7 @@ export default function ErrorPage({ status }: Props) {
                 'Server kami mengalami masalah. Kami sedang memperbaikinya.'
             ),
             accent: 'text-red-500',
+            border: 'border-red-500',
         },
         503: {
             icon: WifiOff,
@@ -62,6 +65,7 @@ export default function ErrorPage({ status }: Props) {
                 'Kami sedang melakukan pemeliharaan. Silakan cek kembali nanti.'
             ),
             accent: 'text-sky-500',
+            border: 'border-sky-500',
         },
     };
 
@@ -120,13 +124,13 @@ export default function ErrorPage({ status }: Props) {
                         <motion.div
                             animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
                             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                            className={`absolute h-20 w-20 sm:h-28 sm:w-28 rounded-full border-2 ${c.accent.replace('text-', 'border-')}`}
+                            className={`absolute h-20 w-20 sm:h-28 sm:w-28 rounded-full border-2 ${c.border}`}
                         />
                         {/* Second ring */}
                         <motion.div
                             animate={{ scale: [1, 1.5, 1], opacity: [0.15, 0, 0.15] }}
                             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                            className={`absolute h-20 w-20 sm:h-28 sm:w-28 rounded-full border ${c.accent.replace('text-', 'border-')}`}
+                            className={`absolute h-20 w-20 sm:h-28 sm:w-28 rounded-full border ${c.border}`}
                         />
                         {/* Icon container */}
                         <motion.div
