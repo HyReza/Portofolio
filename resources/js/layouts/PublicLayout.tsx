@@ -21,11 +21,11 @@ function PremiumToggle({ isActive, onClick, iconLeft, iconRight, textLeft, textR
     return (
         <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-                <button 
+                <button
                     onClick={onClick}
                     className={`relative flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border p-1 transition-all duration-300 ${dk ? 'border-neutral-700 bg-neutral-900' : 'border-neutral-200 bg-white'}`}
                 >
-                    <motion.div 
+                    <motion.div
                         layout
                         className={`z-10 flex h-6 w-6 items-center justify-center rounded-full shadow-lg ${dk ? 'bg-amber-400 text-black' : 'bg-indigo-600 text-white'}`}
                         initial={false}
@@ -86,7 +86,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
     useSmoothScroll();
     useKonami(() => { setKonamiActive(true); unlock('konami'); });
-    
+
     useEffect(() => {
         document.body.style.overflow = mobileOpen ? 'hidden' : 'auto';
         return () => { document.body.style.overflow = 'auto'; };
@@ -125,7 +125,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
                     <AnimatePresence>
                         {layout === 'topbar' && (
-                            <motion.header 
+                            <motion.header
                                 initial={{ y: -100 }}
                                 animate={{ y: 0 }}
                                 exit={{ y: -100 }}
@@ -153,7 +153,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                         return (
                                             <Tooltip key={item.href}>
                                                 <TooltipTrigger asChild>
-                                                    <Link 
+                                                    <Link
                                                         href={item.href}
                                                         className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-200 ${isActive ? (dk ? 'bg-neutral-800 text-neutral-100' : 'bg-neutral-100 text-neutral-900') : (dk ? 'text-neutral-500 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900')}`}
                                                     >
@@ -169,16 +169,16 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                 </nav>
 
                                 <div className="flex items-center gap-3">
-                                    <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14}/>} iconRight={<BsCloudMoon size={14}/>} tooltipText={t('Toggle Theme', 'Ganti Tema')} />
+                                    <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14} />} iconRight={<BsCloudMoon size={14} />} tooltipText={t('Toggle Theme', 'Ganti Tema')} />
                                     <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" tooltipText={t('Switch Language', 'Ganti Bahasa')} />
-                                    <PremiumToggle dk={dk} isActive={layout === 'topbar'} onClick={toggleLayout} iconLeft={<PanelLeft size={14}/>} iconRight={<PanelTop size={14}/>} tooltipText={t('Layout Style', 'Gaya Tata Letak')} />
+                                    <PremiumToggle dk={dk} isActive={layout === 'topbar'} onClick={toggleLayout} iconLeft={<PanelLeft size={14} />} iconRight={<PanelTop size={14} />} tooltipText={t('Layout Style', 'Gaya Tata Letak')} />
                                 </div>
                             </motion.header>
                         )}
                     </AnimatePresence>
 
                     <div className="relative z-10 flex w-full flex-col lg:flex-row">
-                        
+
                         <div className={`fixed left-0 right-0 top-0 z-40 flex w-full flex-col border-b px-4 py-3 backdrop-blur-xl transition-all duration-300 lg:hidden ${dk ? 'border-neutral-800 bg-[#121212]/80' : 'border-neutral-200 bg-white/80'}`}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -202,8 +202,8 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <button 
-                                        onClick={() => setMobileOpen(!mobileOpen)} 
+                                    <button
+                                        onClick={() => setMobileOpen(!mobileOpen)}
                                         className={`relative flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-xl transition-all ${dk ? 'bg-neutral-800 text-white' : 'bg-neutral-100 text-black'}`}
                                     >
                                         <motion.span animate={mobileOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }} className="block h-[2px] w-5 bg-current rounded-full" />
@@ -215,9 +215,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
                             <AnimatePresence>
                                 {mobileOpen && (
-                                    <motion.div 
-                                        initial={{ height: 0, opacity: 0 }} 
-                                        animate={{ height: 'auto', opacity: 1 }} 
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
                                         className="overflow-hidden"
                                     >
@@ -225,9 +225,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                             {filteredMenu.map((item) => {
                                                 const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
                                                 return (
-                                                    <Link 
-                                                        key={item.href} 
-                                                        href={item.href} 
+                                                    <Link
+                                                        key={item.href}
+                                                        href={item.href}
                                                         onClick={() => setMobileOpen(false)}
                                                         className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors duration-200 ${isActive ? (dk ? 'bg-neutral-800 text-neutral-100 font-medium' : 'bg-neutral-100 text-neutral-900 font-medium') : (dk ? 'text-neutral-500 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900')}`}
                                                     >
@@ -236,11 +236,11 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                                     </Link>
                                                 );
                                             })}
-                                            
+
                                             <div className="mt-4 flex items-center justify-between rounded-xl p-3 border dark:border-neutral-800 border-neutral-200">
                                                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest">{t('Settings', 'Pengaturan')}</span>
                                                 <div className="flex gap-2">
-                                                    <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14}/>} iconRight={<BsCloudMoon size={14}/>} />
+                                                    <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14} />} iconRight={<BsCloudMoon size={14} />} />
                                                     <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" />
                                                 </div>
                                             </div>
@@ -250,79 +250,73 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                             </AnimatePresence>
                         </div>
 
-                        <aside 
-                            onMouseEnter={() => { setMobileOpen(false); setIsSidebarHovered(true); }} 
+                        <aside
+                            onMouseEnter={() => { setMobileOpen(false); setIsSidebarHovered(true); }}
                             onMouseLeave={() => setIsSidebarHovered(false)}
                             onWheel={handleSidebarWheel}
-                            className={`group fixed bottom-0 left-0 top-0 z-50 hidden flex-col transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] lg:flex ${layout === 'sidebar' ? 'w-[88px] hover:w-64 translate-x-0' : 'w-0 opacity-0 pointer-events-none -translate-x-full'} ${dk ? 'bg-[#0f0f0f]/95 backdrop-blur-md border-r border-white/5 shadow-[10px_0_40px_rgba(0,0,0,0.4)]' : 'bg-white/95 backdrop-blur-md border-r border-neutral-100 shadow-[10px_0_40px_rgba(0,0,0,0.03)]'}`}
+                            className={`group fixed bottom-0 left-0 top-0 z-50 hidden flex-col transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] lg:flex ${layout === 'sidebar' ? 'w-[88px] hover:w-64' : 'w-0 opacity-0 pointer-events-none p-0'} ${dk ? 'bg-[#121212] border-r border-neutral-800/50 shadow-[4px_0_24px_rgba(0,0,0,0.5)] hover:shadow-[8px_0_40px_rgba(0,0,0,0.7)]' : 'bg-white border-r border-neutral-100 shadow-[4px_0_24px_rgba(0,0,0,0.05)] hover:shadow-[8px_0_40px_rgba(0,0,0,0.1)]'}`}
                         >
-                            <div ref={sidebarScrollRef} className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-5 overscroll-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                                {/* Profile Section */}
-                                <div className="flex flex-col items-center mb-8 shrink-0">
-                                    <div className="relative w-full flex flex-col items-center">
+                            <div ref={sidebarScrollRef} className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-4 overscroll-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                                <div className="flex flex-col items-center mb-2 group-hover:mb-6 shrink-0 transition-all duration-500">
+                                    <div className="relative w-full flex flex-col items-center pb-2">
                                         {statusActive && (
-                                            <div className={`absolute -top-1 -left-1 z-20 transition-all duration-500 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 ${dk ? 'bg-[#0f0f0f]' : 'bg-white'} pb-2 pr-2 rounded-br-2xl`}>
-                                                <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-2.5 py-1">
-                                                    <span className="relative flex h-2 w-2">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                                    </span>
-                                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">{statusText}</span>
+                                            <div className={`absolute top-0 left-0 z-10 rounded-br-xl transition-all duration-500 opacity-0 group-hover:opacity-100 translate-x-[-20px] group-hover:translate-x-0 ${dk ? 'inverted-border-radius-dark bg-[#121212]' : 'inverted-border-radius bg-white'} pb-2 pr-2`}>
+                                                <div className="relative flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-2 py-1 dark:border-neutral-700 dark:bg-[#121212]">
+                                                    <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                                                    <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400">{statusText}</span>
                                                 </div>
                                             </div>
                                         )}
-                                        
-                                        <div className={`w-full overflow-hidden rounded-2xl transition-all duration-500 ${dk ? 'bg-neutral-800/50' : 'bg-neutral-50'} h-0 opacity-0 group-hover:h-28 group-hover:opacity-100`}>
-                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent" />
+
+                                        <div className={`w-full overflow-hidden rounded-2xl ${statusActive ? 'rounded-tl-none' : ''} transition-all duration-500 ${dk ? 'brightness-50 bg-neutral-800' : 'bg-neutral-100'} h-0 opacity-0 group-hover:h-24 group-hover:opacity-100`}>
+                                            <div className="w-full h-full bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-800 dark:to-neutral-700 opacity-50" />
                                         </div>
 
-                                        <div className="z-10 -mt-0 group-hover:-mt-12 rounded-full p-1.5 border-4 border-transparent bg-gradient-to-tr from-indigo-500/50 to-purple-500/50 transition-all duration-500 group-hover:scale-110 shadow-xl shadow-indigo-500/10">
-                                            <img src={profilePhoto} alt="profile" className="h-12 w-12 group-hover:h-20 group-hover:w-20 rounded-full object-cover ring-2 ring-white dark:ring-[#0f0f0f]" />
+                                        <div className="z-10 mt-0 rounded-full border-[3px] border-white dark:border-[#121212] bg-white dark:bg-[#121212] shadow-md transition-all duration-500 group-hover:scale-110 group-hover:-mt-10">
+                                            <img src={profilePhoto} alt="profile" className="h-12 w-12 group-hover:h-20 group-hover:w-20 rounded-full object-cover" />
                                         </div>
 
-                                        <div className="flex flex-col items-center text-center mt-3 w-full transition-all duration-500">
-                                            <div className="opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto transition-all duration-500 overflow-hidden px-2">
-                                                <div className="flex items-center justify-center gap-1.5">
-                                                    <h2 className="font-sora text-[15px] font-extrabold text-neutral-900 dark:text-white truncate">{profileName}</h2>
-                                                    <MdVerified className="text-blue-500 shrink-0" size={16} />
+                                        <div className="flex flex-col items-center text-center mt-3 w-full transition-all duration-500 overflow-hidden">
+                                            <div className="opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto transition-all duration-500 overflow-hidden">
+                                                <div className="flex items-center justify-center gap-1.5 whitespace-nowrap px-2">
+                                                    <h2 className="font-sora text-sm font-bold text-neutral-900 dark:text-white truncate">{profileName}</h2>
+                                                    <MdVerified className="text-blue-500 shrink-0" size={14} />
                                                 </div>
-                                                <p className="font-medium text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 mb-6">@{profileUsername}</p>
+                                                <p className="font-sora text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5 mb-4">@{profileUsername}</p>
                                             </div>
 
-                                            <div className="flex flex-col group-hover:flex-row items-center gap-2.5 w-full justify-center py-2">
-                                                <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14}/>} iconRight={<BsCloudMoon size={14}/>} tooltipText={t('Toggle Theme', 'Ganti Tema')} side="right" />
-                                                
-                                                <div className="flex flex-col group-hover:flex-row items-center gap-2.5 opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto overflow-hidden transition-all duration-500">
-                                                    <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" tooltipText={t('Switch Language', 'Ganti Bahasa')} side="right" />
-                                                    <PremiumToggle dk={dk} isActive={layout === 'topbar'} onClick={toggleLayout} iconLeft={<PanelLeft size={14}/>} iconRight={<PanelTop size={14}/>} tooltipText={t('Layout Style', 'Gaya Tata Letak')} side="right" />
+                                            <div className="flex flex-col group-hover:flex-row items-center gap-2 w-full justify-center pb-2 transition-all duration-500">
+                                                <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={12} />} iconRight={<BsCloudMoon size={12} />} tooltipText={t('Toggle Theme', 'Ganti Tema')} side="bottom" />
+
+                                                <div className="flex flex-col group-hover:flex-row items-center gap-2 opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto overflow-hidden transition-all duration-500">
+                                                    <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" tooltipText={t('Switch Language', 'Ganti Bahasa')} side="bottom" />
+                                                    <PremiumToggle dk={dk} isActive={layout === 'topbar'} onClick={toggleLayout} iconLeft={<PanelLeft size={12} />} iconRight={<PanelTop size={12} />} tooltipText={t('Layout Style', 'Gaya Tata Letak')} side="bottom" />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Navigation Section */}
-                                <nav className="flex flex-col gap-1.5 flex-1 border-t border-neutral-100 dark:border-neutral-800/50 pt-6">
+                                <nav className="flex flex-col gap-1.5 flex-1 px-1 border-t pt-3 group-hover:pt-6 dark:border-neutral-800/50 border-neutral-100 transition-all duration-500">
                                     {filteredMenu.map((item) => {
                                         const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
                                         return (
-                                            <Link 
+                                            <Link
                                                 key={item.href}
                                                 href={item.href}
-                                                className={`relative flex items-center rounded-xl transition-all duration-300 px-3 py-3.5 gap-5 group/item ${isActive ? (dk ? 'bg-indigo-500/10 text-indigo-400 font-bold' : 'bg-indigo-50 text-indigo-600 font-bold') : (dk ? 'text-neutral-500 hover:bg-neutral-800/60 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900')}`}
+                                                className={`relative flex items-center rounded-xl transition-all duration-300 px-4 py-3 gap-5 group/item ${isActive ? (dk ? 'bg-neutral-800 text-neutral-100 font-bold' : 'bg-neutral-100 text-neutral-900 font-bold shadow-sm') : (dk ? 'text-neutral-500 hover:bg-neutral-800/40 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900')}`}
                                             >
-                                                <div className={`relative flex items-center justify-center transition-transform duration-300 group-hover/item:scale-110 ${isActive ? 'scale-110' : ''}`}>
-                                                    <span className="text-2xl">{item.icon}</span>
-                                                    {isActive && <motion.span layoutId="active-dot" className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50" />}
-                                                </div>
-                                                <span className="text-[13px] font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-[-10px] group-hover:translate-x-0 overflow-hidden">
+                                                <span className={`text-xl transition-transform duration-300 group-hover/item:scale-110 ${isActive ? 'scale-110' : ''}`}>
+                                                    {item.icon}
+                                                </span>
+                                                <span className="text-[13px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-[-10px] group-hover:translate-x-0 overflow-hidden">
                                                     {lang === 'id' ? item.titleId : item.title}
                                                 </span>
-                                                
+
                                                 {isActive && (
-                                                    <motion.div 
-                                                        layoutId="sidebar-active-line"
-                                                        className="absolute right-0 w-1 h-6 bg-indigo-500 rounded-l-full"
+                                                    <motion.div
+                                                        layoutId="sidebar-active"
+                                                        className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full"
                                                     />
                                                 )}
                                             </Link>
@@ -330,10 +324,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                     })}
                                 </nav>
 
-                                {/* Footer Copyright */}
-                                <div className="mt-auto pt-6 shrink-0 transition-all duration-500 group-hover:opacity-100 opacity-0 h-0 group-hover:h-auto overflow-hidden">
-                                    <div className="text-center w-full pb-4">
-                                        <p className="text-[9px] font-bold text-neutral-400 dark:text-neutral-600 whitespace-nowrap uppercase tracking-widest opacity-50">© {new Date().getFullYear()} REZA EDI SAPUTRA</p>
+                                <div className="mt-auto pt-6 shrink-0 transition-all duration-500 group-hover:opacity-100 opacity-0 h-0 group-hover:h-auto overflow-hidden border-t border-neutral-100 dark:border-neutral-800/50">
+                                    <div className="text-center w-full px-2 pb-4">
+                                        <p className="text-[9px] font-medium text-neutral-400 whitespace-nowrap uppercase tracking-tighter">© {new Date().getFullYear()} REZA EDI SAPUTRA</p>
                                     </div>
                                 </div>
                             </div>
@@ -341,9 +334,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
                         <main className={`relative flex-1 transition-all duration-500 pt-20 ${layout === 'sidebar' ? 'lg:ml-[88px] lg:pt-0' : 'lg:pt-24'}`}>
                             <div className="mx-auto max-w-5xl px-4 py-8 sm:px-12 lg:py-16">
-                                <motion.div 
-                                    key={url} 
-                                    initial={{ opacity: 0, y: 20 }} 
+                                <motion.div
+                                    key={url}
+                                    initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
                                 >

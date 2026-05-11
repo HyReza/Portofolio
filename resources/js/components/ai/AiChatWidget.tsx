@@ -51,7 +51,7 @@ export default function AiChatWidget() {
                     }]);
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
 
         return () => { clearTimeout(t1); clearTimeout(t2); };
     }, [lang]);
@@ -131,12 +131,12 @@ export default function AiChatWidget() {
             if (res.ok && data.success) {
                 const full = data.message;
                 setStreamingText('');
-                
+
                 // Switch to word-by-word to avoid "broken markdown" glitches (typos)
                 const words = full.split(/(\s+)/); // Preserve spaces
                 let i = 0;
                 let current = '';
-                
+
                 const iv = setInterval(() => {
                     if (i < words.length) {
                         current += words[i];
@@ -194,7 +194,7 @@ export default function AiChatWidget() {
     // ── Clear chat ──
     const clearChat = async () => {
         if (messages.length <= 1) return;
-        
+
         try {
             const match = document.cookie.match(/(^| )XSRF-TOKEN=([^;]+)/);
             const xsrf = match ? decodeURIComponent(match[2]) : '';
@@ -237,9 +237,8 @@ export default function AiChatWidget() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 16, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: 'easeOut' }}
-                        className={`mb-3 flex flex-col overflow-hidden rounded-2xl border w-[90vw] sm:w-[380px] h-[560px] max-h-[82vh] ${
-                            dk ? 'bg-[#0f0f0f] border-neutral-800' : 'bg-white border-neutral-200'
-                        }`}
+                        className={`mb-3 flex flex-col overflow-hidden rounded-2xl border w-[90vw] sm:w-[380px] h-[560px] max-h-[82vh] ${dk ? 'bg-[#0f0f0f] border-neutral-800' : 'bg-white border-neutral-200'
+                            }`}
                         style={{ boxShadow: dk ? '0 20px 50px -10px rgba(0,0,0,0.6)' : '0 20px 50px -10px rgba(0,0,0,0.12)' }}
                     >
                         {/* ─── Header ─── */}
@@ -284,11 +283,10 @@ export default function AiChatWidget() {
                                                     <Sparkles size={11} />
                                                 </div>
                                             )}
-                                            <div className={`px-3 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-wrap ${
-                                                isAi
+                                            <div className={`px-3 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-wrap ${isAi
                                                     ? dk ? 'bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-2xl rounded-tl-md' : 'bg-white border border-neutral-200 text-neutral-800 rounded-2xl rounded-tl-md shadow-sm'
                                                     : dk ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-md' : 'bg-indigo-600 text-white rounded-2xl rounded-tr-md shadow-sm'
-                                            }`} dangerouslySetInnerHTML={{ __html: isAi ? parseMarkdown(msg.content) : msg.content.replace(/</g, '&lt;') }} />
+                                                }`} dangerouslySetInnerHTML={{ __html: isAi ? parseMarkdown(msg.content) : msg.content.replace(/</g, '&lt;') }} />
                                         </div>
                                         <span className={`text-[9px] mt-1 mx-8 ${dk ? 'text-neutral-600' : 'text-neutral-400'}`}>{timeAgo(msg.created_at, lang)}</span>
                                     </motion.div>
@@ -322,9 +320,8 @@ export default function AiChatWidget() {
                             {error && (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center mb-3">
                                     <button onClick={handleRetry}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                            dk ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                                        }`}>
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${dk ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                                            }`}>
                                         <RotateCcw size={12} />
                                         {error} — {t('Retry', 'Coba lagi')}
                                     </button>
@@ -337,9 +334,8 @@ export default function AiChatWidget() {
                             {showScrollBtn && (
                                 <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
                                     onClick={() => scrollToBottom()}
-                                    className={`absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border shadow-md ${
-                                        dk ? 'bg-neutral-900 text-neutral-300 border-neutral-700' : 'bg-white text-neutral-600 border-neutral-200'
-                                    }`}>
+                                    className={`absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border shadow-md ${dk ? 'bg-neutral-900 text-neutral-300 border-neutral-700' : 'bg-white text-neutral-600 border-neutral-200'
+                                        }`}>
                                     <ChevronDown size={12} />
                                     {t('New messages', 'Pesan baru')}
                                 </motion.button>
@@ -348,84 +344,64 @@ export default function AiChatWidget() {
 
                         {/* ─── Input ─── */}
                         <div className={`p-3 border-t ${dk ? 'border-neutral-800' : 'border-neutral-100'}`}>
-                                {/* Suggestions (Fixed Greeting Only) */}
-                                <AnimatePresence>
-                                    {!isLoading && messages.length < 3 && (
-                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                            className="px-3 pb-3 flex flex-wrap gap-2">
-                                            {getSuggestions().map((s, i) => (
-                                                <button key={i} onClick={() => handleSuggestion(s)}
-                                                    className={`px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all hover:scale-105 active:scale-95 ${
-                                                        dk ? 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:bg-neutral-700' : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                            {/* Suggestions (Fixed Greeting Only) */}
+                            <AnimatePresence>
+                                {!isLoading && messages.length < 3 && (
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                        className="px-3 pb-3 flex flex-wrap gap-2">
+                                        {getSuggestions().map((s, i) => (
+                                            <button key={i} onClick={() => handleSuggestion(s)}
+                                                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all hover:scale-105 active:scale-95 ${dk ? 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:bg-neutral-700' : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                                                     }`}>
-                                                    {s}
-                                                </button>
-                                            ))}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                                {s}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
-                            <div className={`relative rounded-xl border transition-all duration-200 ${
-                                dk ? 'border-neutral-800 bg-neutral-900 focus-within:border-indigo-500/40 focus-within:ring-1 focus-within:ring-indigo-500/10' : 'border-neutral-200 bg-neutral-50 focus-within:border-indigo-400 focus-within:shadow-sm'
-                            } ${input.length > 500 || (input.trim() && input.trim().split(/\s+/).length > 50) ? 'border-red-500/50 ring-1 ring-red-500/20 bg-red-50/5' : ''}`}>
+                            <div className={`relative rounded-xl border transition-all duration-200 ${dk ? 'border-neutral-800 bg-neutral-900 focus-within:border-indigo-500/40 focus-within:ring-1 focus-within:ring-indigo-500/10' : 'border-neutral-200 bg-neutral-50 focus-within:border-indigo-400 focus-within:shadow-sm'
+                                } ${input.length > 500 || (input.trim() && input.trim().split(/\s+/).length > 50) ? 'border-red-500/50 ring-1 ring-red-500/20 bg-red-50/5' : ''}`}>
                                 <div className="flex items-end">
                                     <textarea ref={inputRef} value={input}
                                         onChange={e => setInput(e.target.value)}
-                                        onKeyDown={e => { 
+                                        onKeyDown={e => {
                                             const wordCount = input.trim().split(/\s+/).length;
-                                            if (e.key === 'Enter' && !e.shiftKey && input.trim() && input.length <= 500 && wordCount <= 50) { 
-                                                e.preventDefault(); 
-                                                handleSend(); 
-                                            } 
+                                            if (e.key === 'Enter' && !e.shiftKey && input.trim() && input.length <= 500 && wordCount <= 50) {
+                                                e.preventDefault();
+                                                handleSend();
+                                            }
                                         }}
                                         placeholder={t('Ask me anything...', 'Tanya apa saja...')}
                                         rows={1} disabled={isLoading}
-                                        maxLength={505} // Give a tiny buffer so they can see the red indicator
-                                        className={`w-full resize-none bg-transparent pl-3 pr-2 py-2.5 text-[13px] leading-5 outline-none scrollbar-hide ${
-                                            dk ? 'text-white placeholder:text-neutral-600' : 'text-neutral-900 placeholder:text-neutral-400'
-                                        }`}
+                                        className={`w-full resize-none bg-transparent pl-3 pr-2 py-2.5 text-[13px] leading-5 outline-none scrollbar-hide ${dk ? 'text-white placeholder:text-neutral-600' : 'text-neutral-900 placeholder:text-neutral-400'
+                                            }`}
                                         style={{ minHeight: '38px', maxHeight: '100px' }}
                                     />
                                     <button onClick={() => handleSend()} disabled={!input.trim() || input.length > 500 || input.trim().split(/\s+/).length > 50 || isLoading}
-                                        className={`shrink-0 m-1.5 flex items-center justify-center h-8 w-8 rounded-lg transition-all ${
-                                            input.trim() && input.length <= 500 && input.trim().split(/\s+/).length <= 50 && !isLoading
+                                        className={`shrink-0 m-1.5 flex items-center justify-center h-8 w-8 rounded-lg transition-all ${input.trim() && input.length <= 500 && input.trim().split(/\s+/).length <= 50 && !isLoading
                                                 ? 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-lg shadow-indigo-500/20'
                                                 : dk ? 'bg-neutral-800 text-neutral-600 opacity-50 cursor-not-allowed' : 'bg-neutral-200 text-neutral-400 opacity-50 cursor-not-allowed'
-                                        }`}>
+                                            }`}>
                                         <Send size={14} />
                                     </button>
                                 </div>
-                                
+
                                 {/* Status bar inside the box */}
-                                <div className={`px-3 py-1.5 flex items-center justify-between border-t min-h-[28px] ${
-                                    dk ? 'border-neutral-800/50 bg-black/20' : 'border-neutral-200/50 bg-neutral-100/30'
-                                }`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-1">
-                                            <span className={`text-[10px] font-bold ${
-                                                input.length > 500 ? 'text-red-500' : input.length > 400 ? 'text-amber-500' : dk ? 'text-neutral-200' : 'text-neutral-600'
+                                <div className={`px-3 py-1 flex items-center justify-between border-t transition-colors ${dk ? 'border-neutral-800/50' : 'border-neutral-200/50'
+                                    }`}>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className={`text-[9px] font-medium transition-colors ${input.length > 500 ? 'text-red-500 font-bold animate-pulse' : input.length > 400 ? 'text-amber-500' : dk ? 'text-neutral-600' : 'text-neutral-400'
                                             }`}>
-                                                {input.length}
-                                            </span>
-                                            <span className={`text-[9px] ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>/ 500 {t('chars', 'karakter')}</span>
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-1 border-l pl-3 border-neutral-800/30">
-                                            <span className={`text-[10px] font-bold ${
-                                                (input.trim() && input.trim().split(/\s+/).length > 50) ? 'text-red-500' : (input.trim() && input.trim().split(/\s+/).length > 40) ? 'text-amber-500' : dk ? 'text-neutral-200' : 'text-neutral-600'
-                                            }`}>
-                                                {input.trim() ? input.trim().split(/\s+/).length : 0}
-                                            </span>
-                                            <span className={`text-[9px] ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>/ 50 {t('words', 'kata')}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    {(input.length > 500 || (input.trim() && input.trim().split(/\s+/).length > 50)) && (
-                                        <span className="text-[9px] text-red-500 font-bold animate-pulse uppercase tracking-tight">
-                                            {t('Limit exceeded!', 'Melebihi batas!')}
+                                            {input.length}/500 {t('chars', 'karakter')}
                                         </span>
-                                    )}
-                                    
+                                        <span className={`text-[8px] ${dk ? 'text-neutral-800' : 'text-neutral-200'}`}>•</span>
+                                        <span className={`text-[9px] font-medium transition-colors ${(input.trim() && input.trim().split(/\s+/).length > 50) ? 'text-red-500 font-bold animate-pulse' : (input.trim() && input.trim().split(/\s+/).length > 40) ? 'text-amber-500' : dk ? 'text-neutral-600' : 'text-neutral-400'
+                                            }`}>
+                                            {input.trim() ? input.trim().split(/\s+/).length : 0}/50 {t('words', 'kata')}
+                                        </span>
+                                    </div>
+
                                     {isLoading && (
                                         <div className="flex items-center gap-1.5">
                                             <div className="flex gap-0.5">
@@ -469,9 +445,8 @@ export default function AiChatWidget() {
                 {!isOpen && showWelcome && (
                     <motion.div
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-                        className={`absolute bottom-[68px] right-0 mb-2 w-52 p-3 rounded-xl rounded-br-sm border cursor-pointer ${
-                            dk ? 'bg-neutral-900 border-neutral-800 shadow-xl' : 'bg-white border-neutral-200 shadow-lg'
-                        }`}
+                        className={`absolute bottom-[68px] right-0 mb-2 w-52 p-3 rounded-xl rounded-br-sm border cursor-pointer ${dk ? 'bg-neutral-900 border-neutral-800 shadow-xl' : 'bg-white border-neutral-200 shadow-lg'
+                            }`}
                         onClick={toggleOpen}
                     >
                         <button onClick={e => { e.stopPropagation(); setShowWelcome(false); }}
@@ -490,11 +465,10 @@ export default function AiChatWidget() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleOpen}
-                className={`relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-colors duration-200 ${
-                    isOpen
+                className={`relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-colors duration-200 ${isOpen
                         ? dk ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-600'
                         : dk ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-600 text-white hover:bg-indigo-500'
-                }`}
+                    }`}
                 style={{ boxShadow: isOpen ? undefined : '0 6px 20px -4px rgba(79, 70, 229, 0.4)' }}
             >
                 <AnimatePresence mode="wait">
