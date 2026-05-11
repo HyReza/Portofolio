@@ -425,11 +425,14 @@ PROMPT;
             // Profile
             $profiles = Profile::ordered()->get();
             if ($profiles->isNotEmpty()) {
+                $contactKeys = ['email', 'location', 'whatsapp', 'github', 'github_url', 'linkedin', 'linkedin_url', 'instagram', 'instagram_url', 'twitter', 'twitter_url'];
                 $parts[] = "## ABOUT REZA EDI SAPUTRA";
                 foreach ($profiles as $p) {
                     $val = $p->value_en ?: $p->value_id;
-                    if ($val && !Str::contains(strtolower($p->key), ['photo', 'bullet', 'meta', 'typewriter']))
+                    $key = strtolower($p->key);
+                    if ($val && !Str::contains($key, ['photo', 'bullet', 'meta', 'typewriter']) && !in_array($key, $contactKeys)) {
                         $parts[] = "- **{$p->key}**: {$val}";
+                    }
                 }
             }
 
@@ -785,15 +788,26 @@ PROMPT;
             return 'Visit the Contact page on this website.';
         }
 
-        $lines = [];
+        $contactMap = [];
         foreach ($profiles as $p) {
             $val = $p->value_en ?: $p->value_id;
-            if ($val) {
-                $cleanVal = trim(strip_tags($val));
-                $label = ucfirst(str_replace('_url', '', $p->key));
-                $lines[] = "- **{$label}**: {$cleanVal}";
+            if (!$val) continue;
+
+            $cleanVal = trim(strip_tags($val));
+            $label = strtolower(str_replace('_url', '', $p->key));
+
+            // If we have multiple for same label (e.g. 'github' and 'github_url'), 
+            // prioritize the one that looks like a full URL or is more specific
+            if (!isset($contactMap[$label]) || Str::startsWith($cleanVal, 'http')) {
+                $contactMap[$label] = $cleanVal;
             }
         }
+
+        $lines = [];
+        foreach ($contactMap as $label => $value) {
+            $lines[] = "- **" . ucfirst($label) . "**: {$value}";
+        }
+
         return implode("\n", $lines);
     }
 
