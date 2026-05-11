@@ -69,9 +69,8 @@ class CertificateController extends Controller
 
         // Auto-generate SEO
         $certificate->seoMeta()->create([
-            'title' => $certificate->title . ' - Certificate',
-            'description' => substr(strip_tags($certificate->description_id ?? 'My Certification'), 0, 160),
-            'keywords' => implode(',', array_merge(['certificate', $certificate->issuer], $validated['skills'] ?? [])),
+            'meta_title_id' => $certificate->title . ' - Certificate',
+            'meta_description_id' => substr(strip_tags($certificate->description_id ?? 'My Certification'), 0, 160),
             'og_image' => $certificate->image,
         ]);
 
@@ -117,9 +116,8 @@ class CertificateController extends Controller
         $certificate->seoMeta()->updateOrCreate(
             ['metaable_id' => $certificate->id, 'metaable_type' => Certificate::class],
             [
-                'title' => $certificate->title . ' - Certificate',
-                'description' => substr(strip_tags($certificate->description_id ?? 'My Certification'), 0, 160),
-                'keywords' => implode(',', array_merge(['certificate', $certificate->issuer], $validated['skills'] ?? [])),
+                'meta_title_id' => $certificate->title . ' - Certificate',
+                'meta_description_id' => substr(strip_tags($certificate->description_id ?? 'My Certification'), 0, 160),
                 'og_image' => $certificate->image,
             ]
         );
