@@ -18,17 +18,20 @@ class GoogleController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->user();
+        } catch (\Exception $e) {
+            \Log::warning('Google OAuth: failed to get user from Google', ['error' => $e->getMessage()]);
+            return redirect()->route('chat')->with('error', 'Gagal login menggunakan Google. Silakan coba lagi.');
+        }
 
+        try {
             $user = User::where('email', $googleUser->email)->first();
 
             if ($user) {
-                // Update existing user's google info if they already have an account
                 $user->update([
                     'google_id' => $googleUser->id,
                     'avatar' => $user->avatar ?? $googleUser->avatar,
                 ]);
             } else {
-                // Create new user
                 $user = User::create([
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
@@ -40,11 +43,14 @@ class GoogleController extends Controller
 
             Auth::login($user, true);
 
-            // Redirect back to chat
             return redirect()->route('chat');
 
         } catch (\Exception $e) {
-            return redirect()->route('chat')->with('error', 'Gagal login menggunakan Google.');
+            \Log::error('Google OAuth: login/create failed', [
+                'email' => $googleUser->email ?? 'unknown',
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('chat')->with('error', 'Terjadi kesalahan saat memproses login. Silakan coba lagi.');
         }
     }
 }
