@@ -12,6 +12,10 @@ class MessageReaction extends Model
         'reaction',
     ];
 
+    protected $casts = [
+        'user_id' => 'integer',
+    ];
+
     public function message()
     {
         return $this->belongsTo(ChatMessage::class, 'chat_message_id');

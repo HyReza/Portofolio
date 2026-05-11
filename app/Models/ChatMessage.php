@@ -25,6 +25,7 @@ class ChatMessage extends Model
     protected $casts = [
         'is_reply' => 'boolean',
         'is_show' => 'boolean',
+        'user_id' => 'integer',
     ];
 
     public function user()

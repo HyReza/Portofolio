@@ -64,7 +64,7 @@ interface ChatBubbleProps {
 function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, isChild = false, onReply, onEdit, onDelete, onReact, pickerOpenId, setPickerOpenId, menuOpenId, setMenuOpenId }: ChatBubbleProps) {
     const { t, lang } = useApp();
     const isAuthor = msg.user?.role === 'admin';
-    const isMine = user?.id === msg.user_id;
+    const isMine = Number(user?.id) === Number(msg.user_id);
     const isAdmin = user?.role === 'admin';
     const isOwnBubble = isMine && !isAuthor;
 
@@ -76,7 +76,7 @@ function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, is
     msg.reactions?.forEach((r: Reaction) => {
         if (!rxGroups[r.reaction]) rxGroups[r.reaction] = { count: 0, me: false };
         rxGroups[r.reaction].count++;
-        if (user && r.user_id === user.id) rxGroups[r.reaction].me = true;
+        if (user && Number(r.user_id) === Number(user.id)) rxGroups[r.reaction].me = true;
     });
 
     const replies = allMessages.filter((m) => m.parent_id === msg.id);
