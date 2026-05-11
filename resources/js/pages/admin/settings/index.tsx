@@ -1,10 +1,12 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { Key, ShieldCheck, ShieldAlert, Trash2, Settings2, Info, ExternalLink, Sparkles, CheckCircle2, AlertCircle, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
@@ -29,6 +31,7 @@ interface Settings {
 }
 
 export default function SettingsIndex({ settings }: { settings: Settings }) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const { flash } = usePage<{ flash: { success?: string; error?: string } }>().props;
     const geminiForm = useForm({ gemini_api_key: '' });
     const qwenForm = useForm({ qwen_api_key: '' });
@@ -67,14 +70,13 @@ export default function SettingsIndex({ settings }: { settings: Settings }) {
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Settings', href: '/admin/settings' }]}>
             <Head title="System Settings" />
-            <div className="mx-auto max-w-4xl space-y-8 pb-10">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">System Infrastructure</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Configure core services and integration credentials.</p>
-                    </div>
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-8 pb-6">
+                <div>
+                    <h1 className="text-xl sm:text-3xl font-bold tracking-tight">System Infrastructure</h1>
+                    <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Configure core services and integration credentials.</p>
                 </div>
 
                 <div className="grid gap-6">
@@ -161,11 +163,17 @@ export default function SettingsIndex({ settings }: { settings: Settings }) {
                                     </Button>
                                     {settings.gemini_api_key_set && (
                                         <Button type="button" variant="outline" className="text-destructive hover:bg-destructive/5" onClick={() => {
-                                            if (confirm('Remove Gemini API key?')) {
-                                                router.delete('/admin/settings/api-key', {
-                                                    onSuccess: () => toast.success('Gemini key removed'),
-                                                });
-                                            }
+                                            confirm({
+                                                title: 'Revoke Gemini API Key?',
+                                                description: 'The Gemini API key will be removed. The AI assistant will rely on Qwen as fallback.',
+                                                variant: 'danger',
+                                                confirmText: 'Revoke',
+                                                onConfirm: () => {
+                                                    router.delete('/admin/settings/api-key', {
+                                                        onSuccess: () => toast.success('Gemini key removed'),
+                                                    });
+                                                },
+                                            });
                                         }}>
                                             <Trash2 className="mr-2 h-4 w-4" />Revoke
                                         </Button>
@@ -257,11 +265,17 @@ export default function SettingsIndex({ settings }: { settings: Settings }) {
                                     </Button>
                                     {settings.qwen_api_key_set && (
                                         <Button type="button" variant="outline" className="text-destructive hover:bg-destructive/5" onClick={() => {
-                                            if (confirm('Remove Qwen API key?')) {
-                                                router.delete('/admin/settings/qwen-api-key', {
-                                                    onSuccess: () => toast.success('Qwen key removed'),
-                                                });
-                                            }
+                                            confirm({
+                                                title: 'Revoke Qwen API Key?',
+                                                description: 'The Qwen API key will be removed. Only Gemini will remain as AI provider.',
+                                                variant: 'danger',
+                                                confirmText: 'Revoke',
+                                                onConfirm: () => {
+                                                    router.delete('/admin/settings/qwen-api-key', {
+                                                        onSuccess: () => toast.success('Qwen key removed'),
+                                                    });
+                                                },
+                                            });
                                         }}>
                                             <Trash2 className="mr-2 h-4 w-4" />Revoke
                                         </Button>
@@ -413,6 +427,6 @@ export default function SettingsIndex({ settings }: { settings: Settings }) {
                     </Card>
                 </div>
             </div>
-        </>
+        </AppLayout>
     );
 }

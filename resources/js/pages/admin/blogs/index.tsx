@@ -1,8 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { Edit, Plus, Trash2, BookOpen, Eye, Clock, Hash, Newspaper, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 
 interface Blog {
@@ -20,25 +22,34 @@ interface Blog {
 interface PaginatedData { data: Blog[]; current_page: number; last_page: number; total: number; }
 
 export default function BlogIndex({ blogs }: { blogs: PaginatedData }) {
-    const handleDelete = (slug: string) => {
-        if (confirm('Are you sure you want to delete this article?')) {
-            router.delete(`/admin/blogs/${slug}`, {
-                onSuccess: () => toast.success('Article deleted'),
-            });
-        }
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
+
+    const handleDelete = (slug: string, title: string) => {
+        confirm({
+            title: 'Delete Article?',
+            description: `"${title}" will be permanently deleted.`,
+            confirmText: 'Delete',
+            variant: 'danger',
+            onConfirm: () => {
+                router.delete(`/admin/blogs/${slug}`, {
+                    onSuccess: () => toast.success('Article deleted'),
+                });
+            },
+        });
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Blog', href: '/admin/blogs' }]}>
             <Head title="Manage Blog" />
-            <div className="mx-auto max-w-5xl space-y-8 pb-10">
-                <div className="flex items-center justify-between">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-8 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Blog & Articles</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Share your thoughts, tutorials, and insights with the world.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Blog & Articles</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Share your thoughts, tutorials, and insights with the world.</p>
                     </div>
                     <Link href="/admin/blogs/create">
-                        <Button className="bg-indigo-600 hover:bg-indigo-700">
+                        <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto">
                             <Plus className="mr-2 h-4 w-4" />
                             Compose Article
                         </Button>
@@ -67,26 +78,26 @@ export default function BlogIndex({ blogs }: { blogs: PaginatedData }) {
                                 </div>
                             ) : (
                                 blogs.data.map((blog) => (
-                                    <div key={blog.id} className="group flex items-center justify-between p-6 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
-                                        <div className="min-w-0 flex-1 space-y-2">
-                                            <div className="flex items-center gap-3">
-                                                <h3 className="truncate font-bold text-neutral-900 dark:text-neutral-100 group-hover:text-indigo-600 transition-colors">{blog.title_en}</h3>
-                                                <Badge className={blog.status === 'published' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' : 'bg-neutral-500/10 text-neutral-500'}>
+                                    <div key={blog.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 gap-3 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
+                                        <div className="min-w-0 flex-1 space-y-1.5">
+                                            <div className="flex items-start sm:items-center gap-2 flex-wrap">
+                                                <h3 className="font-bold text-sm sm:text-base text-neutral-900 dark:text-neutral-100 break-words">{blog.title_en}</h3>
+                                                <Badge className={`text-[10px] ${blog.status === 'published' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' : 'bg-neutral-500/10 text-neutral-500'}`}>
                                                     {blog.status}
                                                 </Badge>
                                             </div>
-                                            <div className="flex items-center gap-4 text-xs text-neutral-500">
+                                            <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-neutral-500 flex-wrap">
                                                 <span className="flex items-center gap-1">
-                                                    <Clock size={12} /> {blog.reading_time} min
+                                                    <Clock size={11} /> {blog.reading_time} min
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    <Eye size={12} /> {blog.view_count} views
+                                                    <Eye size={11} /> {blog.view_count} views
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    <Calendar size={12} /> {new Date(blog.created_at).toLocaleDateString()}
+                                                    <Calendar size={11} /> {new Date(blog.created_at).toLocaleDateString()}
                                                 </span>
                                             </div>
-                                            <div className="flex flex-wrap gap-1.5 pt-1">
+                                            <div className="flex flex-wrap gap-1.5">
                                                 {blog.tags.map((tag) => (
                                                     <span key={tag.id} className="flex items-center gap-0.5 text-[10px] font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-1.5 py-0.5 rounded">
                                                         <Hash size={8} /> {tag.name_en}
@@ -94,14 +105,14 @@ export default function BlogIndex({ blogs }: { blogs: PaginatedData }) {
                                                 ))}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <div className="flex items-center gap-2 shrink-0">
                                             <Link href={`/admin/blogs/${blog.slug}/edit`}>
-                                                <Button variant="outline" size="sm" className="h-9">
-                                                    <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
+                                                <Button variant="outline" size="sm" className="h-8 text-xs">
+                                                    <Edit className="mr-1 h-3 w-3" /> Edit
                                                 </Button>
                                             </Link>
-                                            <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(blog.slug)}>
-                                                <Trash2 size={16} />
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(blog.slug, blog.title_en)}>
+                                                <Trash2 size={14} />
                                             </Button>
                                         </div>
                                     </div>
@@ -128,6 +139,6 @@ export default function BlogIndex({ blogs }: { blogs: PaginatedData }) {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </AppLayout>
     );
 }

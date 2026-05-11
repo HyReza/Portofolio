@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
+import AppLayout from '@/layouts/app-layout';
 
 interface Post {
     id: number; post_url: string; title: string | null; description: string | null;
@@ -17,6 +19,7 @@ interface Post {
 }
 
 export default function LinkedinAdmin({ posts, li_stats = {} }: { posts: Post[], li_stats?: Record<string, string> }) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [fetching, setFetching] = useState(false);
@@ -110,16 +113,17 @@ export default function LinkedinAdmin({ posts, li_stats = {} }: { posts: Post[],
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'LinkedIn', href: '/admin/linkedin' }]}>
             <Head title="Manage LinkedIn Posts" />
-            <div className="mx-auto max-w-5xl space-y-6 pb-10">
-                <div className="flex items-center justify-between">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-6 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">LinkedIn Posts</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Manage embedded LinkedIn content. Just paste the URL — metadata is fetched automatically!</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">LinkedIn Posts</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage embedded LinkedIn content. Just paste the URL — metadata is fetched automatically!</p>
                     </div>
                     <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); } }}>
-                        <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700"><Plus className="mr-2 h-4 w-4" />Add Post</Button></DialogTrigger>
+                        <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" />Add Post</Button></DialogTrigger>
                         <DialogContent>
                             <DialogHeader><DialogTitle>{editingId ? 'Edit Post' : 'Add LinkedIn Post'}</DialogTitle></DialogHeader>
                             <form onSubmit={handleSubmit} className="space-y-4">
@@ -225,7 +229,7 @@ export default function LinkedinAdmin({ posts, li_stats = {} }: { posts: Post[],
                         ) : (
                             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                                 {posts.map((p) => (
-                                    <div key={p.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
+                                    <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
                                                 <Linkedin className="h-4 w-4" />
@@ -239,10 +243,12 @@ export default function LinkedinAdmin({ posts, li_stats = {} }: { posts: Post[],
                                             <Badge className={p.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' : 'bg-neutral-100 text-neutral-500'}>
                                                 {p.is_active ? 'Active' : 'Inactive'}
                                             </Badge>
-                                            <a href={p.post_url} target="_blank" rel="noopener" className="hidden group-hover:inline-flex"><ExternalLink className="h-4 w-4 text-neutral-400 hover:text-blue-500 transition-colors" /></a>
-                                            <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button size="icon" variant="ghost" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { if (confirm('Delete?')) router.delete(`/admin/linkedin/${p.id}`); }}><Trash2 className="h-4 w-4" /></Button>
+                                            <a href={p.post_url} target="_blank" rel="noopener"><ExternalLink className="h-4 w-4 text-neutral-400 hover:text-blue-500 transition-colors" /></a>
+                                            <div className="flex">
+                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => {
+                                                    confirm({ title: 'Delete Post?', description: `This LinkedIn post will be removed.`, variant: 'danger', onConfirm: () => router.delete(`/admin/linkedin/${p.id}`, { onSuccess: () => toast.success('Deleted') }) });
+                                                }}><Trash2 className="h-3.5 w-3.5" /></Button>
                                             </div>
                                         </div>
                                     </div>
@@ -252,6 +258,6 @@ export default function LinkedinAdmin({ posts, li_stats = {} }: { posts: Post[],
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </AppLayout>
     );
 }

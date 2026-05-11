@@ -1,4 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { useState } from 'react';
 import { Plus, Trash2, Tag as TagIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 
 
@@ -21,6 +23,7 @@ interface Tag {
 interface Props { tags: Tag[]; }
 
 export default function TagIndex({ tags }: Props) {
+    const { confirm: confirmDelete, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingSlug, setEditingSlug] = useState<string | null>(null);
 
@@ -38,12 +41,17 @@ export default function TagIndex({ tags }: Props) {
         setDialogOpen(true);
     };
 
-    const handleDelete = (slug: string) => {
-        if (confirm('Are you sure you want to delete this tag? This action cannot be undone.')) {
-            router.delete(`/admin/tags/${slug}`, {
-                onSuccess: () => toast.success('Tag deleted successfully!')
-            });
-        }
+    const handleDelete = (slug: string, name: string) => {
+        confirmDelete({
+            title: 'Delete Tag?',
+            description: `Tag "${name}" will be permanently deleted. This action cannot be undone.`,
+            variant: 'danger',
+            onConfirm: () => {
+                router.delete(`/admin/tags/${slug}`, {
+                    onSuccess: () => toast.success('Tag deleted successfully!')
+                });
+            },
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -60,16 +68,17 @@ export default function TagIndex({ tags }: Props) {
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Tags', href: '/admin/tags' }]}>
             <Head title="Manage Tags" />
-            <div className="mx-auto max-w-4xl space-y-6 pb-10">
-                <div className="flex items-center justify-between">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-6 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Tags</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Manage global tags used for blogs.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Tags</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage global tags used for blogs.</p>
                     </div>
                     <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingSlug(null); form.reset(); } }}>
-                        <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700"><Plus className="mr-2 h-4 w-4" />Add Tag</Button></DialogTrigger>
+                        <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" />Add Tag</Button></DialogTrigger>
                         <DialogContent className="max-w-md">
                             <DialogHeader><DialogTitle>{editingSlug ? 'Edit Tag' : 'Add Tag'}</DialogTitle></DialogHeader>
                             <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,7 +110,7 @@ export default function TagIndex({ tags }: Props) {
                         ) : (
                             <div className="divide-y">
                                 {tags.map((tag) => (
-                                    <div key={tag.id} className="flex items-center justify-between py-4">
+                                    <div key={tag.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3 sm:py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                                                 <TagIcon className="h-5 w-5" />
@@ -111,12 +120,12 @@ export default function TagIndex({ tags }: Props) {
                                                 <p className="text-xs text-muted-foreground mt-0.5">Used in {tag.blogs_count} posts</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => handleEdit(tag)}>
-                                                <Pencil className="h-4 w-4" />
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <Button variant="outline" size="sm" className="h-8" onClick={() => handleEdit(tag)}>
+                                                <Pencil className="h-3.5 w-3.5" />
                                             </Button>
-                                            <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950" onClick={() => handleDelete(tag.slug)}>
-                                                <Trash2 className="h-4 w-4" />
+                                            <Button variant="outline" size="sm" className="h-8 text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950" onClick={() => handleDelete(tag.slug, tag.name_en)}>
+                                                <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
                                         </div>
                                     </div>
@@ -126,6 +135,6 @@ export default function TagIndex({ tags }: Props) {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </AppLayout>
     );
 }

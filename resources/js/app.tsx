@@ -22,9 +22,8 @@ createInertiaApp({
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
-            case name.startsWith('admin/'):
-            case name === 'dashboard':
-                return AppLayout;
+            // admin/* and dashboard pages wrap themselves in <AppLayout> explicitly
+            // to pass per-page breadcrumbs — do NOT double-wrap here
             default:
                 return null;
         }

@@ -24,6 +24,7 @@ readonly class ProjectDTO
         public bool $is_featured = false,
         public string $status = 'draft',
         public ?string $published_at = null,
+        public bool $show_in_cv = true,
     ) {}
 
     public static function fromRequest(array $validated): self

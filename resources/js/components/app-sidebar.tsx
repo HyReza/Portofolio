@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
 import {
     Award, FileText, FolderKanban, GitBranch, GraduationCap,
-    LayoutDashboard, Linkedin, Instagram, Mail, MessageCircle, MessageSquare,
-    Settings, Trophy, User, Users, Zap, Tag,
+    LayoutDashboard, Linkedin, Instagram, Mail, MessageSquare,
+    Settings, Trophy, User, Users, Zap, Tag, ExternalLink
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -10,44 +10,45 @@ import { NavUser } from '@/components/nav-user';
 import {
     Sidebar, SidebarContent, SidebarFooter, SidebarHeader,
     SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+    SidebarRail,
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const overviewNavItems: NavItem[] = [
     { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { title: 'Settings', href: '/admin/settings', icon: Settings },
+    { title: 'Profile', href: '/admin/profile', icon: User },
 ];
 
-const personalNavItems: NavItem[] = [
-    { title: 'Profile', href: '/admin/profile', icon: User },
+const portfolioNavItems: NavItem[] = [
+    { title: 'Projects', href: '/admin/projects', icon: FolderKanban },
+    { title: 'Skills', href: '/admin/skills', icon: Zap },
+    { title: 'Tags', href: '/admin/tags', icon: Tag },
+];
+
+const resumeNavItems: NavItem[] = [
+    { title: 'Experience', href: '/admin/careers', icon: GitBranch },
     { title: 'Education', href: '/admin/education', icon: GraduationCap },
-    { title: 'Careers', href: '/admin/careers', icon: GitBranch },
     { title: 'Organizations', href: '/admin/organizations', icon: Users },
+    { title: 'Certificates', href: '/admin/certificates', icon: Award },
+    { title: 'Achievements', href: '/admin/achievements', icon: Trophy },
 ];
 
 const contentNavItems: NavItem[] = [
-    { title: 'Skills', href: '/admin/skills', icon: Zap },
-    { title: 'Projects', href: '/admin/projects', icon: FolderKanban },
     { title: 'Blog', href: '/admin/blogs', icon: FileText },
-    { title: 'Tags', href: '/admin/tags', icon: Tag },
-    { title: 'Achievements', href: '/admin/achievements', icon: Trophy },
-    { title: 'Certificates', href: '/admin/certificates', icon: Award },
+    { title: 'Messages', href: '/admin/contacts', icon: Mail },
     { title: 'Testimonials', href: '/admin/testimonials', icon: MessageSquare },
 ];
 
-const socialNavItems: NavItem[] = [
+const systemNavItems: NavItem[] = [
+    { title: 'Settings', href: '/admin/settings', icon: Settings },
     { title: 'LinkedIn', href: '/admin/linkedin', icon: Linkedin },
     { title: 'Instagram', href: '/admin/instagram', icon: Instagram },
 ];
 
-const inboxNavItems: NavItem[] = [
-    { title: 'Contacts', href: '/admin/contacts', icon: Mail },
-];
-
 export function AppSidebar() {
     return (
-        <Sidebar collapsible="icon" variant="sidebar" className="border-r-0 shadow-none">
-            <SidebarHeader className="pt-6 px-4">
+        <Sidebar collapsible="icon" variant="inset" className="bg-neutral-50/50 dark:bg-[#111111]">
+            <SidebarHeader className="p-2 border-b border-transparent">
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
@@ -56,30 +57,44 @@ export function AppSidebar() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem className="mt-4">
-                        <SidebarMenuButton asChild variant="default" className="bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white shadow-md transition-all duration-200 h-10">
-                            <Link href="/" target="_blank">
-                                <Zap className="h-4 w-4" />
-                                <span className="font-semibold">Live Website</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent className="px-2 mt-4 custom-scrollbar">
-                <div className="space-y-6">
-                    <NavMain title="Core" items={mainNavItems} />
-                    <NavMain title="Personal" items={personalNavItems} />
-                    <NavMain title="Content Management" items={contentNavItems} />
-                    <NavMain title="Engagement" items={inboxNavItems} />
-                    <NavMain title="Socials" items={socialNavItems} />
-                </div>
+            <SidebarContent className="overflow-x-hidden space-y-2 group-data-[collapsible=icon]:space-y-0">
+                <NavMain items={overviewNavItems} />
+                <NavMain title="Portfolio" items={portfolioNavItems} />
+                <NavMain title="Resume" items={resumeNavItems} />
+                <NavMain title="Content" items={contentNavItems} />
+                <NavMain title="System" items={systemNavItems} />
             </SidebarContent>
 
-            <SidebarFooter className="p-4 border-t border-neutral-100 dark:border-neutral-800">
+            <SidebarFooter className="p-2 border-t border-transparent space-y-2">
+                {/* Minimalist Live Site Button */}
+                <div className="group-data-[collapsible=icon]:hidden px-2 mb-1">
+                    <Link
+                        href="/"
+                        target="_blank"
+                        className="flex h-8 w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-white"
+                    >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Live Website
+                    </Link>
+                </div>
+                {/* Icon mode live site button */}
+                <div className="hidden group-data-[collapsible=icon]:flex w-full justify-center mb-1">
+                    <Link
+                        href="/"
+                        target="_blank"
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:hover:text-white"
+                        title="Live Website"
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Link>
+                </div>
+
                 <NavUser />
             </SidebarFooter>
+            <SidebarRail />
         </Sidebar>
     );
 }

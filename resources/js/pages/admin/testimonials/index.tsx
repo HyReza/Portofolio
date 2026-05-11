@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Testimonial {
     id: number;
@@ -27,6 +28,7 @@ interface Testimonial {
 }
 
 export default function TestimonialIndex({ testimonials }: { testimonials: Testimonial[] }) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -124,11 +126,12 @@ export default function TestimonialIndex({ testimonials }: { testimonials: Testi
     return (
         <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Testimonials', href: '/admin/testimonials' }]}>
             <Head title="Manage Testimonials" />
-            <div className="mx-auto max-w-6xl space-y-6 pb-10 p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-6xl space-y-4 sm:space-y-6 pb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Testimonials</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Manage client feedback and recommendations.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Testimonials</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage client feedback and recommendations.</p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                         <div className="relative w-full sm:w-64">
@@ -279,14 +282,14 @@ export default function TestimonialIndex({ testimonials }: { testimonials: Testi
                     ) : filteredTestimonials.map((testi, index) => (
                         <Card key={testi.id} className="group relative overflow-hidden border-none shadow-sm ring-1 ring-neutral-200 transition-all hover:shadow-xl hover:ring-indigo-500/20 dark:ring-neutral-800 dark:hover:ring-indigo-500/30 dark:bg-[#121212] p-6 flex flex-col">
                             {/* Sort order badge */}
-                            <div className="absolute top-3 left-3 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-3 left-3 z-10 flex items-center gap-1">
                                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white text-xs font-bold backdrop-blur-sm">
                                     {index + 1}
                                 </span>
                             </div>
 
                             {/* Move up/down buttons */}
-                            <div className="absolute top-3 right-3 z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <div className="absolute top-3 right-3 z-10 flex gap-1">
                                 <Button size="icon" variant="secondary" className="h-7 w-7 shadow-sm disabled:opacity-30" disabled={index === 0} onClick={() => moveTestimonial(testi.id, 'up')}>
                                     <ChevronUp className="h-4 w-4" />
                                 </Button>
@@ -325,12 +328,14 @@ export default function TestimonialIndex({ testimonials }: { testimonials: Testi
                             </div>
 
                             {/* Actions */}
-                            <div className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-800 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button size="sm" variant="secondary" className="text-indigo-600 hover:text-indigo-700" onClick={() => handleEdit(testi)}>
-                                    <Pencil className="h-4 w-4 mr-1" /> Edit
+                            <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800 flex justify-end gap-2">
+                                <Button size="sm" variant="secondary" className="h-8 text-xs text-indigo-600 hover:text-indigo-700" onClick={() => handleEdit(testi)}>
+                                    <Pencil className="h-3 w-3 mr-1" /> Edit
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => { if (confirm('Delete this testimonial?')) router.delete(`/admin/testimonials/${testi.id}`); }}>
-                                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => {
+                                    confirm({ title: 'Delete Testimonial?', description: `Feedback from "${testi.client_name}" will be deleted.`, variant: 'danger', onConfirm: () => router.delete(`/admin/testimonials/${testi.id}`, { onSuccess: () => toast.success('Deleted') }) });
+                                }}>
+                                    <Trash2 className="h-3 w-3 mr-1" /> Delete
                                 </Button>
                             </div>
                         </Card>

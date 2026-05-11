@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -97,10 +98,10 @@ export default function EditBlog({ blog, tags }: { blog: Blog; tags: Tag[] }) {
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Blog', href: '/admin/blogs' }, { title: 'Edit', href: '#' }]}>
             <Head title={`Edit: ${blog.title_en}`} />
-            <div className="mx-auto max-w-4xl space-y-6">
-                <h1 className="text-3xl font-bold tracking-tight">Edit Blog Post</h1>
+            <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-6 pb-6">
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Edit Blog Post</h1>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <Card>
                         <CardHeader><CardTitle>Basic Info</CardTitle></CardHeader>
@@ -222,6 +223,6 @@ export default function EditBlog({ blog, tags }: { blog: Blog; tags: Tag[] }) {
                     </div>
                 </form>
             </div>
-        </>
+        </AppLayout>
     );
 }

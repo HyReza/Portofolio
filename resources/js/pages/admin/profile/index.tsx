@@ -1,4 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -195,13 +196,13 @@ export default function ProfileIndex({ profiles }: Props) {
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Profile', href: '/admin/profile' }]}>
             <Head title="Profile Settings" />
-            <div className="mx-auto max-w-5xl space-y-8 pb-10">
-                <div className="flex items-center justify-between">
+            <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-8 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Configure your personal brand, social links, and global SEO meta.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Profile Settings</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Configure your personal brand, social links, and global SEO meta.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" asChild>
@@ -487,6 +488,6 @@ export default function ProfileIndex({ profiles }: Props) {
                     </div>
                 </form>
             </div>
-        </>
+        </AppLayout>
     );
 }

@@ -1,4 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Trophy, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 
 interface Achievement {
@@ -28,6 +30,7 @@ interface Achievement {
 interface Props { achievements: Achievement[]; }
 
 export default function AchievementIndex({ achievements }: Props) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -72,20 +75,21 @@ export default function AchievementIndex({ achievements }: Props) {
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Achievements', href: '/admin/achievements' }]}>
             <Head title="Manage Achievements" />
-            <div className="mx-auto max-w-5xl space-y-6 pb-10">
-                <div className="flex items-center justify-between">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-6 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Achievements</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Academic, professional, and award milestones.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Achievements</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Academic, professional, and award milestones.</p>
                     </div>
                     <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); } }}>
-                        <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700"><Plus className="mr-2 h-4 w-4" />Add</Button></DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" />Add</Button></DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader><DialogTitle>{editingId ? 'Edit Achievement' : 'Add Achievement'}</DialogTitle></DialogHeader>
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid gap-4 grid-cols-2">
+                                <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label>Title (ID)</Label>
                                         <Input value={form.data.title_id} onChange={(e) => form.setData('title_id', e.target.value)} required />
@@ -109,7 +113,7 @@ export default function AchievementIndex({ achievements }: Props) {
                                     </div>
                                     <textarea className="border-input bg-background min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" value={form.data.description_en} onChange={(e) => form.setData('description_en', e.target.value)} placeholder="Achievement description..." />
                                 </div>
-                                <div className="grid gap-4 grid-cols-2">
+                                <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2"><Label>Type</Label>
                                         <Select value={form.data.type} onValueChange={(v) => form.setData('type', v)}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -152,7 +156,7 @@ export default function AchievementIndex({ achievements }: Props) {
                         {achievements.length === 0 ? <p className="text-muted-foreground py-10 text-center text-sm">No achievements yet.</p> : (
                             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                                 {achievements.map((a) => (
-                                    <div key={a.id} className="group flex items-start justify-between p-5 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
+                                    <div key={a.id} className="flex flex-col sm:flex-row sm:items-start justify-between p-4 sm:p-5 gap-3 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
                                         <div className="flex items-start gap-3">
                                             <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
                                                 <Trophy className="h-4 w-4" />
@@ -169,10 +173,12 @@ export default function AchievementIndex({ achievements }: Props) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                            <Button size="icon" variant="ghost" onClick={() => handleEdit(a)}><Pencil className="h-4 w-4" /></Button>
-                                            <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => { if (confirm('Delete?')) router.delete(`/admin/achievements/${a.id}`); }}>
-                                                <Trash2 className="h-4 w-4" />
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(a)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => {
+                                                confirm({ title: 'Delete Achievement?', description: `"${a.title_en}" will be removed.`, variant: 'danger', onConfirm: () => router.delete(`/admin/achievements/${a.id}`, { onSuccess: () => toast.success('Deleted') }) });
+                                            }}>
+                                                <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
                                         </div>
                                     </div>
@@ -182,6 +188,6 @@ export default function AchievementIndex({ achievements }: Props) {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </AppLayout>
     );
 }

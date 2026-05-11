@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export default function OrganizationsIndex({ organizations }: Props) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -118,15 +120,16 @@ export default function OrganizationsIndex({ organizations }: Props) {
     return (
         <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Organizations', href: '/admin/organizations' }]}>
             <Head title="Manage Organizations" />
-            <div className="mx-auto max-w-5xl space-y-8 pb-10 p-6">
-                <div className="flex items-center justify-between">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-8 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Organizations & Communities</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Manage your involvement in organizations, clubs, and communities.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Organizations & Communities</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your involvement in organizations, clubs, and communities.</p>
                     </div>
                     <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); setLogoPreview(null); } }}>
                         <DialogTrigger asChild>
-                            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={openNew}><Plus className="mr-2 h-4 w-4" />New Organization</Button>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto" onClick={openNew}><Plus className="mr-2 h-4 w-4" />New Organization</Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
@@ -269,7 +272,7 @@ export default function OrganizationsIndex({ organizations }: Props) {
                         ) : (
                             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                                 {organizations.map((org) => (
-                                    <div key={org.id} className="group flex items-start justify-between p-6 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
+                                    <div key={org.id} className="flex flex-col sm:flex-row sm:items-start justify-between p-4 sm:p-6 gap-3 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
                                         <div className="flex gap-4">
                                             <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
                                                 {org.logo ? (
@@ -300,12 +303,12 @@ export default function OrganizationsIndex({ organizations }: Props) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 pr-4">
-                                            <Button size="sm" variant="outline" className="h-8" onClick={() => handleEdit(org)}>Edit</Button>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleEdit(org)}>Edit</Button>
                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => {
-                                                if (confirm('Delete this record?')) router.delete(`/admin/organizations/${org.id}`);
+                                                confirm({ title: 'Delete Organization?', description: `"${org.name}" will be removed.`, variant: 'danger', onConfirm: () => router.delete(`/admin/organizations/${org.id}`, { onSuccess: () => toast.success('Deleted') }) });
                                             }}>
-                                                <Trash2 size={16} />
+                                                <Trash2 size={14} />
                                             </Button>
                                         </div>
                                     </div>

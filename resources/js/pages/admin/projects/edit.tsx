@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/input-error';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 import { TiptapEditor } from '@/components/TiptapEditor';
+import { TagInput } from '@/components/ui/tag-input';
 import { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 interface Project {
     id: number;
@@ -94,19 +97,26 @@ export default function EditProject({ project }: Props) {
     }, [data.title_en, data.title_id, isSlugManuallyEdited]);
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Projects', href: '/admin/projects' }, { title: 'Edit', href: '#' }]}>
             <Head title={`Edit: ${project.title_en}`} />
-            <div className="mx-auto max-w-4xl space-y-6">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Edit Project</h1>
-                    <p className="text-muted-foreground mt-1">Update project details.</p>
+            <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-6 pb-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Edit Project</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Update project details.</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => window.history.back()} className="w-fit">
+                        <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back
+                    </Button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                    {/* Basic Information */}
                     <Card>
-                        <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Basic Information</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <div className="mb-2 h-6 flex items-end">
                                         <Label htmlFor="title_id">Title (ID)</Label>
@@ -124,28 +134,20 @@ export default function EditProject({ project }: Props) {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="slug">Slug (Auto-generated & Unique)</Label>
-                                <Input 
-                                    id="slug" 
-                                    value={data.slug} 
-                                    onChange={(e) => {
-                                        setIsSlugManuallyEdited(true);
-                                        setData('slug', e.target.value);
-                                    }} 
-                                />
+                                <Label htmlFor="slug">Slug</Label>
+                                <Input id="slug" value={data.slug} onChange={(e) => { setIsSlugManuallyEdited(true); setData('slug', e.target.value); }} />
                                 <InputError message={errors.slug} />
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* Excerpts */}
                     <Card>
-                        <CardHeader><CardTitle>Excerpts</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Excerpts</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
-                                    <div className="mb-2 h-6 flex items-end">
-                                        <Label>Excerpt (ID)</Label>
-                                    </div>
+                                    <div className="mb-2 h-6 flex items-end"><Label>Excerpt (ID)</Label></div>
                                     <textarea className="border-input bg-background min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" value={data.excerpt_id} onChange={(e) => setData('excerpt_id', e.target.value)} />
                                 </div>
                                 <div>
@@ -159,14 +161,13 @@ export default function EditProject({ project }: Props) {
                         </CardContent>
                     </Card>
 
+                    {/* Problem vs Solution */}
                     <Card>
-                        <CardHeader><CardTitle>The Problem vs The Solution</CardTitle></CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Problem vs Solution</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-6">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
-                                    <div className="mb-2 h-6 flex items-end">
-                                        <Label>Problem (ID)</Label>
-                                    </div>
+                                    <div className="mb-2 h-6 flex items-end"><Label>Problem (ID)</Label></div>
                                     <TiptapEditor value={data.problem_id} onChange={(html) => setData('problem_id', html)} />
                                 </div>
                                 <div>
@@ -177,11 +178,9 @@ export default function EditProject({ project }: Props) {
                                     <TiptapEditor value={data.problem_en} onChange={(html) => setData('problem_en', html)} />
                                 </div>
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
-                                    <div className="mb-2 h-6 flex items-end">
-                                        <Label>Solution (ID)</Label>
-                                    </div>
+                                    <div className="mb-2 h-6 flex items-end"><Label>Solution (ID)</Label></div>
                                     <TiptapEditor value={data.solution_id} onChange={(html) => setData('solution_id', html)} />
                                 </div>
                                 <div>
@@ -195,23 +194,20 @@ export default function EditProject({ project }: Props) {
                         </CardContent>
                     </Card>
 
-                    {/* Detailed Content / Tutorial */}
+                    {/* Detailed Content */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Detailed Content / Tutorial</CardTitle>
-                            <p className="text-sm text-neutral-500">Provide in-depth documentation, readme, or tutorial content for this project.</p>
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4">
+                            <CardTitle className="text-sm sm:text-base">Detailed Content / Tutorial</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardContent className="px-4 sm:px-6 space-y-6">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
-                                    <div className="mb-2 h-6 flex items-end">
-                                        <Label htmlFor="content_id">Content (ID)</Label>
-                                    </div>
+                                    <div className="mb-2 h-6 flex items-end"><Label>Content (ID)</Label></div>
                                     <TiptapEditor value={data.content_id} onChange={(html) => setData('content_id', html)} />
                                 </div>
                                 <div>
                                     <div className="mb-2 h-6 flex items-end justify-between">
-                                        <Label htmlFor="content_en">Content (EN)</Label>
+                                        <Label>Content (EN)</Label>
                                         <AutoTranslateButton sourceText={data.content_id} onTranslate={(t) => setData('content_en', t)} />
                                     </div>
                                     <TiptapEditor value={data.content_en} onChange={(html) => setData('content_en', html)} />
@@ -220,36 +216,32 @@ export default function EditProject({ project }: Props) {
                         </CardContent>
                     </Card>
 
+                    {/* Media & Links */}
                     <Card>
-                        <CardHeader><CardTitle>Media & Links</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Media & Links</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
                             <div className="space-y-2">
                                 <Label>Thumbnail</Label>
                                 {thumbnailPreview && (
-                                    <div className="relative mb-4 max-w-sm rounded-lg border border-neutral-200 p-2 dark:border-neutral-800">
-                                        <img src={thumbnailPreview} alt="Preview" className="w-full rounded-md object-cover h-48" />
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="icon"
-                                            className="absolute -top-3 -right-3 h-8 w-8 rounded-full shadow-lg"
-                                            onClick={() => {
-                                                setThumbnailPreview(null);
-                                                setData('thumbnail', null);
-                                            }}
-                                        >
-                                            <span className="sr-only">Remove</span>
-                                            &times;
+                                    <div className="relative mb-4 max-w-xs sm:max-w-sm rounded-lg border border-neutral-200 p-2 dark:border-neutral-800">
+                                        <img src={thumbnailPreview} alt="Preview" className="w-full rounded-md object-cover h-36 sm:h-48" />
+                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-3 -right-3 h-8 w-8 rounded-full shadow-lg" onClick={() => { setThumbnailPreview(null); setData('thumbnail', null); }}>
+                                            <span className="sr-only">Remove</span>&times;
                                         </Button>
                                     </div>
                                 )}
                                 <Input id="thumbnail" type="file" accept="image/*" onChange={handleThumbnailChange} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Tech Stack (comma-separated)</Label>
-                                <Input value={data.tech_stack.join(', ')} onChange={(e) => setData('tech_stack', e.target.value.split(',').map(t => t.trim()).filter(Boolean))} />
+                                <Label>Tech Stack</Label>
+                                <TagInput
+                                    value={data.tech_stack}
+                                    onChange={(tags) => setData('tech_stack', tags)}
+                                    placeholder="Type tech name, press Enter or comma to add..."
+                                />
+                                <p className="text-[11px] text-neutral-400">Press Enter or comma to add. Click × to remove.</p>
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label>Demo URL</Label>
                                     <Input type="url" value={data.demo_url} onChange={(e) => setData('demo_url', e.target.value)} />
@@ -262,10 +254,11 @@ export default function EditProject({ project }: Props) {
                         </CardContent>
                     </Card>
 
+                    {/* Publishing */}
                     <Card>
-                        <CardHeader><CardTitle>Publishing</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Publishing</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label>Status</Label>
                                     <Select value={data.status} onValueChange={(v) => setData('status', v as 'draft' | 'published')}>
@@ -295,12 +288,13 @@ export default function EditProject({ project }: Props) {
                         </CardContent>
                     </Card>
 
-                    <div className="flex justify-end gap-4">
-                        <Button type="button" variant="outline" onClick={() => window.history.back()}>Cancel</Button>
-                        <Button type="submit" disabled={processing}>{processing ? 'Saving...' : 'Save Changes'}</Button>
+                    {/* Actions */}
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4">
+                        <Button type="button" variant="outline" onClick={() => window.history.back()} className="w-full sm:w-auto">Cancel</Button>
+                        <Button type="submit" disabled={processing} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700">{processing ? 'Saving...' : 'Save Changes'}</Button>
                     </div>
                 </form>
             </div>
-        </>
+        </AppLayout>
     );
 }

@@ -1,4 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { BarChart3, Eye, FileText, FolderKanban, Mail, MailOpen, Trophy, Zap, Award, Plus, ArrowUpRight, Clock, Download, ExternalLink, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,13 +62,13 @@ export default function Dashboard({ stats, recentActivity }: DashboardProps) {
     const activityColor: Record<string, string> = { blog: 'text-emerald-500', project: 'text-blue-500', contact: 'text-rose-500' };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Dashboard', href: '/admin' }]}>
             <Head title="Admin Dashboard" />
-            <div className="space-y-8 pb-10">
-                <div className="flex items-center justify-between">
+            <div className="space-y-4 sm:space-y-8 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Overview of your portfolio content and analytics.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Overview of your portfolio content and analytics.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Dialog>
@@ -103,7 +104,7 @@ export default function Dashboard({ stats, recentActivity }: DashboardProps) {
 
 
                 {/* Stat Cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
                     {statCards.map((card) => (
                         <Card key={card.label} className="border-none shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-800">
                             <CardContent className="p-4">
@@ -120,7 +121,7 @@ export default function Dashboard({ stats, recentActivity }: DashboardProps) {
                     ))}
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
+                <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
                     {/* Quick Actions */}
                     <Card className="border-none shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-800">
                         <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
@@ -174,6 +175,6 @@ export default function Dashboard({ stats, recentActivity }: DashboardProps) {
                     </Card>
                 </div>
             </div>
-        </>
+        </AppLayout>
     );
 }

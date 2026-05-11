@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/input-error';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 import { TiptapEditor } from '@/components/TiptapEditor';
+import { TagInput } from '@/components/ui/tag-input';
 import { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function CreateProject() {
     const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
@@ -53,11 +56,6 @@ export default function CreateProject() {
         }
     }, [data.title_en, data.title_id, isSlugManuallyEdited]);
 
-    const handleTechStackChange = (value: string) => {
-        const tags = value.split(',').map((t) => t.trim()).filter(Boolean);
-        setData('tech_stack', tags);
-    };
-
     const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
     const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,20 +69,26 @@ export default function CreateProject() {
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Projects', href: '/admin/projects' }, { title: 'Create', href: '/admin/projects/create' }]}>
             <Head title="Create Project" />
-            <div className="mx-auto max-w-4xl space-y-6">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Create Project</h1>
-                    <p className="text-muted-foreground mt-1">Add a new project to your portfolio.</p>
+            <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-6 pb-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Create Project</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Add a new project to your portfolio.</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => window.history.back()} className="w-fit">
+                        <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back
+                    </Button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                     {/* Titles */}
                     <Card>
-                        <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Basic Information</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <div className="mb-2 h-6 flex items-end">
                                         <Label htmlFor="title_id">Title (ID)</Label>
@@ -103,14 +107,14 @@ export default function CreateProject() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="slug">Slug (Auto-generated & Unique)</Label>
-                                <Input 
-                                    id="slug" 
-                                    value={data.slug} 
+                                <Input
+                                    id="slug"
+                                    value={data.slug}
                                     onChange={(e) => {
                                         setIsSlugManuallyEdited(true);
                                         setData('slug', e.target.value);
-                                    }} 
-                                    placeholder="project-url-slug" 
+                                    }}
+                                    placeholder="project-url-slug"
                                 />
                                 <InputError message={errors.slug} />
                             </div>
@@ -119,9 +123,9 @@ export default function CreateProject() {
 
                     {/* Excerpts */}
                     <Card>
-                        <CardHeader><CardTitle>Excerpts</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Excerpts</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <div className="mb-2 h-6 flex items-end">
                                         <Label htmlFor="excerpt_id">Excerpt (ID)</Label>
@@ -141,33 +145,33 @@ export default function CreateProject() {
 
                     {/* Problem vs Solution */}
                     <Card>
-                        <CardHeader><CardTitle>The Problem vs The Solution</CardTitle></CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">The Problem vs The Solution</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-6">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <div className="mb-2 h-6 flex items-end">
-                                        <Label htmlFor="problem_id">Problem (ID)</Label>
+                                        <Label>Problem (ID)</Label>
                                     </div>
                                     <TiptapEditor value={data.problem_id} onChange={(html) => setData('problem_id', html)} />
                                 </div>
                                 <div>
                                     <div className="mb-2 h-6 flex items-end justify-between">
-                                        <Label htmlFor="problem_en">Problem (EN)</Label>
+                                        <Label>Problem (EN)</Label>
                                         <AutoTranslateButton sourceText={data.problem_id} onTranslate={(t) => setData('problem_en', t)} />
                                     </div>
                                     <TiptapEditor value={data.problem_en} onChange={(html) => setData('problem_en', html)} />
                                 </div>
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <div className="mb-2 h-6 flex items-end">
-                                        <Label htmlFor="solution_id">Solution (ID)</Label>
+                                        <Label>Solution (ID)</Label>
                                     </div>
                                     <TiptapEditor value={data.solution_id} onChange={(html) => setData('solution_id', html)} />
                                 </div>
                                 <div>
                                     <div className="mb-2 h-6 flex items-end justify-between">
-                                        <Label htmlFor="solution_en">Solution (EN)</Label>
+                                        <Label>Solution (EN)</Label>
                                         <AutoTranslateButton sourceText={data.solution_id} onTranslate={(t) => setData('solution_en', t)} />
                                     </div>
                                     <TiptapEditor value={data.solution_en} onChange={(html) => setData('solution_en', html)} />
@@ -176,23 +180,23 @@ export default function CreateProject() {
                         </CardContent>
                     </Card>
 
-                    {/* Detailed Content / Tutorial */}
+                    {/* Detailed Content */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Detailed Content / Tutorial</CardTitle>
-                            <p className="text-sm text-neutral-500">Provide in-depth documentation, readme, or tutorial content for this project.</p>
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4">
+                            <CardTitle className="text-sm sm:text-base">Detailed Content / Tutorial</CardTitle>
+                            <p className="text-xs text-neutral-500">Provide in-depth documentation, readme, or tutorial content for this project.</p>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardContent className="px-4 sm:px-6 space-y-6">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <div className="mb-2 h-6 flex items-end">
-                                        <Label htmlFor="content_id">Content (ID)</Label>
+                                        <Label>Content (ID)</Label>
                                     </div>
                                     <TiptapEditor value={data.content_id} onChange={(html) => setData('content_id', html)} />
                                 </div>
                                 <div>
                                     <div className="mb-2 h-6 flex items-end justify-between">
-                                        <Label htmlFor="content_en">Content (EN)</Label>
+                                        <Label>Content (EN)</Label>
                                         <AutoTranslateButton sourceText={data.content_id} onTranslate={(t) => setData('content_en', t)} />
                                     </div>
                                     <TiptapEditor value={data.content_en} onChange={(html) => setData('content_en', html)} />
@@ -203,13 +207,13 @@ export default function CreateProject() {
 
                     {/* Media & Links */}
                     <Card>
-                        <CardHeader><CardTitle>Media & Links</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Media & Links</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="thumbnail">Thumbnail</Label>
                                 {thumbnailPreview && (
-                                    <div className="relative mb-4 max-w-sm rounded-lg border border-neutral-200 p-2 dark:border-neutral-800">
-                                        <img src={thumbnailPreview} alt="Preview" className="w-full rounded-md object-cover h-48" />
+                                    <div className="relative mb-4 max-w-xs sm:max-w-sm rounded-lg border border-neutral-200 p-2 dark:border-neutral-800">
+                                        <img src={thumbnailPreview} alt="Preview" className="w-full rounded-md object-cover h-36 sm:h-48" />
                                         <Button
                                             type="button"
                                             variant="destructive"
@@ -229,10 +233,15 @@ export default function CreateProject() {
                                 <InputError message={errors.thumbnail} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="tech_stack">Tech Stack (comma-separated)</Label>
-                                <Input id="tech_stack" value={data.tech_stack.join(', ')} onChange={(e) => handleTechStackChange(e.target.value)} placeholder="Laravel, React, TailwindCSS" />
+                                <Label>Tech Stack</Label>
+                                <TagInput
+                                    value={data.tech_stack}
+                                    onChange={(tags) => setData('tech_stack', tags)}
+                                    placeholder="Type tech name, press Enter or comma to add..."
+                                />
+                                <p className="text-[11px] text-neutral-400">Press Enter or comma to add. Click × to remove.</p>
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="demo_url">Demo URL</Label>
                                     <Input id="demo_url" type="url" value={data.demo_url} onChange={(e) => setData('demo_url', e.target.value)} placeholder="https://demo.example.com" />
@@ -247,9 +256,9 @@ export default function CreateProject() {
 
                     {/* Publishing */}
                     <Card>
-                        <CardHeader><CardTitle>Publishing</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                        <CardHeader className="px-4 sm:px-6 py-3 sm:py-4"><CardTitle className="text-sm sm:text-base">Publishing</CardTitle></CardHeader>
+                        <CardContent className="px-4 sm:px-6 space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="status">Status</Label>
                                     <Select value={data.status} onValueChange={(v) => setData('status', v as 'draft' | 'published')}>
@@ -279,16 +288,17 @@ export default function CreateProject() {
                         </CardContent>
                     </Card>
 
-                    <div className="flex justify-end gap-4">
-                        <Button type="button" variant="outline" onClick={() => window.history.back()}>
+                    {/* Actions */}
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4">
+                        <Button type="button" variant="outline" onClick={() => window.history.back()} className="w-full sm:w-auto">
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={processing}>
+                        <Button type="submit" disabled={processing} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700">
                             {processing ? 'Creating...' : 'Create Project'}
                         </Button>
                     </div>
                 </form>
             </div>
-        </>
+        </AppLayout>
     );
 }

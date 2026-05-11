@@ -1,7 +1,7 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { useState, useRef } from 'react';
-import { Plus, Trash2, GraduationCap, GitBranch, Calendar, Building2, BookOpen, Upload, X, Award } from 'lucide-react';
+import { Plus, Trash2, GraduationCap, GitBranch, Calendar, Building2, BookOpen, Upload, X, Award, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 
 interface Education {
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export default function EducationIndex({ educations }: Props) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -137,15 +139,16 @@ export default function EducationIndex({ educations }: Props) {
     return (
         <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Education', href: '/admin/education' }]}>
             <Head title="Manage Education" />
-            <div className="mx-auto max-w-5xl space-y-8 pb-10">
-                <div className="flex items-center justify-between">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-8 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Education Path</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Manage your formal schooling and informal bootcamps/courses.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Education Path</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your formal schooling and informal bootcamps/courses.</p>
                     </div>
                     <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); setLogoPreview(null); } }}>
                         <DialogTrigger asChild>
-                            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Add Journey</Button>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Add Journey</Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
@@ -371,7 +374,7 @@ function EducationRow({ edu, onEdit }: { edu: Education, onEdit: (e: Education) 
     };
 
     return (
-        <div className="group flex items-start justify-between p-6 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between p-4 sm:p-6 gap-3 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
             <div className="flex gap-4">
                 <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
                     {edu.logo ? (
@@ -405,14 +408,16 @@ function EducationRow({ edu, onEdit }: { edu: Education, onEdit: (e: Education) 
                     </div>
                 </div>
             </div>
-            <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                <Button size="sm" variant="outline" onClick={() => onEdit(edu)}>Edit</Button>
-                <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => {
-                    if (confirm('Are you sure you want to delete this educational record?')) {
-                        router.delete(`/admin/education/${edu.id}`);
+            <div className="flex items-center gap-2 shrink-0">
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => onEdit(edu)}>
+                    <Edit2 className="mr-1 h-3 w-3" />Edit
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this educational record?')) {
+                        router.delete(`/admin/education/${edu.id}`, { onSuccess: () => {} });
                     }
                 }}>
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                 </Button>
             </div>
         </div>

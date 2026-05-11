@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
+import AppLayout from '@/layouts/app-layout';
 
 interface Post {
     id: number; post_url: string; caption: string | null; media_type: string | null;
@@ -16,6 +18,7 @@ interface Post {
 }
 
 export default function InstagramAdmin({ posts, ig_stats = {} }: { posts: Post[], ig_stats?: Record<string, string> }) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [fetching, setFetching] = useState(false);
@@ -121,17 +124,18 @@ export default function InstagramAdmin({ posts, ig_stats = {} }: { posts: Post[]
 
     // Auto-sync logic removed as it's no longer needed for the new minimal public header
     return (
-        <>
+        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Instagram', href: '/admin/instagram' }]}>
             <Head title="Manage Instagram Posts" />
-            <div className="mx-auto max-w-5xl space-y-6 pb-10">
-                <div className="flex items-center justify-between">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-6 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Instagram Posts</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Just paste the URL — caption & type are auto-detected!</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Instagram Posts</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Just paste the URL — caption & type are auto-detected!</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); } }}>
-                            <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700"><Plus className="mr-2 h-4 w-4" />Add Post</Button></DialogTrigger>
+                            <DialogTrigger asChild><Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" />Add Post</Button></DialogTrigger>
                             <DialogContent>
                                 <DialogHeader><DialogTitle>{editingId ? 'Edit Post' : 'Add Instagram Post'}</DialogTitle></DialogHeader>
                                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -232,7 +236,7 @@ export default function InstagramAdmin({ posts, ig_stats = {} }: { posts: Post[]
                         ) : (
                             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                                 {posts.map((p) => (
-                                    <div key={p.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
+                                    <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30">
                                         <div className="flex items-center gap-3 min-w-0">
                                             {p.thumbnail ? (
                                                 <img src={p.thumbnail} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
@@ -253,10 +257,12 @@ export default function InstagramAdmin({ posts, ig_stats = {} }: { posts: Post[]
                                             <Badge className={p.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' : 'bg-neutral-100 text-neutral-500'}>
                                                 {p.is_active ? 'Active' : 'Inactive'}
                                             </Badge>
-                                            <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <a href={p.post_url} target="_blank" rel="noopener"><Button size="icon" variant="ghost"><ExternalLink className="h-4 w-4" /></Button></a>
-                                                <Button size="icon" variant="ghost" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { if (confirm('Delete?')) router.delete(`/admin/instagram/${p.id}`); }}><Trash2 className="h-4 w-4" /></Button>
+                                            <div className="flex">
+                                                <a href={p.post_url} target="_blank" rel="noopener"><Button size="icon" variant="ghost" className="h-8 w-8"><ExternalLink className="h-3.5 w-3.5" /></Button></a>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => {
+                                                    confirm({ title: 'Delete Post?', description: 'This Instagram post will be removed.', variant: 'danger', onConfirm: () => router.delete(`/admin/instagram/${p.id}`, { onSuccess: () => toast.success('Deleted') }) });
+                                                }}><Trash2 className="h-3.5 w-3.5" /></Button>
                                             </div>
                                         </div>
                                     </div>
@@ -266,6 +272,6 @@ export default function InstagramAdmin({ posts, ig_stats = {} }: { posts: Post[]
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </AppLayout>
     );
 }

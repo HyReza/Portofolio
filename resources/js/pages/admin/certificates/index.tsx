@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
@@ -23,6 +24,7 @@ interface Certificate {
 }
 
 export default function CertificateIndex({ certificates }: { certificates: Certificate[] }) {
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -132,11 +134,12 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
     return (
         <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }, { title: 'Certificates', href: '/admin/certificates' }]}>
             <Head title="Manage Certificates" />
-            <div className="mx-auto max-w-6xl space-y-6 pb-10 p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <ConfirmDialog {...dialogProps} />
+            <div className="mx-auto w-full max-w-6xl space-y-4 sm:space-y-6 pb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Certificates</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Manage your professional certifications and credentials.</p>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Certificates</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Manage your professional certifications and credentials.</p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                         <div className="relative w-full sm:w-64">
@@ -382,8 +385,8 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                                     </span>
                                 </div>
 
-                                {/* Quick actions */}
-                                <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                {/* Quick actions — always visible */}
+                                <div className="absolute bottom-4 right-4 flex gap-2">
                                     {cert.image && (
                                         <Button size="icon" variant="secondary" className="h-8 w-8 bg-white/90 hover:bg-white text-neutral-700 shadow-lg" onClick={() => setFullscreenImage(`/storage/${cert.image}`)}>
                                             <ZoomIn className="h-4 w-4" />
@@ -392,13 +395,15 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                                     <Button size="icon" variant="secondary" className="h-8 w-8 bg-white/90 hover:bg-white text-indigo-600 shadow-lg" onClick={() => handleEdit(cert)}>
                                         <Pencil className="h-4 w-4" />
                                     </Button>
-                                    <Button size="icon" variant="destructive" className="h-8 w-8 shadow-lg" onClick={() => { if (confirm('Delete this certificate?')) router.delete(`/admin/certificates/${cert.id}`); }}>
+                                    <Button size="icon" variant="destructive" className="h-8 w-8 shadow-lg" onClick={() => {
+                                        confirm({ title: 'Delete Certificate?', description: `"${cert.title}" will be removed.`, variant: 'danger', onConfirm: () => router.delete(`/admin/certificates/${cert.id}`, { onSuccess: () => toast.success('Deleted') }) });
+                                    }}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
 
                                 {/* Move up/down buttons */}
-                                <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
                                     <Button
                                         size="icon"
                                         variant="secondary"
