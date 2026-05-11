@@ -1,7 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, Reply, Edit2, MessageCircle, X, Lock, Sparkles, Code, Bold, Italic, ArrowDown } from 'lucide-react';
+import { Send, Reply, Edit2, MessageCircle, X, Lock, Sparkles, Code, Bold, Italic, ArrowDown, LogOut } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
 import { useAchievements } from '@/hooks/useGimmicks';
 import { PublicLayout } from '@/layouts/PublicLayout';
@@ -228,50 +228,73 @@ export default function ChatPage() {
         <PublicLayout>
             <Head title={t('Chat Room', 'Ruang Chat')} />
 
-            <section className="space-y-5">
+            <section className="space-y-3 sm:space-y-5">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1.5">
-                        <h1 className="flex items-center gap-2.5 text-2xl font-bold">
-                            <div className={`p-2 rounded-xl ${dk ? 'bg-teal-500/10' : 'bg-teal-50'}`}>
-                                <MessageCircle className="h-5 w-5 text-teal-500" />
-                            </div>
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2.5">
+                        <div className={`p-1.5 sm:p-2 rounded-xl ${dk ? 'bg-teal-500/10' : 'bg-teal-50'}`}>
+                            <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-teal-500" />
+                        </div>
+                        <h1 className="text-lg sm:text-2xl font-bold">
                             {t('Chat Room', 'Ruang Chat')}
                         </h1>
-                        <p className={`text-sm max-w-md ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                            {t(
-                                'Leave a message, say hi, or just hang out! Markdown supported.',
-                                'Tinggalkan pesan, sapa, atau sekedar nongkrong! Mendukung Markdown.'
-                            )}
-                        </p>
+                        {/* Online badge — inline with title */}
+                        <div className={`flex items-center gap-1.5 rounded-full px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium ${dk ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-600'}`}>
+                            <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex h-full w-full rounded-full bg-emerald-500" />
+                            </span>
+                            {onlineCount}
+                        </div>
                     </div>
-                    {/* Online indicator */}
-                    <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${dk ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-600'}`}>
-                        <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                        </span>
-                        {onlineCount} {t('active', 'aktif')}
-                    </div>
+                    <p className={`text-xs sm:text-sm max-w-md leading-relaxed ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>
+                        {t(
+                            'Leave a message, say hi, or just hang out!',
+                            'Tinggalkan pesan, sapa, atau sekedar nongkrong!'
+                        )}
+                    </p>
                 </div>
 
                 {/* Flash Messages */}
                 <AnimatePresence>
                     {flash?.error && (
                         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                            className={`rounded-xl p-3.5 border text-sm font-medium ${dk ? 'bg-red-900/20 border-red-900/50 text-red-300' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                            className={`rounded-xl p-3 sm:p-3.5 border text-xs sm:text-sm font-medium ${dk ? 'bg-red-900/20 border-red-900/50 text-red-300' : 'bg-red-50 border-red-200 text-red-700'}`}>
                             {flash.error}
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 {/* Chat Container */}
-                <div className={`overflow-hidden rounded-2xl border flex flex-col h-[600px] shadow-xl ${dk ? 'border-neutral-800 bg-neutral-900/60 backdrop-blur-sm' : 'border-neutral-200 bg-white/80 backdrop-blur-sm'}`}>
+                <div className={`overflow-hidden rounded-2xl border flex flex-col h-[calc(100dvh-180px)] sm:h-[calc(100dvh-220px)] lg:h-[600px] min-h-[300px] max-h-[700px] shadow-xl ${dk ? 'border-neutral-800 bg-neutral-900/60 backdrop-blur-sm' : 'border-neutral-200 bg-white/80 backdrop-blur-sm'}`}>
+
+                    {/* Top bar — shows logged-in user + sign out */}
+                    {user && (
+                        <div className={`flex items-center justify-between px-3 py-2 sm:px-4 sm:py-2.5 border-b ${dk ? 'border-neutral-800 bg-neutral-900/50' : 'border-neutral-100 bg-neutral-50/50'}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <div className={`shrink-0 h-6 w-6 rounded-full overflow-hidden ${dk ? 'ring-1 ring-neutral-700' : 'ring-1 ring-neutral-200'}`}>
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className={`h-full w-full flex items-center justify-center text-[10px] font-bold ${dk ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-200 text-neutral-600'}`}>
+                                            {user.name.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
+                                <span className={`text-xs font-medium truncate ${dk ? 'text-neutral-300' : 'text-neutral-600'}`}>{user.name}</span>
+                            </div>
+                            <button onClick={() => { fetch('/logout', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf() } }).then(() => window.location.reload()); }}
+                                className={`flex items-center gap-1.5 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg transition-all active:scale-95 ${dk ? 'text-neutral-500 hover:text-red-400 hover:bg-red-900/15' : 'text-neutral-400 hover:text-red-500 hover:bg-red-50'}`}>
+                                <LogOut className="w-3 h-3" />
+                                {t('Sign out', 'Keluar')}
+                            </button>
+                        </div>
+                    )}
 
                     {/* Messages Area */}
                     <div 
                         ref={listRef} 
-                        className="flex-1 overflow-y-auto p-4 lg:p-5 scroll-smooth chat-scroll overscroll-contain relative"
+                        className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-5 scroll-smooth chat-scroll overscroll-contain relative"
                     >
                         {isLoading ? (
                             <ChatSkeleton dk={dk} count={4} />
@@ -333,21 +356,21 @@ export default function ChatPage() {
                     </AnimatePresence>
 
                     {/* Input Area */}
-                    <div className={`border-t p-3.5 ${dk ? 'border-neutral-800 bg-neutral-900/80' : 'border-neutral-100 bg-neutral-50/80'}`}>
+                    <div className={`border-t p-2.5 sm:p-3.5 ${dk ? 'border-neutral-800 bg-neutral-900/80' : 'border-neutral-100 bg-neutral-50/80'}`}>
                         {!user ? (
                             /* Login Prompt */
-                            <div className="flex flex-col items-center justify-center py-5 gap-3">
-                                <div className={`p-2.5 rounded-xl ${dk ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
-                                    <Lock className={`h-5 w-5 ${dk ? 'text-neutral-400' : 'text-neutral-500'}`} />
+                            <div className="flex flex-col items-center justify-center py-4 sm:py-5 gap-2.5 sm:gap-3">
+                                <div className={`p-2 sm:p-2.5 rounded-xl ${dk ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
+                                    <Lock className={`h-4 w-4 sm:h-5 sm:w-5 ${dk ? 'text-neutral-400' : 'text-neutral-500'}`} />
                                 </div>
-                                <p className={`text-sm text-center max-w-xs leading-relaxed ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                                <p className={`text-xs sm:text-sm text-center max-w-xs leading-relaxed ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>
                                     {t(
-                                        "Let's start a conversation! Sign in with Google to participate. Your privacy and data security are our top priority.",
-                                        'Yuk, mulai percakapan! Silakan masuk dengan Google untuk berpartisipasi. Privasi dan keamanan data Anda adalah prioritas utama kami.'
+                                        "Sign in with Google to join the conversation!",
+                                        'Masuk dengan Google untuk bergabung!'
                                     )}
                                 </p>
                                 <a href="/auth/google"
-                                    className={`flex items-center gap-2.5 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] ${dk ? 'bg-white text-neutral-800 hover:bg-neutral-100' : 'bg-neutral-900 text-white hover:bg-neutral-800'}`}>
+                                    className={`flex items-center gap-2 rounded-xl px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] ${dk ? 'bg-white text-neutral-800 hover:bg-neutral-100' : 'bg-neutral-900 text-white hover:bg-neutral-800'}`}>
                                     <svg className="w-4 h-4" viewBox="0 0 24 24">
                                         <path fill={dk ? '#4285F4' : '#fff'} d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -379,13 +402,13 @@ export default function ChatPage() {
                                 </AnimatePresence>
 
                                 {/* Input Row */}
-                                <div className="flex gap-3 items-center">
+                                <div className="flex gap-2 sm:gap-3 items-center">
                                     {/* User Avatar */}
-                                    <div className={`shrink-0 h-11 w-11 rounded-full overflow-hidden shadow-sm flex items-center justify-center ${dk ? 'ring-2 ring-neutral-700' : 'ring-2 ring-neutral-200'}`}>
+                                    <div className={`shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full overflow-hidden shadow-sm flex items-center justify-center ${dk ? 'ring-2 ring-neutral-700' : 'ring-2 ring-neutral-200'}`}>
                                         {user.avatar ? (
                                             <img src={user.avatar} alt="" className="h-full w-full object-cover" loading="lazy" />
                                         ) : (
-                                            <div className={`h-full w-full flex items-center justify-center text-sm font-bold ${dk ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-200 text-neutral-600'}`}>
+                                            <div className={`h-full w-full flex items-center justify-center text-xs sm:text-sm font-bold ${dk ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-200 text-neutral-600'}`}>
                                                 {user.name.charAt(0).toUpperCase()}
                                             </div>
                                         )}
@@ -398,24 +421,24 @@ export default function ChatPage() {
                                             value={input}
                                             onChange={(e) => setInput(e.target.value)}
                                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                                            placeholder={t('Type a message... (Shift+Enter for newline)', 'Ketik pesan... (Shift+Enter untuk baris baru)')}
+                                            placeholder={t('Type a message...', 'Ketik pesan...')}
                                             rows={1}
                                             disabled={isSending}
-                                            className={`w-full resize-none rounded-2xl border px-4 py-[10px] text-sm leading-[22px] outline-none transition-all focus:ring-2 scrollbar-hide overflow-hidden ${dk
+                                            className={`w-full resize-none rounded-2xl border px-3 py-2 sm:px-4 sm:py-[10px] text-xs sm:text-sm leading-[20px] sm:leading-[22px] outline-none transition-all focus:ring-2 scrollbar-hide overflow-hidden ${dk
                                                 ? 'border-neutral-700 bg-neutral-800 text-white placeholder:text-neutral-500 focus:border-teal-500 focus:ring-teal-500/15'
                                                 : 'border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-400 focus:border-teal-400 focus:ring-teal-400/15'
                                             }`}
-                                            style={{ height: 'auto', minHeight: '44px', maxHeight: '150px' }}
+                                            style={{ height: 'auto', minHeight: '38px', maxHeight: '120px' }}
                                         />
                                     </div>
 
                                     {/* Send Button */}
                                     <button onClick={handleSend} disabled={!input.trim() || isSending}
-                                        className={`shrink-0 flex items-center justify-center h-11 w-11 rounded-full transition-all duration-200 active:scale-90 ${input.trim()
+                                        className={`shrink-0 flex items-center justify-center h-9 w-9 sm:h-11 sm:w-11 rounded-full transition-all duration-200 active:scale-90 ${input.trim()
                                             ? 'bg-teal-500 text-white hover:bg-teal-400 shadow-lg shadow-teal-500/25'
                                             : (dk ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed')
                                         }`}>
-                                        <Send className="h-5 w-5" />
+                                        <Send className="h-4 w-4 sm:h-5 sm:w-5" />
                                     </button>
                                 </div>
 
@@ -426,11 +449,12 @@ export default function ChatPage() {
                                             initial={{ opacity: 0, y: -5 }} 
                                             animate={{ opacity: 1, y: 0 }} 
                                             exit={{ opacity: 0, y: -5 }}
-                                            className={`mt-2 flex flex-wrap gap-3 px-12 text-[10px] font-medium ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}
+                                            className={`mt-1.5 sm:mt-2 flex flex-wrap gap-2 sm:gap-3 px-12 text-[9px] sm:text-[10px] font-medium ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}
                                         >
-                                            <span className="flex items-center gap-1"><Bold className="w-3 h-3" /> **bold**</span>
-                                            <span className="flex items-center gap-1"><Italic className="w-3 h-3" /> *italic*</span>
-                                            <span className="flex items-center gap-1"><Code className="w-3 h-3" /> `code`</span>
+                                            <span className="hidden sm:flex items-center gap-1"><Bold className="w-3 h-3" /> **bold**</span>
+                                            <span className="hidden sm:flex items-center gap-1"><Italic className="w-3 h-3" /> *italic*</span>
+                                            <span className="hidden sm:flex items-center gap-1"><Code className="w-3 h-3" /> `code`</span>
+                                            <span className="sm:hidden text-neutral-500">{t('Shift+Enter = newline', 'Shift+Enter = baris baru')}</span>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

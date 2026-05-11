@@ -39,6 +39,14 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
 
+// Logout (for chat room users signed in via Google)
+Route::post('/logout', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return redirect('/chat');
+})->middleware('auth')->name('logout');
+
 // Content Pages
 Route::get('/linkedin', [LinkedinController::class, 'index'])->name('linkedin');
 Route::get('/instagram', [InstagramController::class, 'index'])->name('instagram');
