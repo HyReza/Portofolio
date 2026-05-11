@@ -393,12 +393,12 @@ The website's base URL is: {$appUrl}
    - **Personal Info**: If the question is about Reza's activities, hobbies, or personal life, check the Blogs context.
 3. **PROACTIVE LINKING (MANDATORY)**:
    - Jika jawabanmu merujuk pada blog atau project tertentu, kamu **WAJIB** memberikan link-nya.
-   - **GUNAKAN FULL URL**: Selalu gunakan URL lengkap (contoh: `{$appUrl}/blog/judul-blog`) agar user bisa langsung melihat dan klik.
-   - Format yang disarankan: `[Judul Blog]({$appUrl}/blog/slug)` atau langsung tulis URL-nya: `{$appUrl}/blog/slug`.
-   - Gunakan kalimat yang mengajak seperti: "Mungkin kamu bisa baca selengkapnya di link ini: {$appUrl}/blog/slug".
+   - **WAJIB GUNAKAN FORMAT MARKDOWN LINK**: Selalu bungkus URL dalam format `[Judul]({$appUrl}/slug)`.
+   - **DILARANG MENULIS URL MENTAH**: Jangan pernah menuliskan `https://...` secara langsung tanpa dibungkus markdown. Contoh salah: `Linknya: https://xxx`. Contoh benar: `Silakan buka [halaman ini](https://xxx)`.
 4. **STRICTLY DATA-DRIVEN**: NEVER use your general training data to "fill in the gaps" for Reza's skills, projects, or coding abilities. If it's not in the Context, Reza hasn't done it yet in this portfolio.
 5. **Personalization**: Use user details if previously shared.
-4. **Fallback**: If portfolio info is missing but the topic is relevant to Reza: "I don't have specific details on that yet, but you can ask Reza langsung via kontak."
+6. **Fallback**: If portfolio info is missing but the topic is relevant to Reza: "I don't have specific details on that yet, but you can ask Reza langsung via [halaman kontak]({$appUrl}/contact)."
+7. **NO RAW HTML**: NEVER generate raw HTML tags like `<a>`, `<b>`, `<br>`. ONLY use standard Markdown syntax (`[text](url)`, `**bold**`).
 
 ---
 
@@ -419,7 +419,7 @@ PROMPT;
      */
     private function buildStaticContext(): string
     {
-        return Cache::remember('ai_static_context_v2', 300, function () {
+        return Cache::remember('ai_static_context_v3', 300, function () {
             $parts = [];
 
             // Profile
@@ -428,7 +428,7 @@ PROMPT;
                 $parts[] = "## ABOUT REZA EDI SAPUTRA";
                 foreach ($profiles as $p) {
                     $val = $p->value_en ?: $p->value_id;
-                    if ($val)
+                    if ($val && !Str::contains(strtolower($p->key), ['photo', 'bullet', 'meta', 'typewriter']))
                         $parts[] = "- **{$p->key}**: {$val}";
                 }
             }
@@ -526,19 +526,34 @@ PROMPT;
 
         $words = preg_split('/[\s\.,\-\?!]+/', mb_strtolower(strip_tags($query)), -1, PREG_SPLIT_NO_EMPTY);
         $stopwords = [
-            'reza', 'edi', 'saputra', 'the', 'and', 'for', 'with', 'on', 'at', 'by', 'an', 'be', 'as', 'it'
+            'reza',
+            'edi',
+            'saputra',
+            'the',
+            'and',
+            'for',
+            'with',
+            'on',
+            'at',
+            'by',
+            'an',
+            'be',
+            'as',
+            'it'
         ];
-        
+
         // Remove stopwords and short words
         $keywords = array_filter($words, fn($w) => mb_strlen($w) >= 3 && !in_array($w, $stopwords));
-        
+
         // Indonesian Suffix Stripping
-        $keywords = array_map(function($w) {
-            if (Str::endsWith($w, ['nya', 'kah', 'pun'])) return Str::replaceLast(substr($w, -3), '', $w);
-            if (Str::endsWith($w, ['ku', 'mu'])) return Str::replaceLast(substr($w, -2), '', $w);
+        $keywords = array_map(function ($w) {
+            if (Str::endsWith($w, ['nya', 'kah', 'pun']))
+                return Str::replaceLast(substr($w, -3), '', $w);
+            if (Str::endsWith($w, ['ku', 'mu']))
+                return Str::replaceLast(substr($w, -2), '', $w);
             return $w;
         }, $keywords);
-        
+
         $keywords = array_values(array_unique(array_filter($keywords, fn($w) => mb_strlen($w) >= 3)));
 
         // Add the whole cleaned question as a phrase for exact matching
@@ -561,8 +576,10 @@ PROMPT;
                 $excerpt = $p->excerpt_en ?: $p->excerpt_id ?: '';
                 $contentSnippet = $p->content_en ?: $p->content_id ?: '';
                 $line = "- **{$title}** (Slug: {$p->slug})";
-                if ($p->repo_url) $line .= "\n  GitHub: {$p->repo_url}";
-                if ($p->demo_url) $line .= "\n  Demo: {$p->demo_url}";
+                if ($p->repo_url)
+                    $line .= "\n  GitHub: {$p->repo_url}";
+                if ($p->demo_url)
+                    $line .= "\n  Demo: {$p->demo_url}";
                 $line .= "\n  Summary: {$excerpt}\n  Context: " . Str::limit(strip_tags($contentSnippet), 2000);
                 $parts[] = $line;
             }
@@ -576,13 +593,15 @@ PROMPT;
                 $title = $b->title_en ?: $b->title_id ?: '';
                 $excerpt = $b->excerpt_en ?: $b->excerpt_id ?: '';
                 $content = $b->content_en ?: $b->content_id ?: '';
-                
+
                 // Increase limit to 5000 to capture code blocks and more detail
                 $contentSnippet = $content ? Str::limit(strip_tags($content), 5000) : '';
-                
+
                 $line = "- **{$title}** (Slug: {$b->slug})";
-                if ($excerpt) $line .= "\n  Summary: {$excerpt}";
-                if ($contentSnippet) $line .= "\n  Full Content Snippet: {$contentSnippet}";
+                if ($excerpt)
+                    $line .= "\n  Summary: {$excerpt}";
+                if ($contentSnippet)
+                    $line .= "\n  Full Content Snippet: {$contentSnippet}";
                 $parts[] = $line;
             }
         }
@@ -669,12 +688,12 @@ PROMPT;
 
         // ALWAYS include a few latest items as global context for proactive linking
         $parts[] = "\n## LATEST UPDATES (Global Context for Proactive Linking)";
-        
+
         $latestProjects = Project::published()->orderByDesc('published_at')->limit(3)->get();
         foreach ($latestProjects as $lp) {
             $parts[] = "- Project: [{$lp->title_id}](/projects/{$lp->slug})";
         }
-        
+
         $latestBlogs = Blog::published()->orderByDesc('published_at')->limit(3)->get();
         foreach ($latestBlogs as $lb) {
             $parts[] = "- Blog: [{$lb->title_id}](/blog/{$lb->slug})";
@@ -747,7 +766,19 @@ PROMPT;
     private function getContactInfo(): string
     {
         // Get contact details from Profile model (email, social links, etc.)
-        $contactKeys = ['email', 'github', 'linkedin', 'location', 'instagram', 'twitter', 'whatsapp'];
+        $contactKeys = [
+            'email',
+            'location',
+            'whatsapp',
+            'github',
+            'github_url',
+            'linkedin',
+            'linkedin_url',
+            'instagram',
+            'instagram_url',
+            'twitter',
+            'twitter_url'
+        ];
         $profiles = Profile::whereIn('key', $contactKeys)->ordered()->get();
 
         if ($profiles->isEmpty()) {
@@ -758,9 +789,9 @@ PROMPT;
         foreach ($profiles as $p) {
             $val = $p->value_en ?: $p->value_id;
             if ($val) {
-                // Use the key as the label (e.g., 'GitHub', 'LinkedIn')
-                $label = ucfirst($p->key);
-                $lines[] = "- **{$label}**: {$val}";
+                $cleanVal = trim(strip_tags($val));
+                $label = ucfirst(str_replace('_url', '', $p->key));
+                $lines[] = "- **{$label}**: {$cleanVal}";
             }
         }
         return implode("\n", $lines);

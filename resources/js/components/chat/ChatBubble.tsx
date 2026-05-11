@@ -21,7 +21,13 @@ function parseMarkdown(text: string) {
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     html = html.replace(/`(.*?)`/g, '<code class="bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded text-xs font-mono">$1</code>');
     html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline text-indigo-500 hover:text-indigo-400">$1</a>');
-    html = html.replace(/(?<!href=")(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline text-blue-400 hover:text-blue-300">$1</a>');
+    html = html.replace(/(<(a|code)[^>]*>[\s\S]*?<\/\2>)|(https?:\/\/[^\s<]+)/gi, (match, p1, _p2, p3) => {
+        if (p1) return match; // Skip already handled tag content (prevents double linking and broken markup)
+        const url = p3;
+        const cleaned = url.replace(/(&lt;|&gt;|&quot;).*$/, '').replace(/[.,;:!?]+$/, '');
+        const rest = url.substring(cleaned.length);
+        return `<a href="${cleaned}" target="_blank" rel="noopener noreferrer" class="underline text-blue-400 hover:text-blue-300">${cleaned}</a>${rest}`;
+    });
     return html;
 }
 
