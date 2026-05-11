@@ -140,7 +140,7 @@ function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, is
             </div>
 
             {/* Content */}
-            <div className={`max-w-[80%] sm:max-w-[75%] min-w-0 ${isOwnBubble ? 'items-end' : 'items-start'} flex flex-col`}>
+            <div className={`max-w-[75%] min-w-0 ${isOwnBubble ? 'items-end' : 'items-start'} flex flex-col`}>
                 {/* Name + Badge + Time */}
                 <div className={`flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1 px-1 ${isOwnBubble ? 'flex-row-reverse' : ''}`}>
                     <span className={`text-[11px] sm:text-xs font-semibold truncate max-w-[100px] sm:max-w-[120px] ${isAuthor ? (dk ? 'text-teal-400' : 'text-teal-600') : (dk ? 'text-neutral-300' : 'text-neutral-700')}`}>
@@ -183,14 +183,13 @@ function ChatBubbleInner({ msg, allMessages, user, adminPhoto, adminName, dk, is
                         </div>
                     )}
 
-                    {/* Mobile "⋯" — inside bubble corner, tap to open context menu with all actions */}
+                    {/* Mobile "⋯" — outside bubble, tap to open context menu */}
                     {user && (
-                        <button
-                            onClick={toggleMenu}
-                            className={`lg:hidden absolute ${isOwnBubble ? 'left-1.5' : 'right-1.5'} top-1.5 z-10 p-1 rounded-md transition-all active:scale-90 ${dk ? 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5' : 'text-neutral-400 hover:text-neutral-600 hover:bg-black/5'}`}
-                        >
-                            <MoreHorizontal className="w-3.5 h-3.5" />
-                        </button>
+                        <div className={`lg:hidden absolute ${isOwnBubble ? '-left-1.5 -translate-x-full' : '-right-1.5 translate-x-full'} top-0 z-10`}>
+                            <ActionBtn dk={dk} onClick={toggleMenu} title={t('More', 'Lainnya')}>
+                                <MoreHorizontal className="w-3.5 h-3.5" />
+                            </ActionBtn>
+                        </div>
                     )}
 
                     {/* Emoji Picker */}
