@@ -29,12 +29,20 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception, \Illuminate\Http\Request $request) {
-            if (! app()->environment(['local', 'testing']) && in_array($response->getStatusCode(), [500, 503, 404, 403])) {
-                return inertia('errors/error', ['status' => $response->getStatusCode()])
+            $status = $response->getStatusCode();
+            
+            if (! app()->environment(['local', 'testing']) && in_array($status, [500, 503, 404, 403])) {
+                return inertia('errors/error', [
+                    'status' => $status,
+                    'message' => $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface ? $exception->getMessage() : null
+                ])
                     ->toResponse($request)
-                    ->setStatusCode($response->getStatusCode());
-            } elseif ($response->getStatusCode() === 404) {
-                return inertia('errors/error', ['status' => 404])
+                    ->setStatusCode($status);
+            } elseif ($status === 404) {
+                return inertia('errors/error', [
+                    'status' => 404,
+                    'message' => $exception->getMessage() ?: null
+                ])
                     ->toResponse($request)
                     ->setStatusCode(404);
             }
