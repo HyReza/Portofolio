@@ -178,7 +178,7 @@ export function ImageReveal({ src, alt = '', className = '' }: { src: string; al
         <motion.div 
             initial={{ clipPath: 'inset(0% 100% 0% 0%)' }}
             whileInView={{ clipPath: 'inset(0% 0% 0% 0%)' }}
-            viewport={{ once: true, margin: '-10%' }}
+            viewport={{ once: true, amount: 0.1 }}
             transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
             className={`overflow-hidden ${className}`}
         >

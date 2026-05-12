@@ -361,7 +361,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {projects.map((p, i) => (
-                                <motion.div key={p.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                                <motion.div key={p.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1, margin: '50px' }}
                                     transition={{ delay: i * 0.1, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
                                     className="flex flex-col h-full">
                                     <Link href={`/projects/${p.slug}`}
@@ -413,7 +413,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                         {/* Horizontal scroll on mobile, grid on desktop */}
                         <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible">
                             {blogs.map((b, i) => (
-                                <motion.div key={b.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                                <motion.div key={b.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '200%' }}
                                     transition={{ delay: i * 0.1, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
                                     className="min-w-[220px] sm:min-w-0 flex flex-col">
                                     <Link href={`/blog/${b.slug}`} className={`group flex flex-col h-full overflow-hidden ${cardBase} ${dk ? 'bg-transparent' : 'bg-white'}`}>
