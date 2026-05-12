@@ -176,20 +176,20 @@ export function StaggerItem({ children, className = '' }: { children: ReactNode;
 export function ImageReveal({ src, alt = '', className = '' }: { src: string; alt?: string; className?: string }) {
     return (
         <motion.div 
-            initial={{ clipPath: 'inset(0% 100% 0% 0%)' }}
-            whileInView={{ clipPath: 'inset(0% 0% 0% 0%)' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, amount: 0.1 }}
-            transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
-            className={`overflow-hidden ${className}`}
+            transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+            className={`overflow-hidden block relative ${className}`}
         >
             <motion.img 
                 src={src} 
                 alt={alt} 
-                initial={{ scale: 1.3 }}
+                initial={{ scale: 1.1 }}
                 whileInView={{ scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 1.4, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
-                className="h-full w-full object-cover" 
+                transition={{ duration: 1.2, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
+                className="block absolute inset-0 h-full w-full object-cover" 
             />
         </motion.div>
     );

@@ -134,9 +134,9 @@ export default function Projects({ projects }: { projects: Project[] }) {
                             {filteredProjects.map((p, i) => (
                                 <div key={p.id} className={`grid items-start gap-12 lg:grid-cols-2 ${i % 2 !== 0 ? 'lg:[direction:rtl]' : ''}`}>
                                     <motion.div initial={{ opacity: 0, x: i % 2 === 0 ? -60 : 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, ease: [0.25,0.4,0.25,1] }}>
-                                        <div className={`overflow-hidden rounded-3xl lg:[direction:ltr] ${dk ? 'bg-white/[0.03]' : 'bg-white shadow-xl'}`}>
-                                            {p.thumbnail ? <ImageReveal src={`/storage/${p.thumbnail}`} alt={p.title_en || ''} className="aspect-video" /> :
-                                            <div className="flex aspect-video items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08))' }}><span className="text-8xl font-black opacity-5">{(p.title_en || p.title_id).charAt(0)}</span></div>}
+                                        <div className={`overflow-hidden rounded-3xl lg:[direction:ltr] aspect-video relative ${dk ? 'bg-white/[0.03]' : 'bg-white shadow-xl'}`}>
+                                            {p.thumbnail ? <ImageReveal src={`/storage/${p.thumbnail}`} alt={p.title_en || ''} className="absolute inset-0 h-full w-full" /> :
+                                            <div className="flex absolute inset-0 h-full w-full items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08))' }}><span className="text-8xl font-black opacity-5">{(p.title_en || p.title_id).charAt(0)}</span></div>}
                                         </div>
                                     </motion.div>
                                     <motion.div initial={{ opacity: 0, x: i % 2 === 0 ? 60 : -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2, ease: [0.25,0.4,0.25,1] }}

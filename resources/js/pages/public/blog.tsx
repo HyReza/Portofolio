@@ -132,9 +132,9 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
                                     whileHover={{ y: -8 }}
                                     className={`group flex flex-col h-full overflow-hidden rounded-3xl ${dk ? 'bg-white/[0.02] border border-white/5 hover:border-indigo-500/15 hover:bg-white/[0.04]' : 'bg-white border border-gray-100 hover:shadow-2xl'}`}>
                                     <Link href={`/blog/${b.slug}`} className="flex flex-col h-full w-full">
-                                        <div className="overflow-hidden aspect-[16/10] shrink-0">
-                                            {b.thumbnail ? <ImageReveal src={`/storage/${b.thumbnail}`} alt={b.title_en || ''} className="h-full w-full" /> :
-                                            <div className={`flex h-full items-center justify-center ${dk ? 'bg-indigo-500/[0.03]' : 'bg-indigo-50/50'}`}><Sparkles className="h-12 w-12 text-indigo-500/10" /></div>}
+                                        <div className="overflow-hidden aspect-[16/10] shrink-0 relative">
+                                            {b.thumbnail ? <ImageReveal src={`/storage/${b.thumbnail}`} alt={b.title_en || ''} className="absolute inset-0 h-full w-full" /> :
+                                            <div className={`flex absolute inset-0 h-full w-full items-center justify-center ${dk ? 'bg-indigo-500/[0.03]' : 'bg-indigo-50/50'}`}><Sparkles className="h-12 w-12 text-indigo-500/10" /></div>}
                                         </div>
                                         <div className="p-6 flex flex-col flex-1">
                                             <h2 className={`font-bold group-hover:text-indigo-400 transition-colors line-clamp-2 text-lg`}>{lang === 'id' ? (b.title_id || b.title_en) : (b.title_en || b.title_id)}</h2>
