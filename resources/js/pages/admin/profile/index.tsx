@@ -53,6 +53,7 @@ export default function ProfileIndex({ profiles }: Props) {
             { key: 'about_page_subtitle', value_id: getVal('about_page_subtitle', 'value_id'), value_en: getVal('about_page_subtitle', 'value_en'), type: 'text' },
             { key: 'about_page_bio', value_id: getVal('about_page_bio', 'value_id'), value_en: getVal('about_page_bio', 'value_en'), type: 'text' },
             // Socials
+            { key: 'website_url', value_id: getVal('website_url', 'value_id'), value_en: getVal('website_url', 'value_en'), type: 'text' },
             { key: 'github_url', value_id: getVal('github_url', 'value_id'), value_en: getVal('github_url', 'value_en'), type: 'text' },
             { key: 'linkedin_url', value_id: getVal('linkedin_url', 'value_id'), value_en: getVal('linkedin_url', 'value_en'), type: 'text' },
             { key: 'instagram_url', value_id: getVal('instagram_url', 'value_id'), value_en: getVal('instagram_url', 'value_en'), type: 'text' },
@@ -270,7 +271,7 @@ export default function ProfileIndex({ profiles }: Props) {
                                     ) : (
                                         <>
                                             <li>Remote Worker</li>
-                                            <li>Based in Indonesia 🇮🇩</li>
+                                            <li>Based in Pekalongan, Indonesia 🇮🇩</li>
                                         </>
                                     )}
                                 </ul>
@@ -378,7 +379,7 @@ export default function ProfileIndex({ profiles }: Props) {
                                 {renderInputPair('status_text', 'Status Text', <ZapIcon size={16} />, false, 'e.g. Hire me.')}
                             </div>
                             {renderInputPair('typewriter_texts', 'Typewriter Texts (One per line)', <FileTextIcon size={16} />, true, "Hi, I'm Reza\nI'm a Software Engineer")}
-                            {renderInputPair('hero_bullets', 'Hero Bullets (One per line)', <FileTextIcon size={16} />, true, "Remote Worker\nBased in Indonesia 🇮🇩")}
+                            {renderInputPair('hero_bullets', 'Hero Bullets (One per line)', <FileTextIcon size={16} />, true, "Remote Worker\nBased in Pekalongan, Indonesia 🇮🇩")}
                         </CardContent>
                     </Card>
 
@@ -441,7 +442,7 @@ export default function ProfileIndex({ profiles }: Props) {
                                 {renderInputPair('email', 'Email Address', <Mail size={16} />, false, 'you@example.com')}
                                 {renderInputPair('phone', 'Phone Number', <Phone size={16} />, false, '+62 812 xxxx xxxx')}
                             </div>
-                            {renderInputPair('location', 'Location', <MapPin size={16} />, false, 'Jakarta, Indonesia')}
+                            {renderInputPair('location', 'Location', <MapPin size={16} />, false, 'Pekalongan, Indonesia')}
                         </CardContent>
                     </Card>
 
@@ -456,6 +457,7 @@ export default function ProfileIndex({ profiles }: Props) {
                         </CardHeader>
                         <CardContent className="mt-6 space-y-6">
                             <div className="grid gap-6 md:grid-cols-2">
+                                {renderSingleInput('website_url', 'Personal Website URL', <Globe size={16} />, 'https://yoursite.com')}
                                 {renderSingleInput('github_url', 'GitHub URL', <Github size={16} />, 'https://github.com/username')}
                                 {renderSingleInput('linkedin_url', 'LinkedIn URL', <Linkedin size={16} />, 'https://linkedin.com/in/username')}
                                 {renderSingleInput('instagram_url', 'Instagram URL', <Instagram size={16} />, 'https://instagram.com/username')}

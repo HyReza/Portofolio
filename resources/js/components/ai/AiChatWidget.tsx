@@ -450,6 +450,7 @@ export default function AiChatWidget() {
                         onClick={toggleOpen}
                     >
                         <button onClick={e => { e.stopPropagation(); setShowWelcome(false); }}
+                            aria-label={t('Close', 'Tutup')}
                             className={`absolute top-1.5 right-1.5 p-0.5 rounded-md ${dk ? 'hover:bg-neutral-800 text-neutral-600' : 'hover:bg-neutral-100 text-neutral-400'}`}>
                             <X size={11} />
                         </button>
@@ -485,7 +486,7 @@ export default function AiChatWidget() {
 
                 {/* Small AI dot indicator */}
                 {!isOpen && (
-                    <span className={`absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[7px] font-bold text-white ring-2 ${dk ? 'ring-[#121212]' : 'ring-white'}`}>
+                    <span className={`absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[7px] font-bold text-black ring-2 ${dk ? 'ring-[#121212]' : 'ring-white'}`}>
                         AI
                     </span>
                 )}

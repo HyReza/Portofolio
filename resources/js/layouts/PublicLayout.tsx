@@ -1,9 +1,9 @@
 import { Link, usePage } from '@inertiajs/react';
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/hooks/useApp';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
-import { SpotlightSearch } from '@/components/landing/SpotlightSearch';
+const SpotlightSearch = lazy(() => import('@/components/landing/SpotlightSearch').then(module => ({ default: module.SpotlightSearch })));
 import { useKonami, KonamiOverlay, useAchievements, useAutoAchievements, AchievementToast, AchievementProvider } from '@/hooks/useGimmicks';
 
 /* react-icons — EXACT same icons codebayu uses */
@@ -13,7 +13,7 @@ import { PiChatTeardropDotsBold, PiCertificate } from 'react-icons/pi';
 import { MdVerified } from 'react-icons/md';
 import { PanelLeft, PanelTop } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
-import AiChatWidget from '@/components/ai/AiChatWidget';
+const AiChatWidget = lazy(() => import('@/components/ai/AiChatWidget'));
 import ScrollToTop from '@/components/ui/ScrollToTop';
 
 /* ─── PREMIUM TOGGLE COMPONENT ─── */
@@ -116,7 +116,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     return (
         <TooltipProvider delayDuration={0}>
             <div className={`relative flex h-full min-h-screen w-full flex-col font-sans overflow-x-hidden ${dk ? 'dark' : ''}`}>
-                <SpotlightSearch />
+                <Suspense fallback={null}>
+                    <SpotlightSearch />
+                </Suspense>
                 <KonamiOverlay active={konamiActive} onClose={() => setKonamiActive(false)} />
                 <AchievementToast achievement={toast} onDismiss={dismissToast} />
 
@@ -204,6 +206,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                 <div className="flex items-center gap-3">
                                     <button
                                         onClick={() => setMobileOpen(!mobileOpen)}
+                                        aria-label={t('Toggle Menu', 'Buka Menu')}
                                         className={`relative flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-xl transition-all ${dk ? 'bg-neutral-800 text-white' : 'bg-neutral-100 text-black'}`}
                                     >
                                         <motion.span animate={mobileOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }} className="block h-[2px] w-5 bg-current rounded-full" />
@@ -349,7 +352,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                     {/* AI Chat Widget */}
                     {aiAssistantEnabled && (
                         <div className="z-50">
-                            <AiChatWidget />
+                            <Suspense fallback={null}>
+                                <AiChatWidget />
+                            </Suspense>
                         </div>
                     )}
 

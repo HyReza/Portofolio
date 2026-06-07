@@ -14,6 +14,13 @@ export function ReactIconRender({ name, className = "h-5 w-5" }: Props) {
             return;
         }
 
+        // Check if the icon is actually an image path (e.g. uploaded file)
+        if (name.includes('.') || name.startsWith('/')) {
+            const imgSrc = name.startsWith('/') ? name : `/storage/${name}`;
+            setIcon(() => (props: any) => <img src={imgSrc} alt="icon" {...props} className={`${props.className} object-contain`} />);
+            return;
+        }
+
         let isMounted = true;
 
         const loadIcon = async () => {

@@ -75,7 +75,7 @@ function TypeWriter({ texts }: { texts: string[] }) {
         }
         return () => clearTimeout(timer);
     }, [text, del, idx, texts]);
-    return <>{text}<span className="animate-pulse">|</span></>;
+    return <>{text}<span className="animate-pulse inline-block w-[1ch]">|</span></>;
 }
 
 /* Smooth reveal */
@@ -155,7 +155,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                         ) : (
                             <>
                                 <li>{t('Remote Worker', 'Pekerja Remote')}</li>
-                                <li>{t('Based in Indonesia', 'Berbasis di Indonesia')} 🇮🇩</li>
+                                <li>{t('Based in Pekalongan, Indonesia', 'Berbasis di Pekalongan, Indonesia')} 🇮🇩</li>
                             </>
                         )}
                     </motion.ul>
@@ -183,7 +183,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                     </a>
                                     <a href="/cv/id" target="_blank" rel="noopener" onClick={() => unlock('cv_collector')} className="flex flex-col items-center justify-center p-6 border-2 border-neutral-200 dark:border-neutral-800 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 transition-all group">
                                         <span className="text-4xl mb-3 transition-transform group-hover:scale-110">🇮🇩</span>
-                                        <span className="font-bold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Indonesia</span>
+                                        <span className="font-bold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Pekalongan, Indonesia</span>
                                         <span className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider font-semibold">Bahasa</span>
                                     </a>
                                 </div>
@@ -211,7 +211,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                         <div className="mt-8 flex flex-wrap gap-2.5">
                             <button
                                 onClick={() => setActiveSkillFilter('All')}
-                                className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeSkillFilter === 'All' ? (dk ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20') : (dk ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200')}`}
+                                className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeSkillFilter === 'All' ? (dk ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20') : (dk ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200')}`}
                             >
                                 {t('All', 'Semua')}
                                 <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] ${activeSkillFilter === 'All' ? 'bg-black/10' : (dk ? 'bg-neutral-900' : 'bg-white')}`}>
@@ -225,7 +225,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                     <button
                                         key={cat.id}
                                         onClick={() => setActiveSkillFilter(catName)}
-                                        className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${isActive ? (dk ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20') : (dk ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200')}`}
+                                        className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${isActive ? (dk ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20') : (dk ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200')}`}
                                     >
                                         {catName}
                                         <span className={`flex h-5 items-center justify-center rounded-full px-1.5 text-[9px] ${isActive ? 'bg-black/10' : (dk ? 'bg-neutral-900' : 'bg-white')}`}>
@@ -267,7 +267,6 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className={`truncate text-xs font-bold tracking-tight ${dk ? 'text-neutral-200' : 'text-neutral-800'}`}>{skillName}</p>
-                                                    <p className={`text-[10px] font-medium text-neutral-500`}>{t('Advanced', 'Lanjut')}</p>
                                                 </div>
                                             </motion.div>
                                         );
@@ -318,18 +317,18 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {testimonials.slice(0, 3).map((testi, i) => (
-                                <motion.div key={testi.id} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                                <motion.div key={testi.id} className="min-w-0" initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                                     transition={{ delay: i * 0.1, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}>
                                     <div className={`group relative flex h-full flex-col gap-4 overflow-hidden p-5 ${cardBase} ${dk ? 'bg-transparent hover:bg-white/[0.02]' : 'bg-white hover:bg-neutral-50'}`}>
                                         <div className="flex items-center gap-3 relative z-10">
                                             <div className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border ${dk ? 'border-neutral-800 bg-neutral-800 text-neutral-300' : 'border-neutral-200 bg-neutral-100 text-neutral-600'}`}>
                                                 {testi.image ? (
-                                                    <img src={`/storage/${testi.image}`} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                    <img loading="lazy" src={`/storage/${testi.image}`} alt={testi.client_name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                                 ) : (
                                                     <span className="text-lg font-black">{testi.client_name.charAt(0)}</span>
                                                 )}
                                             </div>
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <h3 className={`truncate font-bold text-base leading-tight transition-colors ${dk ? 'text-neutral-200 group-hover:text-indigo-400' : 'text-neutral-800 group-hover:text-indigo-600'}`}>
                                                     {testi.client_name}
                                                 </h3>
@@ -338,7 +337,7 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                                 </p>
                                             </div>
                                         </div>
-                                        <p className={`relative z-10 text-sm italic leading-relaxed line-clamp-4 ${dk ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                                        <p className={`relative z-10 text-sm italic leading-relaxed line-clamp-4 break-words ${dk ? 'text-neutral-400' : 'text-neutral-600'}`}>
                                             "{lang === 'id' ? (testi.content_id || testi.content_en) : (testi.content_en || testi.content_id)}"
                                         </p>
                                         <MessageSquare className={`absolute right-4 top-4 h-12 w-12 opacity-5 transition-transform duration-500 group-hover:scale-110 group-hover:opacity-10 group-hover:-rotate-12 ${dk ? 'text-white' : 'text-indigo-900'}`} />

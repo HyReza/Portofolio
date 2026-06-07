@@ -71,10 +71,17 @@ class SkillController extends Controller
             'name_en' => ['required', 'string', 'max:100'],
             'description_id' => ['nullable', 'string', 'max:1000'],
             'description_en' => ['nullable', 'string', 'max:1000'],
-            'icon' => ['nullable', 'string', 'max:50'],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'icon_file' => ['nullable', 'image', 'max:2048'],
             'proficiency' => ['integer', 'min:0', 'max:100'],
             'sort_order' => ['integer'],
         ]);
+
+        if ($request->hasFile('icon_file')) {
+            $path = $request->file('icon_file')->store('skills', 'public');
+            $validated['icon'] = $path;
+        }
+        unset($validated['icon_file']);
 
         $this->skillService->createSkill($validated);
 
@@ -88,10 +95,17 @@ class SkillController extends Controller
             'name_en' => ['required', 'string', 'max:100'],
             'description_id' => ['nullable', 'string', 'max:1000'],
             'description_en' => ['nullable', 'string', 'max:1000'],
-            'icon' => ['nullable', 'string', 'max:50'],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'icon_file' => ['nullable', 'image', 'max:2048'],
             'proficiency' => ['integer', 'min:0', 'max:100'],
             'sort_order' => ['integer'],
         ]);
+
+        if ($request->hasFile('icon_file')) {
+            $path = $request->file('icon_file')->store('skills', 'public');
+            $validated['icon'] = $path;
+        }
+        unset($validated['icon_file']);
 
         $this->skillService->updateSkill($skill, $validated);
 

@@ -60,6 +60,7 @@ export default function SkillsIndex({ categories }: Props) {
         description_id: '',
         description_en: '',
         icon: '',
+        icon_file: null as File | null,
         proficiency: 100,
         sort_order: 0
     });
@@ -110,7 +111,7 @@ export default function SkillsIndex({ categories }: Props) {
     const openAddSkill = (categoryId: number) => {
         setEditingSkill(null);
         setEditingSkillCategoryId(categoryId);
-        skillForm.setData({ skill_category_id: categoryId, name_id: '', name_en: '', description_id: '', description_en: '', icon: '', proficiency: 100, sort_order: 0 });
+        skillForm.setData({ skill_category_id: categoryId, name_id: '', name_en: '', description_id: '', description_en: '', icon: '', icon_file: null, proficiency: 100, sort_order: 0 });
         setSkillDialogOpen(true);
     };
 
@@ -124,6 +125,7 @@ export default function SkillsIndex({ categories }: Props) {
             description_id: skill.description_id || '',
             description_en: skill.description_en || '',
             icon: skill.icon || '',
+            icon_file: null,
             proficiency: skill.proficiency ?? 100,
             sort_order: skill.sort_order || 0,
         });
@@ -353,18 +355,34 @@ export default function SkillsIndex({ categories }: Props) {
                             </div>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label>Icon Name (React Icons)</Label>
+                                    <Label>Icon Name (React Icons) OR Upload Image</Label>
                                     <Button type="button" variant="ghost" size="sm" onClick={handleAutoDetectIcon} className="h-6 text-xs px-2 text-indigo-500 hover:text-indigo-600">
                                         <Wand2 className="mr-1 h-3 w-3" /> Auto-detect
                                     </Button>
                                 </div>
                                 <div className="flex gap-3">
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
-                                        <ReactIconRender name={skillForm.data.icon} className="h-5 w-5" />
+                                        {skillForm.data.icon_file ? (
+                                            <img src={URL.createObjectURL(skillForm.data.icon_file)} className="h-6 w-6 object-contain" alt="preview" />
+                                        ) : (
+                                            <ReactIconRender name={skillForm.data.icon} className="h-5 w-5" />
+                                        )}
                                     </div>
-                                    <div className="flex-1">
-                                        <Input value={skillForm.data.icon} onChange={(e) => skillForm.setData('icon', e.target.value)} placeholder="e.g. FaReact, SiTailwindcss" />
-                                        <p className="mt-1 text-xs text-muted-foreground">Search icons at <a href="https://react-icons.github.io/react-icons/" target="_blank" className="text-indigo-500 hover:underline">react-icons</a>.</p>
+                                    <div className="flex-1 space-y-3">
+                                        <div>
+                                            <Input value={skillForm.data.icon} onChange={(e) => skillForm.setData('icon', e.target.value)} placeholder="e.g. FaReact, SiTailwindcss" disabled={!!skillForm.data.icon_file} />
+                                            <p className="mt-1 text-xs text-muted-foreground">Search icons at <a href="https://react-icons.github.io/react-icons/" target="_blank" className="text-indigo-500 hover:underline">react-icons</a>.</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">Or upload a custom image icon:</p>
+                                            <Input type="file" accept="image/*" className="h-9" onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    skillForm.setData('icon_file', e.target.files[0]);
+                                                } else {
+                                                    skillForm.setData('icon_file', null);
+                                                }
+                                            }} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

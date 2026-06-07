@@ -35,11 +35,12 @@ class DatabaseSeeder extends Seeder
             ['key' => 'name', 'value_id' => 'Reza', 'value_en' => 'Reza', 'type' => 'text', 'sort_order' => 0],
             ['key' => 'title', 'value_id' => 'AI Engineer & Full-Stack Developer', 'value_en' => 'AI Engineer & Full-Stack Developer', 'type' => 'text', 'sort_order' => 1],
             ['key' => 'bio', 'value_id' => 'Seorang engineer yang passionate di bidang AI dan pengembangan web modern.', 'value_en' => 'A passionate engineer specializing in AI and modern web development.', 'type' => 'html', 'sort_order' => 2],
-            ['key' => 'location', 'value_id' => 'Indonesia', 'value_en' => 'Indonesia', 'type' => 'text', 'sort_order' => 3],
+            ['key' => 'location', 'value_id' => 'Pekalongan, Indonesia', 'value_en' => 'Pekalongan, Indonesia', 'type' => 'text', 'sort_order' => 3],
             ['key' => 'email', 'value_id' => 'rezaedisaputra2@gmail.com', 'value_en' => 'rezaedisaputra2@gmail.com', 'type' => 'text', 'sort_order' => 4],
             ['key' => 'github', 'value_id' => 'https://github.com/HyReza', 'value_en' => 'https://github.com/HyReza', 'type' => 'text', 'sort_order' => 5],
             ['key' => 'linkedin', 'value_id' => 'https://www.linkedin.com/in/reza-edi-saputra/', 'value_en' => 'https://www.linkedin.com/in/reza-edi-saputra/', 'type' => 'text', 'sort_order' => 6],
             ['key' => 'instagram', 'value_id' => 'https://www.instagram.com/reza_edi_saputra/', 'value_en' => 'https://www.instagram.com/reza_edi_saputra/', 'type' => 'text', 'sort_order' => 7],
+            ['key' => 'website_url', 'value_id' => 'https://rezaedisaputra.com', 'value_en' => 'https://rezaedisaputra.com', 'type' => 'text', 'sort_order' => 8],
         ];
         foreach ($profiles as $p) {
             Profile::updateOrCreate(['key' => $p['key']], $p);

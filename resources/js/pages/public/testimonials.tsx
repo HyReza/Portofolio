@@ -160,7 +160,7 @@ export default function Testimonials({ testimonials }: { testimonials: Testimoni
                                                 <div className="flex items-center gap-4 mb-5">
                                                     <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-bold shadow-sm h-12 w-12 ${testi.image ? '' : `${color.bg} ${color.text}`}`}>
                                                         {testi.image
-                                                            ? <img src={`/storage/${testi.image}`} alt={testi.client_name} className="h-full w-full object-cover" />
+                                                            ? <img loading="lazy" src={`/storage/${testi.image}`} alt={testi.client_name} className="h-full w-full object-cover" />
                                                             : testi.client_name.charAt(0)}
                                                     </div>
                                                     <div className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ export default function Testimonials({ testimonials }: { testimonials: Testimoni
                                                     )}
                                                 </div>
 
-                                                <p className={`text-sm leading-[1.8] italic ${dk ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                                                <p className={`text-sm leading-[1.8] italic break-words ${dk ? 'text-neutral-300' : 'text-neutral-700'}`}>
                                                     "{getContent(testi)}"
                                                 </p>
                                             </div>

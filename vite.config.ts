@@ -22,4 +22,7 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    build: {
+        sourcemap: true,
+    },
 });
