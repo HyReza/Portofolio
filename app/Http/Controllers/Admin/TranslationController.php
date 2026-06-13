@@ -23,7 +23,7 @@ class TranslationController extends Controller
 
             $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl={$source}&tl={$target}&dt=t&q=" . urlencode($text);
             
-            $response = Http::get($url);
+            $response = Http::withoutVerifying()->timeout(10)->get($url);
             
             if ($response->successful()) {
                 $result = $response->json();

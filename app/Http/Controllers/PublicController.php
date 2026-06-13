@@ -10,7 +10,13 @@ use App\Models\Education;
 use App\Models\Organization;
 use App\Models\Profile;
 use App\Models\Project;
+use App\Models\ProjectCategory;
+use App\Models\ProjectTechnology;
+use App\Models\ProjectType;
 use App\Models\SkillCategory;
+use App\Models\SoftSkill;
+use App\Models\CertificateCategory;
+use App\Models\CredentialType;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +35,7 @@ class PublicController extends Controller
             'careers'    => Career::with('children')->roots()->chronological()->get(),
             'organizations' => Organization::ordered()->get(),
             'skillCategories' => SkillCategory::withOrderedSkills()->ordered()->get(),
+            'softSkills' => SoftSkill::ordered()->get(),
             'achievements' => Achievement::ordered()->get(),
         ]);
     }
@@ -36,7 +43,10 @@ class PublicController extends Controller
     public function projects(): Response
     {
         return Inertia::render('public/projects', [
-            'projects' => Project::with('seoMeta')->latestPublished()->get(),
+            'projects' => Project::with(['seoMeta', 'technologies', 'types', 'categories'])->latestPublished()->get(),
+            'allTypes' => ProjectType::all(),
+            'allCategories' => ProjectCategory::all(),
+            'allTechnologies' => ProjectTechnology::all(),
         ]);
     }
 
@@ -88,7 +98,9 @@ class PublicController extends Controller
     public function certificates(): Response
     {
         return Inertia::render('public/certificates', [
-            'certificates' => Certificate::orderBy('sort_order')->orderByDesc('created_at')->get(),
+            'certificates' => Certificate::with(['categories', 'credentialTypes'])->ordered()->get(),
+            'allCategories' => CertificateCategory::all(),
+            'allCredentialTypes' => CredentialType::all(),
         ]);
     }
 

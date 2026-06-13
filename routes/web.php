@@ -106,8 +106,35 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::put('skills/{skill}', [Admin\SkillController::class, 'updateSkill'])->name('skills.update');
     Route::delete('skills/{skill}', [Admin\SkillController::class, 'destroySkill'])->name('skills.destroy');
 
+    // Soft Skills
+    Route::get('soft-skills', [Admin\SoftSkillController::class, 'index'])->name('soft-skills.index');
+    Route::post('soft-skills', [Admin\SoftSkillController::class, 'store'])->name('soft-skills.store');
+    Route::put('soft-skills/{softSkill}', [Admin\SoftSkillController::class, 'update'])->name('soft-skills.update');
+    Route::delete('soft-skills/{softSkill}', [Admin\SoftSkillController::class, 'destroy'])->name('soft-skills.destroy');
+
     // Projects
+    Route::post('projects/technologies', [Admin\ProjectController::class, 'storeTechnology'])->name('projects.technologies.store');
+    Route::post('projects/types', [Admin\ProjectController::class, 'storeType'])->name('projects.types.store');
+    Route::post('projects/categories', [Admin\ProjectController::class, 'storeCategory'])->name('projects.categories.store');
     Route::resource('projects', Admin\ProjectController::class)->except(['show']);
+
+    // Project Types
+    Route::get('project-types', [Admin\ProjectTypeController::class, 'index'])->name('project-types.index');
+    Route::post('project-types', [Admin\ProjectTypeController::class, 'store'])->name('project-types.store');
+    Route::put('project-types/{projectType}', [Admin\ProjectTypeController::class, 'update'])->name('project-types.update');
+    Route::delete('project-types/{projectType}', [Admin\ProjectTypeController::class, 'destroy'])->name('project-types.destroy');
+
+    // Project Categories
+    Route::get('project-categories', [Admin\ProjectCategoryController::class, 'index'])->name('project-categories.index');
+    Route::post('project-categories', [Admin\ProjectCategoryController::class, 'store'])->name('project-categories.store');
+    Route::put('project-categories/{projectCategory}', [Admin\ProjectCategoryController::class, 'update'])->name('project-categories.update');
+    Route::delete('project-categories/{projectCategory}', [Admin\ProjectCategoryController::class, 'destroy'])->name('project-categories.destroy');
+
+    // Project Technologies
+    Route::get('technologies', [Admin\ProjectTechnologyController::class, 'index'])->name('technologies.index');
+    Route::post('technologies', [Admin\ProjectTechnologyController::class, 'store'])->name('technologies.store');
+    Route::put('technologies/{technology}', [Admin\ProjectTechnologyController::class, 'update'])->name('technologies.update');
+    Route::delete('technologies/{technology}', [Admin\ProjectTechnologyController::class, 'destroy'])->name('technologies.destroy');
 
     // Blogs & Tags
     Route::post('blogs/tags', [Admin\BlogController::class, 'storeTag'])->name('blogs.tags.store');
@@ -120,12 +147,26 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::put('achievements/{achievement}', [Admin\AchievementController::class, 'update'])->name('achievements.update');
     Route::delete('achievements/{achievement}', [Admin\AchievementController::class, 'destroy'])->name('achievements.destroy');
 
+    // Certificate Categories
+    Route::get('certificate-categories', [Admin\CertificateCategoryController::class, 'index'])->name('certificate-categories.index');
+    Route::post('certificate-categories', [Admin\CertificateCategoryController::class, 'store'])->name('certificate-categories.store');
+    Route::put('certificate-categories/{certificateCategory}', [Admin\CertificateCategoryController::class, 'update'])->name('certificate-categories.update');
+    Route::delete('certificate-categories/{certificateCategory}', [Admin\CertificateCategoryController::class, 'destroy'])->name('certificate-categories.destroy');
+
     // Certificates
     Route::get('certificates', [Admin\CertificateController::class, 'index'])->name('certificates.index');
     Route::post('certificates', [Admin\CertificateController::class, 'store'])->name('certificates.store');
+    Route::post('certificates/categories', [Admin\CertificateController::class, 'storeCategory'])->name('certificates.categories.store');
+    Route::post('certificates/credential-types', [Admin\CertificateController::class, 'storeCredentialType'])->name('certificates.credential-types.store');
     Route::put('certificates/{certificate}', [Admin\CertificateController::class, 'update'])->name('certificates.update');
     Route::delete('certificates/{certificate}', [Admin\CertificateController::class, 'destroy'])->name('certificates.destroy');
     Route::post('certificates/reorder', [Admin\CertificateController::class, 'reorder'])->name('certificates.reorder');
+
+    // Credential Types
+    Route::get('credential-types', [Admin\CredentialTypeController::class, 'index'])->name('credential-types.index');
+    Route::post('credential-types', [Admin\CredentialTypeController::class, 'store'])->name('credential-types.store');
+    Route::put('credential-types/{credentialType}', [Admin\CredentialTypeController::class, 'update'])->name('credential-types.update');
+    Route::delete('credential-types/{credentialType}', [Admin\CredentialTypeController::class, 'destroy'])->name('credential-types.destroy');
 
     // Testimonials
     Route::get('testimonials', [Admin\TestimonialController::class, 'index'])->name('testimonials.index');

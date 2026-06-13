@@ -2,7 +2,8 @@ import { Link } from '@inertiajs/react';
 import {
     Award, FileText, FolderKanban, GitBranch, GraduationCap,
     LayoutDashboard, Linkedin, Instagram, Mail, MessageSquare,
-    Settings, Trophy, User, Users, Zap, Tag, ExternalLink
+    Settings, Trophy, User, Users, Zap, Tag, ExternalLink,
+    Layers, Cpu, Brain, LayoutTemplate, Folders, FileBadge
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -21,7 +22,11 @@ const overviewNavItems: NavItem[] = [
 
 const portfolioNavItems: NavItem[] = [
     { title: 'Projects', href: '/admin/projects', icon: FolderKanban },
+    { title: 'Project Types', href: '/admin/project-types', icon: LayoutTemplate },
+    { title: 'Project Categories', href: '/admin/project-categories', icon: Folders },
+    { title: 'Technologies', href: '/admin/technologies', icon: Cpu },
     { title: 'Skills', href: '/admin/skills', icon: Zap },
+    { title: 'Soft Skills', href: '/admin/soft-skills', icon: Brain },
     { title: 'Tags', href: '/admin/tags', icon: Tag },
 ];
 
@@ -30,6 +35,8 @@ const resumeNavItems: NavItem[] = [
     { title: 'Education', href: '/admin/education', icon: GraduationCap },
     { title: 'Organizations', href: '/admin/organizations', icon: Users },
     { title: 'Certificates', href: '/admin/certificates', icon: Award },
+    { title: 'Cert. Categories', href: '/admin/certificate-categories', icon: Layers },
+    { title: 'Credential Types', href: '/admin/credential-types', icon: FileBadge },
     { title: 'Achievements', href: '/admin/achievements', icon: Trophy },
 ];
 

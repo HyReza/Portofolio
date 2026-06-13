@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Code2, Newspaper, Wrench, ChevronDown, MessageSquare } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Code2, Newspaper, Wrench, ChevronDown, MessageSquare, Brain } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useApp } from '@/hooks/useApp';
 import { useAchievements } from '@/hooks/useGimmicks';
@@ -13,11 +13,12 @@ import { ImageReveal } from '@/components/animations';
 
 interface Profile { key: string; value_id: string | null; value_en: string | null; }
 interface Skill { id: number; name_id: string; name_en: string; description_id: string | null; description_en: string | null; icon: string | null; }
-interface SkillCategory { id: number; name_en: string; name_id: string; skills: Skill[]; }
+interface SkillCategory { id: number; name_en: string; name_id: string; icon_image: string | null; skills: Skill[]; }
+interface SoftSkill { id: number; name_id: string; name_en: string; description_id: string | null; description_en: string | null; icon: string | null; }
 interface Project { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; tech_stack: string[] | null; demo_url: string | null; }
 interface BlogPost { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; published_at: string | null; tags: { id: number; name: string; }[]; }
 interface Testimonial { id: number; client_name: string; company: string | null; company_en: string | null; position: string | null; position_en: string | null; relation: string | null; relation_en: string | null; content_id: string; content_en: string | null; image: string | null; }
-interface Props { profiles: Record<string, Profile>; skillCategories: SkillCategory[]; projects: Project[]; blogs: BlogPost[]; testimonials: Testimonial[]; }
+interface Props { profiles: Record<string, Profile>; skillCategories: SkillCategory[]; softSkills: SoftSkill[]; projects: Project[]; blogs: BlogPost[]; testimonials: Testimonial[]; }
 
 import { ReactIconRender } from '@/components/ReactIconRender';
 
@@ -81,7 +82,7 @@ function TypeWriter({ texts }: { texts: string[] }) {
 /* Smooth reveal */
 const reveal = { hidden: { opacity: 0, y: 20 }, visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] } }) };
 
-export default function Home({ profiles, skillCategories, projects, blogs, testimonials }: Props) {
+export default function Home({ profiles, skillCategories, softSkills, projects, blogs, testimonials }: Props) {
     const { lang, theme: appTheme, t } = useApp();
     const { unlock } = useAchievements();
     const pv = (k: string) => lang === 'id' ? (profiles[k]?.value_id || profiles[k]?.value_en || '') : (profiles[k]?.value_en || profiles[k]?.value_id || '');
@@ -196,19 +197,31 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
 
 
 
-                {/* ═══ SKILLS (Satria Bahari Style) ═══ */}
+                {/* ═══ SKILLS (Enhanced Animations) ═══ */}
                 {skillCategories.length > 0 && <>
                     <section>
-                        <div className="space-y-2">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: '-50px' }}
+                            transition={{ duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
+                            className="space-y-2"
+                        >
                             <div className="flex items-center gap-2 text-xl font-bold">
                                 <Wrench className="h-5 w-5 text-amber-500" />
                                 <h2>{t('Professional Skills', 'Keahlian Profesional')}</h2>
                             </div>
                             <p className={`text-sm ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>{t('My technical stack and tools.', 'Teknologi dan alat yang saya gunakan.')}</p>
-                        </div>
+                        </motion.div>
 
                         {/* Category Filters (Pill Style) */}
-                        <div className="mt-8 flex flex-wrap gap-2.5">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6, delay: 0.15, ease: [0.25, 0.4, 0.25, 1] }}
+                            className="mt-8 flex flex-wrap gap-2.5"
+                        >
                             <button
                                 onClick={() => setActiveSkillFilter('All')}
                                 className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeSkillFilter === 'All' ? (dk ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20') : (dk ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200')}`}
@@ -227,6 +240,9 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                         onClick={() => setActiveSkillFilter(catName)}
                                         className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${isActive ? (dk ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20') : (dk ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200')}`}
                                     >
+                                        {cat.icon_image && (
+                                            <img src={`/storage/${cat.icon_image}`} alt="" className="h-4 w-4 object-contain" />
+                                        )}
                                         {catName}
                                         <span className={`flex h-5 items-center justify-center rounded-full px-1.5 text-[9px] ${isActive ? 'bg-black/10' : (dk ? 'bg-neutral-900' : 'bg-white')}`}>
                                             {cat.skills.length}
@@ -234,9 +250,9 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                     </button>
                                 );
                             })}
-                        </div>
+                        </motion.div>
 
-                        {/* Skill Grid (Satria Bahari Icons Style) */}
+                        {/* Skill Grid — Enhanced Animation */}
                         <motion.div layout className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                             <AnimatePresence mode="popLayout">
                                 {skillCategories
@@ -250,22 +266,28 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                         const card = (
                                             <motion.div
                                                 layout
-                                                initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.8, y: -20 }}
-                                                transition={{ type: 'spring', stiffness: 400, damping: 25, delay: index * 0.03 }}
+                                                initial={{ opacity: 0, scale: 0.85, y: 30, filter: 'blur(4px)' }}
+                                                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, scale: 0.85, y: -20, filter: 'blur(4px)' }}
+                                                transition={{ type: 'spring', stiffness: 350, damping: 28, delay: index * 0.035 }}
                                                 key={skill.id}
-                                                whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                                                className={`group flex items-center gap-3 rounded-2xl border p-4 transition-all duration-300 ${dk ? 'bg-neutral-900/50 hover:bg-neutral-800/80' : 'bg-white hover:bg-neutral-50 shadow-sm hover:shadow-md'} ${style.border} ${skillDesc ? 'shadow-[0_0_15px_rgba(0,0,0,0.05)] ' + (dk ? 'hover:border-indigo-500/50 hover:shadow-indigo-500/10' : 'hover:border-indigo-400/50 hover:shadow-indigo-400/10') : ''}`}
+                                                whileHover={{ y: -8, transition: { duration: 0.25, ease: 'easeOut' } }}
+                                                className={`group relative flex items-center gap-3 rounded-2xl border p-4 overflow-hidden transition-all duration-300 ${dk ? 'bg-neutral-900/50 hover:bg-neutral-800/80' : 'bg-white hover:bg-neutral-50 shadow-sm hover:shadow-lg'} ${style.border}`}
                                             >
-                                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 ${style.bg} ${style.text}`}>
+                                                {/* Glassmorphism hover overlay */}
+                                                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${dk ? 'bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5' : 'bg-gradient-to-br from-indigo-50/50 via-transparent to-purple-50/50'}`} />
+
+                                                {/* Floating icon */}
+                                                <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-500 group-hover:scale-110 ${style.bg} ${style.text}`}
+                                                    style={{ animation: `skillFloat ${3 + (index % 3)}s ease-in-out infinite` }}
+                                                >
                                                     {skill.icon ? (
                                                         <ReactIconRender name={skill.icon} className="h-6 w-6" />
                                                     ) : (
                                                         <Code2 className="h-6 w-6 opacity-50" />
                                                     )}
                                                 </div>
-                                                <div className="min-w-0 flex-1">
+                                                <div className="relative min-w-0 flex-1">
                                                     <p className={`truncate text-xs font-bold tracking-tight ${dk ? 'text-neutral-200' : 'text-neutral-800'}`}>{skillName}</p>
                                                 </div>
                                             </motion.div>
@@ -302,6 +324,65 @@ export default function Home({ profiles, skillCategories, projects, blogs, testi
                                     })}
                             </AnimatePresence>
                         </motion.div>
+                    </section>
+
+                    {/* ── Floating icon keyframes ── */}
+                    <style>{`
+                        @keyframes skillFloat {
+                            0%, 100% { transform: translateY(0px); }
+                            50% { transform: translateY(-3px); }
+                        }
+                    `}</style>
+                    <hr className={`my-12 ${dk ? 'border-neutral-800' : 'border-neutral-200'}`} />
+                </>}
+
+                {/* ═══ SOFT SKILLS ═══ */}
+                {softSkills.length > 0 && <>
+                    <section className="space-y-5">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: '-50px' }}
+                            transition={{ duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
+                        >
+                            <div className="flex items-center gap-2 text-xl font-bold">
+                                <Brain className="h-5 w-5 text-violet-500" />
+                                <h2>{t('Soft Skills', 'Kemampuan Non-Teknis')}</h2>
+                            </div>
+                            <p className={`mt-1 text-sm ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>{t('Personal attributes and professional competencies.', 'Atribut personal dan kompetensi profesional.')}</p>
+                        </motion.div>
+
+                        <div className="flex flex-col gap-3 mt-6">
+                            {softSkills.map((ss, i) => {
+                                const name = lang === 'id' ? (ss.name_id || ss.name_en) : (ss.name_en || ss.name_id);
+                                const desc = lang === 'id' ? (ss.description_id || ss.description_en) : (ss.description_en || ss.description_id);
+                                
+                                return (
+                                    <motion.div
+                                        key={ss.id}
+                                        initial={{ opacity: 0, x: -20, filter: 'blur(4px)' }}
+                                        whileInView={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                                        viewport={{ once: true, margin: '-20px' }}
+                                        transition={{ delay: i * 0.05, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
+                                        className={`group relative flex flex-col sm:flex-row sm:items-start gap-4 rounded-2xl border p-4 transition-all duration-300 ${dk ? 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]' : 'bg-white border-neutral-100 hover:bg-neutral-50 shadow-sm'}`}
+                                    >
+                                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 ${dk ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-100 text-violet-600'}`}>
+                                            {ss.icon ? (
+                                                <ReactIconRender name={ss.icon} className="h-5 w-5" />
+                                            ) : (
+                                                <Brain className="h-5 w-5" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className={`font-bold text-base ${dk ? 'text-neutral-200' : 'text-neutral-800'}`}>{name}</h3>
+                                            {desc && (
+                                                <p className={`mt-1 text-sm leading-relaxed ${dk ? 'text-neutral-400' : 'text-neutral-500'}`}>{desc}</p>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
                     </section>
                     <hr className={`my-12 ${dk ? 'border-neutral-800' : 'border-neutral-200'}`} />
                 </>}

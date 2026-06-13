@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
+use App\Models\CertificateCategory;
+use App\Models\CredentialType;
 use App\Services\MediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,16 +19,10 @@ class CertificateController extends Controller
 
     public function index(): Response
     {
-        // Normalize sort_order to be sequential (fix legacy data with gaps/duplicates)
-        $all = Certificate::orderBy('sort_order')->orderByDesc('created_at')->get();
-        foreach ($all->values() as $i => $cert) {
-            if ($cert->sort_order !== $i) {
-                $cert->update(['sort_order' => $i]);
-            }
-        }
-
         return Inertia::render('admin/certificates/index', [
-            'certificates' => Certificate::orderBy('sort_order')->get(),
+            'certificates' => Certificate::with(['categories', 'credentialTypes'])->ordered()->get(),
+            'allCategories' => CertificateCategory::orderBy('name_id')->get(),
+            'allCredentialTypes' => CredentialType::orderBy('name_id')->get(),
         ]);
     }
 
@@ -47,13 +44,14 @@ class CertificateController extends Controller
             'skills' => ['nullable', 'string'],
             'category' => ['nullable', 'string', 'max:255'],
             'category_en' => ['nullable', 'string', 'max:255'],
-            'sort_order' => ['integer'],
+            'category_ids' => ['nullable', 'string'],
+            'credential_type_ids' => ['nullable', 'string'],
+            'sort_order' => ['nullable', 'integer'],
             'show_in_cv' => ['boolean'],
         ]);
 
-        // Auto-assign sort_order: new cert goes to top (0), push all existing down
-        Certificate::query()->increment('sort_order');
-        $validated['sort_order'] = 0;
+        // sort_order is NULL by default (order by issued_date)
+        $validated['sort_order'] = null;
 
         if ($request->hasFile('image')) {
             $media = $this->mediaService->upload($request->file('image'), 'certificates');
@@ -65,7 +63,20 @@ class CertificateController extends Controller
             $validated['skills'] = array_map('trim', explode(',', $validated['skills']));
         }
 
+        // Remove ids before creating (not a model field)
+        $categoryIds = $this->parseIds($validated['category_ids'] ?? null);
+        $credentialTypeIds = $this->parseIds($validated['credential_type_ids'] ?? null);
+        unset($validated['category_ids'], $validated['credential_type_ids']);
+
         $certificate = Certificate::create($validated);
+
+        // Sync categories and credential types
+        if (!empty($categoryIds)) {
+            $certificate->categories()->sync($categoryIds);
+        }
+        if (!empty($credentialTypeIds)) {
+            $certificate->credentialTypes()->sync($credentialTypeIds);
+        }
 
         // Auto-generate SEO
         $certificate->seoMeta()->create([
@@ -95,7 +106,9 @@ class CertificateController extends Controller
             'skills' => ['nullable', 'string'],
             'category' => ['nullable', 'string', 'max:255'],
             'category_en' => ['nullable', 'string', 'max:255'],
-            'sort_order' => ['integer'],
+            'category_ids' => ['nullable', 'string'],
+            'credential_type_ids' => ['nullable', 'string'],
+            'sort_order' => ['nullable', 'integer'],
             'show_in_cv' => ['boolean'],
         ]);
 
@@ -110,7 +123,16 @@ class CertificateController extends Controller
             $validated['skills'] = array_map('trim', explode(',', $validated['skills']));
         }
 
+        // Remove ids before updating (not a model field)
+        $categoryIds = $this->parseIds($validated['category_ids'] ?? null);
+        $credentialTypeIds = $this->parseIds($validated['credential_type_ids'] ?? null);
+        unset($validated['category_ids'], $validated['credential_type_ids']);
+
         $certificate->update($validated);
+
+        // Sync categories and credential types
+        $certificate->categories()->sync($categoryIds);
+        $certificate->credentialTypes()->sync($credentialTypeIds);
 
         // Auto-update SEO
         $certificate->seoMeta()->updateOrCreate(
@@ -127,19 +149,17 @@ class CertificateController extends Controller
 
     public function destroy(Certificate $certificate): RedirectResponse
     {
-        $deletedOrder = $certificate->sort_order;
         $this->mediaService->delete($certificate->image);
+        $certificate->categories()->detach();
+        $certificate->credentialTypes()->detach();
         $certificate->seoMeta?->delete();
         $certificate->delete();
-
-        // Re-compact sort_order after deletion
-        Certificate::where('sort_order', '>', $deletedOrder)->decrement('sort_order');
 
         return back()->with('success', 'Certificate deleted.');
     }
 
     /**
-     * Swap two certificates' positions.
+     * Swap two certificates' positions (manual sort).
      */
     public function reorder(Request $request): RedirectResponse
     {
@@ -151,6 +171,23 @@ class CertificateController extends Controller
         $from = Certificate::findOrFail($request->from_id);
         $to = Certificate::findOrFail($request->to_id);
 
+        // Get all certificates in their current order
+        $allCerts = Certificate::ordered()->get();
+        $fromIndex = $allCerts->search(fn ($c) => $c->id === $from->id);
+        $toIndex = $allCerts->search(fn ($c) => $c->id === $to->id);
+
+        if ($fromIndex === false || $toIndex === false) {
+            return back()->with('error', 'Certificate not found in order.');
+        }
+
+        // Assign manual sort_order to ALL certificates to enable manual ordering
+        foreach ($allCerts->values() as $i => $cert) {
+            $cert->update(['sort_order' => $i]);
+        }
+
+        // Reload and swap
+        $from->refresh();
+        $to->refresh();
         $fromOrder = $from->sort_order;
         $toOrder = $to->sort_order;
 
@@ -158,5 +195,62 @@ class CertificateController extends Controller
         $to->update(['sort_order' => $fromOrder]);
 
         return back()->with('success', 'Order updated.');
+    }
+
+    /**
+     * Inline create a new category from the certificate form.
+     */
+    public function storeCategory(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'name_id' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
+        ]);
+
+        $category = CertificateCategory::create([
+            'name_id' => $request->name_id,
+            'name_en' => $request->name_en,
+            'slug' => Str::slug($request->name_en ?: $request->name_id),
+        ]);
+
+        return response()->json([
+            'message' => 'Category created successfully',
+            'category' => $category,
+        ]);
+    }
+
+    /**
+     * Inline create a new credential type from the certificate form.
+     */
+    public function storeCredentialType(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'name_id' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
+        ]);
+
+        $type = CredentialType::create([
+            'name_id' => $request->name_id,
+            'name_en' => $request->name_en,
+            'slug' => Str::slug($request->name_en ?: $request->name_id),
+        ]);
+
+        return response()->json([
+            'message' => 'Credential Type created successfully',
+            'credentialType' => $type,
+        ]);
+    }
+
+    /**
+     * Parse comma-separated IDs string to array of integers.
+     */
+    private function parseIds(?string $ids): array
+    {
+        if (empty($ids)) return [];
+
+        return array_filter(
+            array_map('intval', explode(',', $ids)),
+            fn ($id) => $id > 0
+        );
     }
 }

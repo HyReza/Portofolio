@@ -29,6 +29,7 @@ interface Category {
     name_id: string;
     name_en: string;
     icon: string | null;
+    icon_image: string | null;
     sort_order: number;
     skills: Skill[];
 }
@@ -50,6 +51,7 @@ export default function SkillsIndex({ categories }: Props) {
         name_id: '',
         name_en: '',
         icon: '',
+        icon_file: null as File | null,
         sort_order: 0
     });
 
@@ -68,13 +70,13 @@ export default function SkillsIndex({ categories }: Props) {
     // ── Category CRUD ──
     const openNewCategory = () => {
         setEditingCat(null);
-        catForm.setData({ name_id: '', name_en: '', icon: '', sort_order: 0 });
+        catForm.setData({ name_id: '', name_en: '', icon: '', icon_file: null, sort_order: 0 });
         setCatDialogOpen(true);
     };
 
     const openEditCategory = (cat: Category) => {
         setEditingCat(cat);
-        catForm.setData({ name_id: cat.name_id, name_en: cat.name_en, icon: cat.icon || '', sort_order: cat.sort_order });
+        catForm.setData({ name_id: cat.name_id, name_en: cat.name_en, icon: cat.icon || '', icon_file: null, sort_order: cat.sort_order });
         setCatDialogOpen(true);
     };
 
@@ -227,7 +229,9 @@ export default function SkillsIndex({ categories }: Props) {
                                 <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-50/50 dark:bg-neutral-900/50 px-4 sm:px-6 py-3 sm:py-4">
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-neutral-800 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-700 text-indigo-500">
-                                            {category.icon ? <ReactIconRender name={category.icon} className="h-4 w-4" /> : <Layers size={16} />}
+                                        {category.icon_image ? (
+                                            <img src={`/storage/${category.icon_image}`} alt="" className="h-4 w-4 object-contain" />
+                                        ) : category.icon ? <ReactIconRender name={category.icon} className="h-4 w-4" /> : <Layers size={16} />}
                                         </div>
                                         <div className="min-w-0">
                                             <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 flex-wrap">
@@ -301,8 +305,31 @@ export default function SkillsIndex({ categories }: Props) {
                                 <Input value={catForm.data.name_en} onChange={(e) => catForm.setData('name_en', e.target.value)} required placeholder="e.g. Frontend Development" />
                             </div>
                             <div className="space-y-2">
-                                <Label>Icon Name (Lucide)</Label>
-                                <Input value={catForm.data.icon} onChange={(e) => catForm.setData('icon', e.target.value)} placeholder="Code, Zap, Layers, etc." />
+                                <Label>Icon (Lucide/ReactIcons) or Upload Image</Label>
+                                <div className="flex gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 text-indigo-500">
+                                        {catForm.data.icon_file ? (
+                                            <img src={URL.createObjectURL(catForm.data.icon_file)} className="h-6 w-6 object-contain" alt="preview" />
+                                        ) : editingCat?.icon_image ? (
+                                            <img src={`/storage/${editingCat.icon_image}`} className="h-6 w-6 object-contain" alt="icon" />
+                                        ) : (
+                                            <ReactIconRender name={catForm.data.icon} className="h-5 w-5" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 space-y-3">
+                                        <Input value={catForm.data.icon} onChange={(e) => catForm.setData('icon', e.target.value)} placeholder="Code, Zap, Layers, SiReact, etc." disabled={!!catForm.data.icon_file} />
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">Or upload a custom image:</p>
+                                            <Input type="file" accept="image/*" className="h-9" onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    catForm.setData('icon_file', e.target.files[0]);
+                                                } else {
+                                                    catForm.setData('icon_file', null);
+                                                }
+                                            }} />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <Button type="submit" disabled={catForm.processing} className="w-full bg-indigo-600 hover:bg-indigo-700">
                                 {catForm.processing ? 'Saving...' : (editingCat ? 'Update Category' : 'Create Category')}

@@ -32,8 +32,16 @@ class SkillController extends Controller
             'name_id' => ['required', 'string', 'max:100'],
             'name_en' => ['required', 'string', 'max:100'],
             'icon' => ['nullable', 'string', 'max:50'],
+            'icon_file' => ['nullable', 'image', 'max:2048'],
             'sort_order' => ['integer'],
         ]);
+
+        if ($request->hasFile('icon_file')) {
+            $path = $request->file('icon_file')->store('skill-categories', 'public');
+            $validated['icon_image'] = $path;
+            $validated['icon'] = null;
+        }
+        unset($validated['icon_file']);
 
         $this->skillService->createCategory($validated);
 
@@ -46,8 +54,16 @@ class SkillController extends Controller
             'name_id' => ['required', 'string', 'max:100'],
             'name_en' => ['required', 'string', 'max:100'],
             'icon' => ['nullable', 'string', 'max:50'],
+            'icon_file' => ['nullable', 'image', 'max:2048'],
             'sort_order' => ['integer'],
         ]);
+
+        if ($request->hasFile('icon_file')) {
+            $path = $request->file('icon_file')->store('skill-categories', 'public');
+            $validated['icon_image'] = $path;
+            $validated['icon'] = null;
+        }
+        unset($validated['icon_file']);
 
         $this->skillService->updateCategory($category, $validated);
 

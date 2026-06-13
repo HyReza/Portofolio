@@ -12,6 +12,21 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
+import { TagInputWithSuggestions } from '@/components/ui/tag-input-with-suggestions';
+
+interface CertCategory {
+    id: number;
+    name_id: string;
+    name_en: string | null;
+    slug: string;
+}
+
+interface CredentialType {
+    id: number;
+    name_id: string;
+    name_en: string | null;
+    slug: string;
+}
 
 interface Certificate {
     id: number; title: string; title_en: string | null; issuer: string;
@@ -20,27 +35,39 @@ interface Certificate {
     issued_date: string | null; expiry_date: string | null;
     description_id: string | null; description_en: string | null;
     skills: string[] | null; category: string | null; category_en: string | null;
-    sort_order: number; show_in_cv: boolean;
+    sort_order: number | null; show_in_cv: boolean;
+    categories?: CertCategory[];
+    credentialTypes?: CredentialType[];
 }
 
-export default function CertificateIndex({ certificates }: { certificates: Certificate[] }) {
+export default function CertificateIndex({ certificates, allCategories, allCredentialTypes }: { certificates: Certificate[]; allCategories: CertCategory[]; allCredentialTypes: CredentialType[] }) {
     const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+    const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
+    const [selectedCredentialTypeNames, setSelectedCredentialTypeNames] = useState<string[]>([]);
 
     const form = useForm({
         title: '', title_en: '', issuer: '', credential_id: '', credential_url: '',
-        credential_type: '', credential_type_en: '',
+        credential_type: '', credential_type_en: '', credential_type_ids: '',
         image: null as File | null, issued_date: '', expiry_date: '',
         description_id: '', description_en: '',
-        skills: '', category: '', category_en: '', sort_order: 0, show_in_cv: true,
+        skills: '', category: '', category_en: '', category_ids: '', sort_order: 0 as number | null, show_in_cv: true,
     });
 
     const handleEdit = (cert: Certificate) => {
         setEditingId(cert.id);
+        const catNames = (cert.categories || []).map(c => c.name_id);
+        const catIds = (cert.categories || []).map(c => c.id);
+        setSelectedCategoryNames(catNames);
+
+        const credTypeNames = (cert.credentialTypes || []).map(c => c.name_id);
+        const credTypeIds = (cert.credentialTypes || []).map(c => c.id);
+        setSelectedCredentialTypeNames(credTypeNames);
+
         form.setData({
             title: cert.title || '',
             title_en: cert.title_en || '',
@@ -57,11 +84,41 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
             skills: cert.skills ? cert.skills.join(', ') : '',
             category: cert.category || '',
             category_en: cert.category_en || '',
-            sort_order: cert.sort_order || 0,
+            category_ids: catIds.join(','),
+            credential_type_ids: credTypeIds.join(','),
+            sort_order: cert.sort_order,
             show_in_cv: cert.show_in_cv ?? true,
         });
         setImagePreview(cert.image ? `/storage/${cert.image}` : null);
         setDialogOpen(true);
+    };
+
+    const getCategoryIdsFromNames = (names: string[]): string => {
+        const ids: number[] = [];
+        names.forEach(name => {
+            const cat = allCategories.find(c => c.name_id.toLowerCase() === name.toLowerCase() || (c.name_en && c.name_en.toLowerCase() === name.toLowerCase()));
+            if (cat) ids.push(cat.id);
+        });
+        return ids.join(',');
+    };
+
+    const handleCategoryChange = (names: string[]) => {
+        setSelectedCategoryNames(names);
+        form.setData('category_ids', getCategoryIdsFromNames(names));
+    };
+
+    const getCredentialTypeIdsFromNames = (names: string[]): string => {
+        const ids: number[] = [];
+        names.forEach(name => {
+            const type = allCredentialTypes.find(c => c.name_id.toLowerCase() === name.toLowerCase() || (c.name_en && c.name_en.toLowerCase() === name.toLowerCase()));
+            if (type) ids.push(type.id);
+        });
+        return ids.join(',');
+    };
+
+    const handleCredentialTypeChange = (names: string[]) => {
+        setSelectedCredentialTypeNames(names);
+        form.setData('credential_type_ids', getCredentialTypeIdsFromNames(names));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -72,6 +129,8 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                 if (value instanceof File) formData.append('image', value);
             } else if (key === 'show_in_cv') {
                 formData.append(key, value ? '1' : '0');
+            } else if (key === 'sort_order') {
+                // Don't send sort_order for new items
             } else {
                 formData.append(key, String(value ?? ''));
             }
@@ -80,13 +139,13 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
         if (editingId) {
             formData.append('_method', 'PUT');
             router.post(`/admin/certificates/${editingId}`, formData, {
-                onSuccess: () => { setDialogOpen(false); setEditingId(null); form.reset(); setImagePreview(null); toast.success('Certificate updated!'); },
-                onError: (errors) => { toast.error(Object.values(errors)[0] || 'An error occurred while saving.'); },
+                onSuccess: () => { setDialogOpen(false); setEditingId(null); form.reset(); setImagePreview(null); setSelectedCategoryNames([]); setSelectedCredentialTypeNames([]); toast.success('Certificate updated!'); },
+                onError: (errors) => { toast.error(Object.values(errors)[0] as string || 'An error occurred while saving.'); },
             });
         } else {
             router.post('/admin/certificates', formData, {
-                onSuccess: () => { setDialogOpen(false); form.reset(); setImagePreview(null); toast.success('Certificate added!'); },
-                onError: (errors) => { toast.error(Object.values(errors)[0] || 'An error occurred while saving.'); },
+                onSuccess: () => { setDialogOpen(false); form.reset(); setImagePreview(null); setSelectedCategoryNames([]); setSelectedCredentialTypeNames([]); toast.success('Certificate added!'); },
+                onError: (errors) => { toast.error(Object.values(errors)[0] as string || 'An error occurred while saving.'); },
             });
         }
     };
@@ -103,6 +162,8 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
         setEditingId(null);
         form.reset();
         setImagePreview(null);
+        setSelectedCategoryNames([]);
+        setSelectedCredentialTypeNames([]);
         setDialogOpen(true);
     };
 
@@ -159,7 +220,7 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                 </div>
 
                 {/* ─── Certificate Form Dialog ─── */}
-                <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); setImagePreview(null); } }}>
+                <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingId(null); form.reset(); setImagePreview(null); setSelectedCategoryNames([]); setSelectedCredentialTypeNames([]); } }}>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
                         <div className="p-6 pb-0">
                             <DialogHeader>
@@ -236,41 +297,37 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                                 <Input value={form.data.issuer} onChange={(e) => form.setData('issuer', e.target.value)} required placeholder="e.g. Coursera, Dicoding, Bangkit Academy" />
                             </div>
 
-                            {/* ── Section 4: Category (Bilingual) ── */}
-                            <fieldset className="space-y-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
-                                <legend className="px-2 text-sm font-semibold">Category</legend>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[11px] uppercase tracking-wider text-neutral-400">Bahasa Indonesia</Label>
-                                        <Input value={form.data.category} onChange={(e) => form.setData('category', e.target.value)} placeholder="e.g. Pengembangan Web" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-[11px] uppercase tracking-wider text-neutral-400">English</Label>
-                                            <AutoTranslateButton sourceText={form.data.category} onTranslate={(t) => form.setData('category_en', t)} />
-                                        </div>
-                                        <Input value={form.data.category_en} onChange={(e) => form.setData('category_en', e.target.value)} placeholder="e.g. Web Development" />
-                                    </div>
-                                </div>
-                            </fieldset>
+                            {/* ── Section 4: Category (Tag-based from stored categories) ── */}
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-semibold">Categories</Label>
+                                <TagInputWithSuggestions
+                                    value={selectedCategoryNames}
+                                    onChange={handleCategoryChange}
+                                    suggestions={allCategories.map(c => ({
+                                        id: c.id,
+                                        label: c.name_id,
+                                        labelSecondary: c.name_en || undefined,
+                                    }))}
+                                    placeholder="Type to search or add category..."
+                                />
+                                <p className="text-[11px] text-neutral-400">Select existing categories or type to search. Manage categories in the Certificate Categories menu.</p>
+                            </div>
 
-                            {/* ── Section 5: Credential Type (Bilingual) ── */}
-                            <fieldset className="space-y-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
-                                <legend className="px-2 text-sm font-semibold">Credential Type</legend>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[11px] uppercase tracking-wider text-neutral-400">Bahasa Indonesia</Label>
-                                        <Input value={form.data.credential_type} onChange={(e) => form.setData('credential_type', e.target.value)} placeholder="e.g. Sertifikat Profesional" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-[11px] uppercase tracking-wider text-neutral-400">English</Label>
-                                            <AutoTranslateButton sourceText={form.data.credential_type} onTranslate={(t) => form.setData('credential_type_en', t)} />
-                                        </div>
-                                        <Input value={form.data.credential_type_en} onChange={(e) => form.setData('credential_type_en', e.target.value)} placeholder="e.g. Professional Certificate" />
-                                    </div>
-                                </div>
-                            </fieldset>
+                            {/* ── Section 5: Credential Type (Tag-based) ── */}
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-semibold">Credential Types</Label>
+                                <TagInputWithSuggestions
+                                    value={selectedCredentialTypeNames}
+                                    onChange={handleCredentialTypeChange}
+                                    suggestions={allCredentialTypes.map(c => ({
+                                        id: c.id,
+                                        label: c.name_id,
+                                        labelSecondary: c.name_en || undefined,
+                                    }))}
+                                    placeholder="Type to search or add credential type..."
+                                />
+                                <p className="text-[11px] text-neutral-400">Select existing types or type to search. Manage types in the Credential Types menu.</p>
+                            </div>
 
                             {/* ── Section 6: Dates ── */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -448,6 +505,25 @@ export default function CertificateIndex({ certificates }: { certificates: Certi
                                                 +{cert.skills.length - 3}
                                             </Badge>
                                         )}
+                                    </div>
+                                )}
+
+                                {cert.categories && cert.categories.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-4">
+                                        {cert.categories.map((cat) => (
+                                            <Badge key={cat.id} variant="outline" className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20 font-medium truncate max-w-[120px]">
+                                                {cat.name_id}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )}
+                                {cert.credentialTypes && cert.credentialTypes.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-4">
+                                        {cert.credentialTypes.map((type) => (
+                                            <Badge key={type.id} variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 font-medium truncate max-w-[120px]">
+                                                {type.name_id}
+                                            </Badge>
+                                        ))}
                                     </div>
                                 )}
 

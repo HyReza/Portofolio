@@ -7,9 +7,13 @@ use App\DTOs\ProjectDTO;
 use App\Http\Requests\Admin\StoreProjectRequest;
 use App\Http\Requests\Admin\UpdateProjectRequest;
 use App\Models\Project;
+use App\Models\ProjectTechnology;
+use App\Models\ProjectType;
+use App\Models\ProjectCategory;
 use App\Services\MediaService;
 use App\Services\ProjectService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,7 +33,11 @@ class ProjectController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('admin/projects/create');
+        return Inertia::render('admin/projects/create', [
+            'allTechnologies' => ProjectTechnology::orderBy('name')->get(),
+            'allTypes' => ProjectType::orderBy('name_id')->get(),
+            'allCategories' => ProjectCategory::orderBy('name_id')->get(),
+        ]);
     }
 
     public function store(StoreProjectRequest $request): RedirectResponse
@@ -53,7 +61,21 @@ class ProjectController extends Controller
         }
 
         $dto = ProjectDTO::fromRequest($validated);
-        $this->projectService->create($dto);
+        $project = $this->projectService->create($dto);
+
+        // Sync technologies
+        if (!empty($validated['tech_stack'])) {
+            $techIds = $this->syncTechStack($validated['tech_stack']);
+            $project->technologies()->sync($techIds);
+        }
+
+        if (!empty($validated['project_type_ids'])) {
+            $project->types()->sync($validated['project_type_ids']);
+        }
+
+        if (!empty($validated['project_category_ids'])) {
+            $project->categories()->sync($validated['project_category_ids']);
+        }
 
         return redirect()->route('admin.projects.index')
             ->with('success', 'Project created successfully.');
@@ -62,7 +84,10 @@ class ProjectController extends Controller
     public function edit(Project $project): Response
     {
         return Inertia::render('admin/projects/edit', [
-            'project' => $project->load('seoMeta'),
+            'project' => $project->load(['seoMeta', 'technologies', 'types', 'categories']),
+            'allTechnologies' => ProjectTechnology::orderBy('name')->get(),
+            'allTypes' => ProjectType::orderBy('name_id')->get(),
+            'allCategories' => ProjectCategory::orderBy('name_id')->get(),
         ]);
     }
 
@@ -94,6 +119,16 @@ class ProjectController extends Controller
         $dto = ProjectDTO::fromRequest($validated);
         $this->projectService->update($project, $dto);
 
+        // Sync technologies
+        $techIds = !empty($validated['tech_stack']) ? $this->syncTechStack($validated['tech_stack']) : [];
+        $project->technologies()->sync($techIds);
+
+        $typeIds = !empty($validated['project_type_ids']) ? $validated['project_type_ids'] : [];
+        $project->types()->sync($typeIds);
+
+        $categoryIds = !empty($validated['project_category_ids']) ? $validated['project_category_ids'] : [];
+        $project->categories()->sync($categoryIds);
+
         return redirect()->route('admin.projects.index')
             ->with('success', 'Project updated successfully.');
     }
@@ -107,9 +142,103 @@ class ProjectController extends Controller
             }
         }
 
+        $project->technologies()->detach();
+        $project->types()->detach();
+        $project->categories()->detach();
         $this->projectService->delete($project);
 
         return redirect()->route('admin.projects.index')
             ->with('success', 'Project deleted successfully.');
+    }
+
+    /**
+     * Inline create a new technology from the project form.
+     */
+    public function storeTechnology(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $existing = ProjectTechnology::where('name', $request->name)->first();
+        if ($existing) {
+            return response()->json([
+                'message' => 'Technology already exists',
+                'technology' => $existing,
+            ]);
+        }
+
+        $technology = ProjectTechnology::create([
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+        ]);
+
+        return response()->json([
+            'message' => 'Technology created successfully',
+            'technology' => $technology,
+        ]);
+    }
+
+    /**
+     * Inline create a new type from the project form.
+     */
+    public function storeType(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'name_id' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
+        ]);
+
+        $type = ProjectType::create([
+            'name_id' => $request->name_id,
+            'name_en' => $request->name_en,
+            'slug' => Str::slug($request->name_en ?: $request->name_id),
+        ]);
+
+        return response()->json([
+            'message' => 'Type created successfully',
+            'type' => $type,
+        ]);
+    }
+
+    /**
+     * Inline create a new category from the project form.
+     */
+    public function storeCategory(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'name_id' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
+        ]);
+
+        $category = ProjectCategory::create([
+            'name_id' => $request->name_id,
+            'name_en' => $request->name_en,
+            'slug' => Str::slug($request->name_en ?: $request->name_id),
+        ]);
+
+        return response()->json([
+            'message' => 'Category created successfully',
+            'category' => $category,
+        ]);
+    }
+
+    /**
+     * Convert tech_stack string array to technology IDs, creating new entries as needed.
+     */
+    private function syncTechStack(array $techStack): array
+    {
+        $ids = [];
+        foreach ($techStack as $techName) {
+            $trimmed = trim($techName);
+            if (empty($trimmed)) continue;
+
+            $tech = ProjectTechnology::firstOrCreate(
+                ['name' => $trimmed],
+                ['slug' => Str::slug($trimmed)]
+            );
+            $ids[] = $tech->id;
+        }
+        return $ids;
     }
 }

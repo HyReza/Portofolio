@@ -2,11 +2,11 @@ import { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
 import { SeoHead } from '@/components/SeoHead';
 import { motion } from 'framer-motion';
-import { Sparkles, Search, Filter } from 'lucide-react';
+import { Sparkles, Search } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { TextReveal, FadeUp, ImageReveal } from '@/components/animations';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableFilter } from '@/components/ui/searchable-filter';
 
 interface BlogPost { id: number; title_id: string; title_en: string; slug: string; excerpt_en: string | null; excerpt_id: string | null; thumbnail: string | null; published_at: string | null; tags: { id: number; name_en: string; name_id: string; }[]; }
 
@@ -71,23 +71,14 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
                             </div>
                             
                             {/* Tags Dropdown Filter */}
-                            <div className="w-full sm:w-48 shrink-0">
-                                <Select value={selectedTag} onValueChange={setSelectedTag}>
-                                    <SelectTrigger className={`w-full rounded-2xl h-[46px] border px-4 transition-all ${dk ? 'bg-white/5 border-white/5 text-white focus:ring-indigo-500/30 hover:bg-white/10' : 'bg-gray-50 border-gray-100 text-gray-900 focus:ring-indigo-500 hover:bg-gray-100 shadow-sm'}`}>
-                                        <div className="flex items-center gap-2 text-sm font-medium">
-                                            <Filter className="w-4 h-4 opacity-50" />
-                                            <SelectValue placeholder="Filter Tags" />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent className={`rounded-xl border ${dk ? 'bg-neutral-900 border-white/10 text-white' : 'bg-white border-gray-100 text-gray-900'}`}>
-                                        {allTags.map(tag => (
-                                            <SelectItem key={tag} value={tag} className="rounded-lg cursor-pointer">
-                                                {tag === 'All' ? t('All Tags', 'Semua Tag') : tag}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <SearchableFilter
+                                value={selectedTag}
+                                onValueChange={setSelectedTag}
+                                items={allTags}
+                                allLabel={t('All Tags', 'Semua Tag')}
+                                searchPlaceholder={t('Search tag...', 'Cari tag...')}
+                                dark={dk}
+                            />
                         </FadeUp>
                     )}
 

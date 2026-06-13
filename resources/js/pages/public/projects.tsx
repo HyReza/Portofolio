@@ -2,17 +2,21 @@ import { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
 import { SeoHead } from '@/components/SeoHead';
 import { motion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Github, Search, Filter } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Github, Search } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { TextReveal, FadeUp, ImageReveal, MagneticButton } from '@/components/animations';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableFilter } from '@/components/ui/searchable-filter';
 
-interface Project { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; problem_en: string | null; problem_id: string | null; solution_en: string | null; solution_id: string | null; excerpt_en: string | null; excerpt_id: string | null; tech_stack: string[] | null; demo_url: string | null; repo_url: string | null; }
+interface ProjectType { id: number; name_id: string; name_en: string | null; slug: string; }
+interface ProjectCategory { id: number; name_id: string; name_en: string | null; slug: string; }
 
-export default function Projects({ projects }: { projects: Project[] }) {
+interface Project { id: number; title_id: string; title_en: string; slug: string; thumbnail: string | null; problem_en: string | null; problem_id: string | null; solution_en: string | null; solution_id: string | null; excerpt_en: string | null; excerpt_id: string | null; tech_stack: string[] | null; demo_url: string | null; repo_url: string | null; types?: ProjectType[]; categories?: ProjectCategory[]; }
+
+export default function Projects({ projects, allTypes, allCategories }: { projects: Project[], allTypes?: ProjectType[], allCategories?: ProjectCategory[] }) {
     const { lang, theme: appTheme, t } = useApp();
     const dk = appTheme === 'dark';
+    const pv = (idStr: string | null | undefined, enStr: string | null | undefined) => lang === 'id' ? (idStr || enStr || '') : (enStr || idStr || '');
 
     /* Helper to strip HTML and truncate */
     const truncate = (html: string | null, limit: number = 120) => {
@@ -23,6 +27,8 @@ export default function Projects({ projects }: { projects: Project[] }) {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTech, setSelectedTech] = useState<string>('All');
+    const [selectedType, setSelectedType] = useState<string>('All');
+    const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
     // Extract unique tech stacks
     const allTechs = useMemo(() => {
@@ -35,6 +41,30 @@ export default function Projects({ projects }: { projects: Project[] }) {
         return ['All', ...Array.from(techSet).sort()];
     }, [projects]);
 
+    const projectTypes = useMemo(() => {
+        const types = new Set<string>();
+        if (allTypes && allTypes.length > 0) {
+            allTypes.forEach(t => { const n = pv(t.name_id, t.name_en); if (n) types.add(n); });
+        } else {
+            projects.forEach(p => {
+                if (p.types) p.types.forEach(t => { const n = pv(t.name_id, t.name_en); if (n) types.add(n); });
+            });
+        }
+        return ['All', ...Array.from(types).sort()];
+    }, [projects, allTypes, lang]);
+
+    const projectCategories = useMemo(() => {
+        const cats = new Set<string>();
+        if (allCategories && allCategories.length > 0) {
+            allCategories.forEach(c => { const n = pv(c.name_id, c.name_en); if (n) cats.add(n); });
+        } else {
+            projects.forEach(p => {
+                if (p.categories) p.categories.forEach(c => { const n = pv(c.name_id, c.name_en); if (n) cats.add(n); });
+            });
+        }
+        return ['All', ...Array.from(cats).sort()];
+    }, [projects, allCategories, lang]);
+
     // Filter projects
     const filteredProjects = useMemo(() => {
         return projects.filter(project => {
@@ -43,12 +73,16 @@ export default function Projects({ projects }: { projects: Project[] }) {
             const sol = ((lang === 'id' ? project.solution_id : project.solution_en) || '').toLowerCase();
             const query = searchQuery.toLowerCase();
             const matchesSearch = title.includes(query) || prob.includes(query) || sol.includes(query);
-            
-            const matchesTech = selectedTech === 'All' || (project.tech_stack && project.tech_stack.includes(selectedTech));
+            const pTypes = project.types ? project.types.map(t => pv(t.name_id, t.name_en)) : [];
+            const pCats = project.categories ? project.categories.map(c => pv(c.name_id, c.name_en)) : [];
 
-            return matchesSearch && matchesTech;
+            const matchesTech = selectedTech === 'All' || (project.tech_stack && project.tech_stack.includes(selectedTech));
+            const matchesType = selectedType === 'All' || pTypes.includes(selectedType);
+            const matchesCat = selectedCategory === 'All' || pCats.includes(selectedCategory);
+
+            return matchesSearch && matchesTech && matchesType && matchesCat;
         });
-    }, [projects, searchQuery, selectedTech, lang]);
+    }, [projects, searchQuery, selectedTech, selectedType, selectedCategory, lang]);
 
     return (
         <PublicLayout>
@@ -63,35 +97,56 @@ export default function Projects({ projects }: { projects: Project[] }) {
 
                     {/* Search & Filter Section */}
                     {projects.length > 0 && (
-                        <FadeUp delay={0.4} className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-start">
-                            <div className="relative w-full max-w-md">
+                        <FadeUp delay={0.4} className="mt-12 space-y-6">
+                            {/* Search Bar - Full Width */}
+                            <div className="relative w-full max-w-2xl">
                                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 ${dk ? 'text-white/30' : 'text-gray-400'}`} />
                                 <input 
                                     type="text" 
                                     placeholder={t('Search projects...', 'Cari proyek...')}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className={`w-full rounded-2xl pl-12 pr-4 py-3 outline-none transition-all ${dk ? 'bg-white/5 focus:bg-white/10 text-white placeholder:text-white/30 border border-white/5 focus:border-indigo-500/30' : 'bg-gray-50 focus:bg-white text-gray-900 placeholder:text-gray-400 border border-gray-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm'}`}
+                                    className={`w-full rounded-2xl pl-12 pr-4 py-4 outline-none transition-all text-base sm:text-lg ${dk ? 'bg-white/5 focus:bg-white/10 text-white placeholder:text-white/30 border border-white/5 focus:border-indigo-500/30' : 'bg-white focus:bg-white text-gray-900 placeholder:text-gray-400 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm'}`}
                                 />
                             </div>
                             
-                            {/* Tech Stack Dropdown Filter */}
-                            <div className="w-full sm:w-48 shrink-0">
-                                <Select value={selectedTech} onValueChange={setSelectedTech}>
-                                    <SelectTrigger className={`w-full rounded-2xl h-[46px] border px-4 transition-all ${dk ? 'bg-white/5 border-white/5 text-white focus:ring-indigo-500/30 hover:bg-white/10' : 'bg-gray-50 border-gray-100 text-gray-900 focus:ring-indigo-500 hover:bg-gray-100 shadow-sm'}`}>
-                                        <div className="flex items-center gap-2 text-sm font-medium">
-                                            <Filter className="w-4 h-4 opacity-50" />
-                                            <SelectValue placeholder="Filter Tech" />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent className={`rounded-xl border ${dk ? 'bg-neutral-900 border-white/10 text-white' : 'bg-white border-gray-100 text-gray-900'}`}>
-                                        {allTechs.map(tech => (
-                                            <SelectItem key={tech} value={tech} className="rounded-lg cursor-pointer">
-                                                {tech === 'All' ? t('All Tech Stack', 'Semua Teknologi') : tech}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                            {/* Filters Row */}
+                            <div className="flex flex-wrap items-center gap-3 w-full">
+                                {/* Type Filter */}
+                                <div className="w-full sm:w-auto min-w-[180px]">
+                                    <SearchableFilter
+                                        value={selectedType}
+                                        onValueChange={setSelectedType}
+                                        items={projectTypes}
+                                        allLabel={t('All Types', 'Semua Tipe')}
+                                        searchPlaceholder={t('Search type...', 'Cari tipe...')}
+                                        dark={dk}
+                                    />
+                                </div>
+
+                                {/* Category Filter */}
+                                <div className="w-full sm:w-auto min-w-[180px]">
+                                    <SearchableFilter
+                                        value={selectedCategory}
+                                        onValueChange={setSelectedCategory}
+                                        items={projectCategories}
+                                        allLabel={t('All Categories', 'Semua Kategori')}
+                                        searchPlaceholder={t('Search category...', 'Cari kategori...')}
+                                        dark={dk}
+                                    />
+                                </div>
+
+                                {/* Tech Stack Filter */}
+                                <div className="w-full sm:w-auto min-w-[180px]">
+                                    <SearchableFilter
+                                        value={selectedTech}
+                                        onValueChange={setSelectedTech}
+                                        items={allTechs}
+                                        allLabel={t('All Tech Stack', 'Semua Teknologi')}
+                                        searchPlaceholder={t('Search tech...', 'Cari teknologi...')}
+                                        dark={dk}
+                                    />
+                                </div>
                             </div>
                         </FadeUp>
                     )}
@@ -119,9 +174,9 @@ export default function Projects({ projects }: { projects: Project[] }) {
                                 <p className={`mt-2 max-w-sm text-sm ${dk ? 'text-white/40' : 'text-gray-500'}`}>
                                     {t("We couldn't find any projects matching your search criteria. Try adjusting your filters.", "Kami tidak dapat menemukan proyek yang cocok dengan pencarian Anda. Coba sesuaikan filter Anda.")}
                                 </p>
-                                {(searchQuery || selectedTech !== 'All') && (
+                                {(searchQuery || selectedTech !== 'All' || selectedType !== 'All' || selectedCategory !== 'All') && (
                                     <button 
-                                        onClick={() => { setSearchQuery(''); setSelectedTech('All'); }}
+                                        onClick={() => { setSearchQuery(''); setSelectedTech('All'); setSelectedType('All'); setSelectedCategory('All'); }}
                                         className={`mt-6 rounded-full px-6 py-2.5 text-sm font-medium transition-all ${dk ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'}`}
                                     >
                                         {t('Clear Filters', 'Hapus Filter')}
@@ -141,7 +196,20 @@ export default function Projects({ projects }: { projects: Project[] }) {
                                     </motion.div>
                                     <motion.div initial={{ opacity: 0, x: i % 2 === 0 ? 60 : -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2, ease: [0.25,0.4,0.25,1] }}
                                         className="lg:[direction:ltr]">
-                                        <span className={`text-xs font-bold uppercase tracking-wider ${dk ? 'text-indigo-400/50' : 'text-indigo-500'}`}>{t('Project', 'Proyek')} {String(i + 1).padStart(2, '0')}</span>
+                                        
+                                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                                            {p.types && p.types.length > 0 && p.types.map(t2 => (
+                                                <span key={t2.id} className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md ${dk ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                    {pv(t2.name_id, t2.name_en)}
+                                                </span>
+                                            ))}
+                                            {p.categories && p.categories.length > 0 && p.categories.map(c => (
+                                                <span key={c.id} className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md ${dk ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                    {pv(c.name_id, c.name_en)}
+                                                </span>
+                                            ))}
+                                        </div>
+
                                         <Link href={`/projects/${p.slug}`}>
                                             <h2 className="mt-2 text-2xl font-black sm:text-3xl hover:text-indigo-500 transition-colors cursor-pointer">{lang === 'id' ? (p.title_id || p.title_en) : (p.title_en || p.title_id)}</h2>
                                         </Link>

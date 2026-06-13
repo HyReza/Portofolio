@@ -14,6 +14,7 @@ class SkillCategory extends Model
         'name_id',
         'name_en',
         'icon',
+        'icon_image',
         'sort_order',
     ];
 

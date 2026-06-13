@@ -5,7 +5,19 @@ import { ArrowUpRight, Award, Search, Calendar, Filter, ExternalLink, X, ZoomIn 
 import { useApp } from '@/hooks/useApp';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { TextReveal, FadeUp } from '@/components/animations';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableFilter } from '@/components/ui/searchable-filter';
+
+interface CertCategory {
+    id: number;
+    name_id: string;
+    name_en: string | null;
+}
+
+interface CredentialType {
+    id: number;
+    name_id: string;
+    name_en: string | null;
+}
 
 interface Certificate {
     id: number;
@@ -24,13 +36,16 @@ interface Certificate {
     skills: string[] | null;
     category: string | null;
     category_en: string | null;
+    categories?: CertCategory[];
+    credential_types?: CredentialType[];
 }
 
-export default function Certificates({ certificates }: { certificates: Certificate[] }) {
+export default function Certificates({ certificates, allCategories, allCredentialTypes }: { certificates: Certificate[], allCategories?: CertCategory[], allCredentialTypes?: CredentialType[] }) {
     const { lang, theme: appTheme, t } = useApp();
     const dk = appTheme === 'dark';
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
+    const [selectedCredentialType, setSelectedCredentialType] = useState<string>('All');
     const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
     const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
@@ -42,17 +57,49 @@ export default function Certificates({ certificates }: { certificates: Certifica
         return Array.isArray(cert.skills) ? cert.skills : (typeof cert.skills === 'string' ? [cert.skills] : []);
     };
 
-    // Extract unique categories
+    // Extract unique categories from both legacy and new many-to-many
     const categories = useMemo(() => {
         const cats = new Set<string>();
         if (Array.isArray(certificates)) {
             certificates.forEach(c => {
-                const cat = pv(c?.category, c?.category_en);
-                if (cat) cats.add(cat);
+                // From many-to-many relationship
+                if (c.categories && c.categories.length > 0) {
+                    c.categories.forEach(cat => {
+                        const catName = pv(cat.name_id, cat.name_en);
+                        if (catName) cats.add(catName);
+                    });
+                } else {
+                    // Legacy fallback
+                    const cat = pv(c?.category, c?.category_en);
+                    if (cat) cats.add(cat);
+                }
             });
         }
-        return ['All', ...Array.from(cats)];
-    }, [certificates, lang]);
+        return ['All', ...Array.from(cats).sort()];
+    }, [certificates, allCategories, lang]);
+
+    const credentialTypes = useMemo(() => {
+        const types = new Set<string>();
+        if (allCredentialTypes && allCredentialTypes.length > 0) {
+            allCredentialTypes.forEach(t => {
+                const tName = pv(t.name_id, t.name_en);
+                if (tName) types.add(tName);
+            });
+        } else if (Array.isArray(certificates)) {
+            certificates.forEach(c => {
+                if (c.credential_types && c.credential_types.length > 0) {
+                    c.credential_types.forEach(t => {
+                        const tName = pv(t.name_id, t.name_en);
+                        if (tName) types.add(tName);
+                    });
+                } else {
+                    const tName = pv(c?.credential_type, c?.credential_type_en);
+                    if (tName) types.add(tName);
+                }
+            });
+        }
+        return ['All', ...Array.from(types).sort()];
+    }, [certificates, allCredentialTypes, lang]);
 
     // Filter
     const filteredCertificates = useMemo(() => {
@@ -60,17 +107,40 @@ export default function Certificates({ certificates }: { certificates: Certifica
         return certificates.filter(cert => {
             const title = pv(cert?.title, cert?.title_en).toLowerCase();
             const issuer = (cert?.issuer || '').toLowerCase();
-            const category = pv(cert?.category, cert?.category_en);
             const query = (searchQuery || '').toLowerCase();
             const skills = getSkills(cert);
 
+            // Get category names from many-to-many or legacy
+            const certCats: string[] = [];
+            if (cert.categories && cert.categories.length > 0) {
+                cert.categories.forEach(cat => {
+                    const catName = pv(cat.name_id, cat.name_en);
+                    if (catName) certCats.push(catName);
+                });
+            } else {
+                const cat = pv(cert?.category, cert?.category_en);
+                if (cat) certCats.push(cat);
+            }
+
+            const certTypes: string[] = [];
+            if (cert.credential_types && cert.credential_types.length > 0) {
+                cert.credential_types.forEach(t => {
+                    const tName = pv(t.name_id, t.name_en);
+                    if (tName) certTypes.push(tName);
+                });
+            } else {
+                const tName = pv(cert?.credential_type, cert?.credential_type_en);
+                if (tName) certTypes.push(tName);
+            }
+
             const matchesSearch = title.includes(query) || issuer.includes(query) ||
                 skills.join(' ').toLowerCase().includes(query);
-            const matchesCategory = selectedCategory === 'All' || category === selectedCategory;
+            const matchesCategory = selectedCategory === 'All' || certCats.includes(selectedCategory);
+            const matchesType = selectedCredentialType === 'All' || certTypes.includes(selectedCredentialType);
 
-            return matchesSearch && matchesCategory;
+            return matchesSearch && matchesCategory && matchesType;
         });
-    }, [certificates, searchQuery, selectedCategory, lang]);
+    }, [certificates, searchQuery, selectedCategory, selectedCredentialType, lang]);
 
     return (
         <PublicLayout>
@@ -109,23 +179,23 @@ export default function Certificates({ certificates }: { certificates: Certifica
                             />
                         </div>
 
-                        <div className="w-full sm:w-48 shrink-0">
-                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                                <SelectTrigger className={`w-full rounded-2xl h-[46px] border px-4 transition-all ${dk ? 'bg-white/5 border-white/5 text-white focus:ring-indigo-500/30 hover:bg-white/10' : 'bg-gray-50 border-gray-100 text-gray-900 focus:ring-indigo-500 hover:bg-gray-100 shadow-sm'}`}>
-                                    <div className="flex items-center gap-2 text-sm font-medium">
-                                        <Filter className="w-4 h-4 opacity-50" />
-                                        <SelectValue placeholder={t('Category', 'Kategori')} />
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent className={`rounded-xl border ${dk ? 'bg-neutral-900 border-white/10 text-white' : 'bg-white border-gray-100 text-gray-900'}`}>
-                                    {categories.map(cat => (
-                                        <SelectItem key={cat} value={cat} className="rounded-lg cursor-pointer">
-                                            {cat === 'All' ? t('All Categories', 'Semua Kategori') : cat}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <SearchableFilter
+                            value={selectedCategory}
+                            onValueChange={setSelectedCategory}
+                            items={categories}
+                            allLabel={t('All Categories', 'Semua Kategori')}
+                            searchPlaceholder={t('Search category...', 'Cari kategori...')}
+                            dark={dk}
+                        />
+
+                        <SearchableFilter
+                            value={selectedCredentialType}
+                            onValueChange={setSelectedCredentialType}
+                            items={credentialTypes}
+                            allLabel={t('All Types', 'Semua Tipe')}
+                            searchPlaceholder={t('Search type...', 'Cari tipe...')}
+                            dark={dk}
+                        />
                     </FadeUp>
 
                     {/* Empty State */}
@@ -151,9 +221,9 @@ export default function Certificates({ certificates }: { certificates: Certifica
                                 <p className={`mt-2 max-w-sm text-sm ${dk ? 'text-white/40' : 'text-gray-500'}`}>
                                     {t("We couldn't find any certificates matching your criteria. Try adjusting your filters.", "Kami tidak dapat menemukan sertifikat yang cocok dengan pencarian Anda.")}
                                 </p>
-                                {(searchQuery || selectedCategory !== 'All') && (
+                                {(searchQuery || selectedCategory !== 'All' || selectedCredentialType !== 'All') && (
                                     <button
-                                        onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
+                                        onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setSelectedCredentialType('All'); }}
                                         className={`mt-6 rounded-full px-6 py-2.5 text-sm font-medium transition-all ${dk ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'}`}
                                     >
                                         {t('Clear Filters', 'Hapus Filter')}
@@ -192,12 +262,20 @@ export default function Certificates({ certificates }: { certificates: Certifica
 
                                     {/* Content */}
                                     <div className="p-6">
-                                        {/* Type badge */}
-                                        {pv(c.credential_type, c.credential_type_en) && (
+                                        {/* Type badges */}
+                                        {c.credential_types && c.credential_types.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1.5 mb-3">
+                                                {c.credential_types.map(t => (
+                                                    <span key={t.id} className={`inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${dk ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                        {pv(t.name_id, t.name_en)}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : pv(c.credential_type, c.credential_type_en) ? (
                                             <span className={`inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider mb-3 ${dk ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
                                                 {pv(c.credential_type, c.credential_type_en)}
                                             </span>
-                                        )}
+                                        ) : null}
 
                                         <h3 className="font-bold text-lg line-clamp-2 group-hover:text-indigo-400 transition-colors">
                                             {pv(c.title, c.title_en)}
@@ -297,11 +375,19 @@ export default function Certificates({ certificates }: { certificates: Certifica
                         {/* Info Panel */}
                         <div className={`w-full md:w-2/5 overflow-y-auto p-6 sm:p-8 flex flex-col ${dk ? 'border-l border-white/5' : 'border-l border-gray-100'}`}>
                             {/* Type */}
-                            {pv(selectedCert.credential_type, selectedCert.credential_type_en) && (
+                            {selectedCert.credential_types && selectedCert.credential_types.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5 mb-4">
+                                    {selectedCert.credential_types.map(t => (
+                                        <span key={t.id} className={`inline-block w-fit rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${dk ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            {pv(t.name_id, t.name_en)}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : pv(selectedCert.credential_type, selectedCert.credential_type_en) ? (
                                 <span className={`inline-block w-fit rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider mb-4 ${dk ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
                                     {pv(selectedCert.credential_type, selectedCert.credential_type_en)}
                                 </span>
-                            )}
+                            ) : null}
 
                             <h2 className={`text-xl sm:text-2xl font-black leading-tight break-words ${dk ? 'text-white' : 'text-gray-900'}`}>
                                 {pv(selectedCert.title, selectedCert.title_en)}
@@ -321,7 +407,16 @@ export default function Certificates({ certificates }: { certificates: Certifica
                                     </div>
                                 )}
 
-                                {pv(selectedCert.category, selectedCert.category_en) && (
+                                {(selectedCert.categories && selectedCert.categories.length > 0) ? (
+                                    <div>
+                                        <span className={`block text-[10px] font-bold uppercase tracking-widest mb-0.5 ${dk ? 'text-white/30' : 'text-gray-400'}`}>
+                                            {t('Categories', 'Kategori')}
+                                        </span>
+                                        <span className="font-semibold break-words">
+                                            {selectedCert.categories.map(c => pv(c.name_id, c.name_en)).join(', ')}
+                                        </span>
+                                    </div>
+                                ) : pv(selectedCert.category, selectedCert.category_en) && (
                                     <div>
                                         <span className={`block text-[10px] font-bold uppercase tracking-widest mb-0.5 ${dk ? 'text-white/30' : 'text-gray-400'}`}>
                                             {t('Category', 'Kategori')}

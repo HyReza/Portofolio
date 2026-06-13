@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/input-error';
 import { AutoTranslateButton } from '@/components/AutoTranslateButton';
 import { TiptapEditor } from '@/components/TiptapEditor';
-import { TagInput } from '@/components/ui/tag-input';
+import { TagInputWithSuggestions } from '@/components/ui/tag-input-with-suggestions';
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
@@ -34,14 +34,30 @@ interface Project {
     status: 'draft' | 'published';
     published_at: string | null;
     show_in_cv: boolean;
+    types?: ProjectType[];
+    categories?: ProjectCategory[];
+}
+
+interface ProjectType { id: number; name_id: string; name_en: string | null; slug: string; }
+interface ProjectCategory { id: number; name_id: string; name_en: string | null; slug: string; }
+
+interface Technology {
+    id: number;
+    name: string;
+    slug: string;
 }
 
 interface Props {
     project: Project;
+    allTechnologies?: Technology[];
+    allTypes?: ProjectType[];
+    allCategories?: ProjectCategory[];
 }
 
-export default function EditProject({ project }: Props) {
+export default function EditProject({ project, allTechnologies, allTypes, allCategories }: Props) {
     const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
+    const [selectedTypeNames, setSelectedTypeNames] = useState<string[]>((project.types || []).map(t => t.name_id));
+    const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>((project.categories || []).map(c => c.name_id));
 
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
@@ -64,6 +80,8 @@ export default function EditProject({ project }: Props) {
         status: project.status,
         published_at: project.published_at ?? '',
         show_in_cv: project.show_in_cv ?? true,
+        project_type_ids: (project.types || []).map(t => t.id),
+        project_category_ids: (project.categories || []).map(c => c.id),
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -81,6 +99,26 @@ export default function EditProject({ project }: Props) {
         } else {
             setThumbnailPreview(project.thumbnail ? `/storage/${project.thumbnail}` : null);
         }
+    };
+
+    const handleTypeChange = (names: string[]) => {
+        setSelectedTypeNames(names);
+        const ids: number[] = [];
+        names.forEach(name => {
+            const match = allTypes?.find(t => t.name_id.toLowerCase() === name.toLowerCase() || (t.name_en && t.name_en.toLowerCase() === name.toLowerCase()));
+            if (match) ids.push(match.id);
+        });
+        setData('project_type_ids', ids);
+    };
+
+    const handleCategoryChange = (names: string[]) => {
+        setSelectedCategoryNames(names);
+        const ids: number[] = [];
+        names.forEach(name => {
+            const match = allCategories?.find(c => c.name_id.toLowerCase() === name.toLowerCase() || (c.name_en && c.name_en.toLowerCase() === name.toLowerCase()));
+            if (match) ids.push(match.id);
+        });
+        setData('project_category_ids', ids);
     };
 
     useEffect(() => {
@@ -234,12 +272,38 @@ export default function EditProject({ project }: Props) {
                             </div>
                             <div className="space-y-2">
                                 <Label>Tech Stack</Label>
-                                <TagInput
+                                <TagInputWithSuggestions
                                     value={data.tech_stack}
                                     onChange={(tags) => setData('tech_stack', tags)}
+                                    suggestions={(allTechnologies || []).map(t => ({
+                                        id: t.id,
+                                        label: t.name,
+                                    }))}
                                     placeholder="Type tech name, press Enter or comma to add..."
                                 />
-                                <p className="text-[11px] text-neutral-400">Press Enter or comma to add. Click × to remove.</p>
+                                <p className="text-[11px] text-neutral-400">Select from existing technologies or type a new one. Press Enter or comma to add.</p>
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label>Project Types</Label>
+                                    <TagInputWithSuggestions
+                                        value={selectedTypeNames}
+                                        onChange={handleTypeChange}
+                                        suggestions={(allTypes || []).map(t => ({ id: t.id, label: t.name_id, labelSecondary: t.name_en || undefined }))}
+                                        placeholder="Search or add type..."
+                                    />
+                                    <p className="text-[11px] text-neutral-400">Manage types in Admin menu.</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Project Categories</Label>
+                                    <TagInputWithSuggestions
+                                        value={selectedCategoryNames}
+                                        onChange={handleCategoryChange}
+                                        suggestions={(allCategories || []).map(c => ({ id: c.id, label: c.name_id, labelSecondary: c.name_en || undefined }))}
+                                        placeholder="Search or add category..."
+                                    />
+                                    <p className="text-[11px] text-neutral-400">Manage categories in Admin menu.</p>
+                                </div>
                             </div>
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">

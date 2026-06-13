@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Certificate extends Model
@@ -14,8 +15,6 @@ class Certificate extends Model
         'title',
         'title_en',
         'issuer',
-        'credential_type',
-        'credential_type_en',
         'credential_id',
         'credential_url',
         'image',
@@ -41,15 +40,37 @@ class Certificate extends Model
         ];
     }
 
+    // ── Relationships ──
+
     public function seoMeta(): MorphOne
     {
         return $this->morphOne(SeoMeta::class, 'metaable');
     }
 
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(CertificateCategory::class);
+    }
+
+    public function credentialTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(CredentialType::class);
+    }
+
+    // ── Scopes ──
+
+    /**
+     * Order certificates: manual sort_order first (ASC), then by issued_date DESC for unordered.
+     */
     public function scopeOrdered($query)
     {
-        return $query->orderBy('sort_order');
+        return $query
+            ->orderByRaw('CASE WHEN sort_order IS NOT NULL THEN 0 ELSE 1 END')
+            ->orderBy('sort_order')
+            ->orderByDesc('issued_date');
     }
+
+    // ── Accessors ──
 
     public function getIsExpiredAttribute(): bool
     {

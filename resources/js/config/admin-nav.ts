@@ -28,9 +28,24 @@ export const adminNavItems: NavItem[] = [
         icon: 'Zap',
     },
     {
+        title: 'Soft Skills',
+        url: '/admin/soft-skills',
+        icon: 'Brain',
+    },
+    {
         title: 'Projects',
         url: '/admin/projects',
         icon: 'FolderKanban',
+    },
+    {
+        title: 'Project Types',
+        url: '/admin/project-types',
+        icon: 'LayoutTemplate',
+    },
+    {
+        title: 'Project Categories',
+        url: '/admin/project-categories',
+        icon: 'Folders',
     },
     {
         title: 'Blog',
@@ -46,6 +61,16 @@ export const adminNavItems: NavItem[] = [
         title: 'Certificates',
         url: '/admin/certificates',
         icon: 'Award',
+    },
+    {
+        title: 'Cert. Categories',
+        url: '/admin/certificate-categories',
+        icon: 'Layers',
+    },
+    {
+        title: 'Credential Types',
+        url: '/admin/credential-types',
+        icon: 'FileBadge',
     },
     {
         title: 'Contacts',

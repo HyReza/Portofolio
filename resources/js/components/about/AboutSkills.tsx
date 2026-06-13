@@ -1,11 +1,10 @@
 import { motion } from 'framer-motion';
 import { useApp } from '@/hooks/useApp';
-import { FadeUp, StaggerChildren, StaggerItem } from '@/components/animations';
 import { ReactIconRender } from '@/components/ReactIconRender';
 import { Wrench } from 'lucide-react';
 
 interface Skill { id: number; name_id: string; name_en: string; icon: string | null; description_id?: string | null; description_en?: string | null; }
-interface SkillCategory { id: number; name_en: string; name_id: string; skills: Skill[]; }
+interface SkillCategory { id: number; name_en: string; name_id: string; icon_image?: string | null; skills: Skill[]; }
 
 const getBrandStyle = (name: string, dk: boolean) => {
     const s = name.toLowerCase();
@@ -34,37 +33,76 @@ export function AboutSkills({ skillCategories }: Props) {
     return (
         <section className={`py-20 ${dk ? 'bg-white/[0.01]' : 'bg-gray-50/50'}`}>
             <div className="mx-auto max-w-7xl px-5 sm:px-8">
-                <FadeUp>
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-50px' }}
+                    transition={{ duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
+                >
                     <div className="flex items-center gap-3 mb-2">
                         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${dk ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
                             <Wrench size={22} />
                         </div>
                         <h2 className="text-3xl font-black">{t('Skills & Tools', 'Keahlian')}</h2>
                     </div>
-                </FadeUp>
-                <StaggerChildren className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" stagger={0.08}>
-                    {skillCategories.map((cat) => (
-                        <StaggerItem key={cat.id}>
-                            <motion.div whileHover={{ y: -5 }} className={`rounded-2xl p-7 transition-all ${dk ? 'bg-white/[0.02] border border-white/5 hover:border-indigo-500/20' : 'bg-white border border-gray-100 hover:shadow-xl'}`}>
-                                <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-indigo-400">{lang === 'id' ? (cat.name_id || cat.name_en) : cat.name_en}</h3>
+                </motion.div>
+
+                <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {skillCategories.map((cat, catIndex) => (
+                        <motion.div
+                            key={cat.id}
+                            initial={{ opacity: 0, y: 40, filter: 'blur(4px)' }}
+                            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            viewport={{ once: true, margin: '-30px' }}
+                            transition={{
+                                delay: catIndex * 0.1,
+                                duration: 0.65,
+                                ease: [0.25, 0.4, 0.25, 1],
+                            }}
+                            whileHover={{ y: -5, transition: { duration: 0.25, ease: 'easeOut' } }}
+                            className={`group relative overflow-hidden rounded-2xl p-7 transition-all duration-300 ${dk ? 'bg-white/[0.02] border border-white/5 hover:border-indigo-500/20' : 'bg-white border border-gray-100 hover:shadow-xl'}`}
+                        >
+                            {/* Gradient border glow on hover */}
+                            <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${dk ? 'bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5' : 'bg-gradient-to-br from-indigo-50/40 via-transparent to-purple-50/40'}`} />
+
+                            <div className="relative">
+                                <div className="flex items-center gap-2 mb-5">
+                                    {cat.icon_image && (
+                                        <img src={`/storage/${cat.icon_image}`} alt="" className="h-5 w-5 object-contain" />
+                                    )}
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-400">
+                                        {lang === 'id' ? (cat.name_id || cat.name_en) : cat.name_en}
+                                    </h3>
+                                </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {cat.skills.map(s => {
+                                    {cat.skills.map((s, sIdx) => {
                                         const sName = lang === 'id' ? (s.name_id || s.name_en) : (s.name_en || s.name_id);
                                         const style = getBrandStyle(sName, dk);
                                         return (
-                                            <div key={s.id} className={`group flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${style.pillBg} ${style.border} ${style.text}`}>
-                                                <span className="font-bold opacity-80 transition-opacity group-hover:opacity-100">
+                                            <motion.div
+                                                key={s.id}
+                                                initial={{ opacity: 0, x: -15 }}
+                                                whileInView={{ opacity: 1, x: 0 }}
+                                                viewport={{ once: true }}
+                                                transition={{
+                                                    delay: catIndex * 0.1 + sIdx * 0.04,
+                                                    duration: 0.4,
+                                                    ease: [0.25, 0.4, 0.25, 1],
+                                                }}
+                                                className={`group/pill flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${style.pillBg} ${style.border} ${style.text}`}
+                                            >
+                                                <span className="font-bold opacity-80 transition-opacity group-hover/pill:opacity-100">
                                                     {s.icon ? <ReactIconRender name={s.icon} className="h-4 w-4" /> : <div className="flex h-5 w-5 items-center justify-center rounded-full bg-current/20 text-[9px]">{sName.charAt(0).toUpperCase()}</div>}
                                                 </span>
                                                 {sName}
-                                            </div>
+                                            </motion.div>
                                         );
                                     })}
                                 </div>
-                            </motion.div>
-                        </StaggerItem>
+                            </div>
+                        </motion.div>
                     ))}
-                </StaggerChildren>
+                </div>
             </div>
         </section>
     );
