@@ -230,17 +230,17 @@
 @if($softSkills->count())
 <div class="cv-section">
     <div class="cv-section-title">{{ $lang === 'id' ? 'Kemampuan Non-Teknis' : 'Soft Skills' }}</div>
-    <ul style="margin: 0; padding-left: 15px; font-size: 8.5pt; color: #333; line-height: 1.4;">
+    <div style="font-size: 8.5pt; color: #333; line-height: 1.4;">
         @foreach($softSkills as $ss)
             @php
                 $name = $lang === 'id' ? ($ss->name_id ?: $ss->name_en) : ($ss->name_en ?: $ss->name_id);
                 $desc = $lang === 'id' ? ($ss->description_id ?: $ss->description_en) : ($ss->description_en ?: $ss->description_id);
             @endphp
-            <li style="margin-bottom: 2px;">
-                <strong>{{ $name }}</strong>{{ $desc ? ' &ndash; ' . $desc : '' }}
-            </li>
+            <div style="margin-bottom: 3px; page-break-inside: avoid;">
+                <strong>{{ $name }}</strong>{{ $desc ? ' : ' . $desc : '' }}
+            </div>
         @endforeach
-    </ul>
+    </div>
 </div>
 @endif
 
