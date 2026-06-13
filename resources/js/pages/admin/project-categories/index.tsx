@@ -19,13 +19,13 @@ interface ProjectCategory {
 }
 
 interface Props {
-    categorys: ProjectCategory[];
+    categories: ProjectCategory[];
 }
 
-export default function ProjectCategoryIndex({ categorys }: Props) {
+export default function ProjectCategoryIndex({ categories }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<ProjectCategory | null>(null);
-    const { confirm, ConfirmDialog } = useConfirmDialog();
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
 
     const form = useForm({
         name_id: '',
@@ -68,6 +68,7 @@ export default function ProjectCategoryIndex({ categorys }: Props) {
             onConfirm: () => {
                 router.delete(`/admin/project-categories/${item.id}`, {
                     onSuccess: () => toast.success('Deleted successfully'),
+                    onError: (errors) => toast.error(Object.values(errors)[0] || 'Failed to delete'),
                 });
             },
         });
@@ -76,7 +77,7 @@ export default function ProjectCategoryIndex({ categorys }: Props) {
     return (
         <AppLayout>
             <Head title="ProjectCategorys" />
-            <ConfirmDialog />
+            <ConfirmDialog {...dialogProps} />
             <div className="max-w-4xl mx-auto space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
@@ -91,7 +92,7 @@ export default function ProjectCategoryIndex({ categorys }: Props) {
                 <Card>
                     <CardContent className="p-0">
                         <div className="divide-y">
-                            {categorys && categorys.length > 0 ? categorys.map(item => (
+                            {categories && categories.length > 0 ? categories.map(item => (
                                 <div key={item.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <div className="p-2 bg-primary/10 text-primary rounded-lg">

@@ -46,6 +46,10 @@ class ProjectTypeController extends Controller
 
     public function destroy(ProjectType $projectType): RedirectResponse
     {
+        if ($projectType->projects()->exists()) {
+            return redirect()->back()->withErrors(['error' => 'Tidak bisa dihapus karena sedang digunakan di proyek (Cannot delete because it is used in projects).']);
+        }
+
         $projectType->delete();
 
         return redirect()->back()->with('success', 'Project type deleted successfully.');

@@ -28,7 +28,6 @@ class SkillService
 
     public function deleteCategory(SkillCategory $category): void
     {
-        $category->skills()->delete();
         $category->delete();
     }
 

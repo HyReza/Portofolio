@@ -46,6 +46,10 @@ class CertificateCategoryController extends Controller
 
     public function destroy(CertificateCategory $certificateCategory): RedirectResponse
     {
+        if ($certificateCategory->certificates()->exists()) {
+            return redirect()->back()->withErrors(['error' => 'Tidak bisa dihapus karena sedang digunakan di sertifikat (Cannot delete because it is used in certificates).']);
+        }
+
         $certificateCategory->delete();
 
         return redirect()->back()->with('success', 'Certificate category deleted successfully.');

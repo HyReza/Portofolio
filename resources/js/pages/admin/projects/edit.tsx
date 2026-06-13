@@ -80,8 +80,8 @@ export default function EditProject({ project, allTechnologies, allTypes, allCat
         status: project.status,
         published_at: project.published_at ?? '',
         show_in_cv: project.show_in_cv ?? true,
-        project_type_ids: (project.types || []).map(t => t.id),
-        project_category_ids: (project.categories || []).map(c => c.id),
+        project_type_names: (project.types || []).map(t => t.name_id),
+        project_category_names: (project.categories || []).map(c => c.name_id),
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -103,22 +103,12 @@ export default function EditProject({ project, allTechnologies, allTypes, allCat
 
     const handleTypeChange = (names: string[]) => {
         setSelectedTypeNames(names);
-        const ids: number[] = [];
-        names.forEach(name => {
-            const match = allTypes?.find(t => t.name_id.toLowerCase() === name.toLowerCase() || (t.name_en && t.name_en.toLowerCase() === name.toLowerCase()));
-            if (match) ids.push(match.id);
-        });
-        setData('project_type_ids', ids);
+        setData('project_type_names', names);
     };
 
     const handleCategoryChange = (names: string[]) => {
         setSelectedCategoryNames(names);
-        const ids: number[] = [];
-        names.forEach(name => {
-            const match = allCategories?.find(c => c.name_id.toLowerCase() === name.toLowerCase() || (c.name_en && c.name_en.toLowerCase() === name.toLowerCase()));
-            if (match) ids.push(match.id);
-        });
-        setData('project_category_ids', ids);
+        setData('project_category_names', names);
     };
 
     useEffect(() => {

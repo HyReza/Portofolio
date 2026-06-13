@@ -48,7 +48,8 @@ export default function TagIndex({ tags }: Props) {
             variant: 'danger',
             onConfirm: () => {
                 router.delete(`/admin/tags/${slug}`, {
-                    onSuccess: () => toast.success('Tag deleted successfully!')
+                    onSuccess: () => toast.success('Tag deleted successfully!'),
+                    onError: (errors) => toast.error(Object.values(errors)[0] as string || 'Failed to delete.')
                 });
             },
         });

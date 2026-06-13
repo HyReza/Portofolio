@@ -60,6 +60,10 @@ class ProjectController extends Controller
             $validated['images'] = $imagePaths;
         }
 
+        $projectTypeNames = $validated['project_type_names'] ?? [];
+        $projectCategoryNames = $validated['project_category_names'] ?? [];
+        unset($validated['project_type_names'], $validated['project_category_names']);
+
         $dto = ProjectDTO::fromRequest($validated);
         $project = $this->projectService->create($dto);
 
@@ -69,12 +73,14 @@ class ProjectController extends Controller
             $project->technologies()->sync($techIds);
         }
 
-        if (!empty($validated['project_type_ids'])) {
-            $project->types()->sync($validated['project_type_ids']);
+        if (!empty($projectTypeNames)) {
+            $typeIds = $this->syncProjectTypes($projectTypeNames);
+            $project->types()->sync($typeIds);
         }
 
-        if (!empty($validated['project_category_ids'])) {
-            $project->categories()->sync($validated['project_category_ids']);
+        if (!empty($projectCategoryNames)) {
+            $catIds = $this->syncProjectCategories($projectCategoryNames);
+            $project->categories()->sync($catIds);
         }
 
         return redirect()->route('admin.projects.index')
@@ -116,6 +122,10 @@ class ProjectController extends Controller
             $validated['images'] = $imagePaths;
         }
 
+        $projectTypeNames = $validated['project_type_names'] ?? [];
+        $projectCategoryNames = $validated['project_category_names'] ?? [];
+        unset($validated['project_type_names'], $validated['project_category_names']);
+
         $dto = ProjectDTO::fromRequest($validated);
         $this->projectService->update($project, $dto);
 
@@ -123,10 +133,10 @@ class ProjectController extends Controller
         $techIds = !empty($validated['tech_stack']) ? $this->syncTechStack($validated['tech_stack']) : [];
         $project->technologies()->sync($techIds);
 
-        $typeIds = !empty($validated['project_type_ids']) ? $validated['project_type_ids'] : [];
+        $typeIds = !empty($projectTypeNames) ? $this->syncProjectTypes($projectTypeNames) : [];
         $project->types()->sync($typeIds);
 
-        $categoryIds = !empty($validated['project_category_ids']) ? $validated['project_category_ids'] : [];
+        $categoryIds = !empty($projectCategoryNames) ? $this->syncProjectCategories($projectCategoryNames) : [];
         $project->categories()->sync($categoryIds);
 
         return redirect()->route('admin.projects.index')
@@ -238,6 +248,44 @@ class ProjectController extends Controller
                 ['slug' => Str::slug($trimmed)]
             );
             $ids[] = $tech->id;
+        }
+        return $ids;
+    }
+
+    /**
+     * Convert type names string array to type IDs, creating new entries as needed.
+     */
+    private function syncProjectTypes(array $names): array
+    {
+        $ids = [];
+        foreach ($names as $name) {
+            $trimmed = trim($name);
+            if (empty($trimmed)) continue;
+
+            $type = ProjectType::firstOrCreate(
+                ['name_id' => $trimmed],
+                ['name_en' => $trimmed, 'slug' => Str::slug($trimmed)]
+            );
+            $ids[] = $type->id;
+        }
+        return $ids;
+    }
+
+    /**
+     * Convert category names string array to category IDs, creating new entries as needed.
+     */
+    private function syncProjectCategories(array $names): array
+    {
+        $ids = [];
+        foreach ($names as $name) {
+            $trimmed = trim($name);
+            if (empty($trimmed)) continue;
+
+            $category = ProjectCategory::firstOrCreate(
+                ['name_id' => $trimmed],
+                ['name_en' => $trimmed, 'slug' => Str::slug($trimmed)]
+            );
+            $ids[] = $category->id;
         }
         return $ids;
     }

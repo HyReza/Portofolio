@@ -25,7 +25,7 @@ interface Props {
 export default function CredentialTypeIndex({ types }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<CredentialType | null>(null);
-    const { confirm, ConfirmDialog } = useConfirmDialog();
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
 
     const form = useForm({
         name_id: '',
@@ -68,6 +68,7 @@ export default function CredentialTypeIndex({ types }: Props) {
             onConfirm: () => {
                 router.delete(`/admin/credential-types/${item.id}`, {
                     onSuccess: () => toast.success('Deleted successfully'),
+                    onError: (errors) => toast.error(Object.values(errors)[0] as string || 'Failed to delete.')
                 });
             },
         });
@@ -76,7 +77,7 @@ export default function CredentialTypeIndex({ types }: Props) {
     return (
         <AppLayout>
             <Head title="CredentialTypes" />
-            <ConfirmDialog />
+            <ConfirmDialog {...dialogProps} />
             <div className="max-w-4xl mx-auto space-y-6">
                 <div className="flex items-center justify-between">
                     <div>

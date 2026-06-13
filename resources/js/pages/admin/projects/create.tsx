@@ -47,8 +47,8 @@ export default function CreateProject({ allTechnologies, allTypes, allCategories
         status: 'draft' as 'draft' | 'published',
         published_at: '',
         show_in_cv: true,
-        project_type_ids: [] as number[],
-        project_category_ids: [] as number[],
+        project_type_names: [] as string[],
+        project_category_names: [] as string[],
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -83,22 +83,12 @@ export default function CreateProject({ allTechnologies, allTypes, allCategories
 
     const handleTypeChange = (names: string[]) => {
         setSelectedTypeNames(names);
-        const ids: number[] = [];
-        names.forEach(name => {
-            const match = allTypes?.find(t => t.name_id.toLowerCase() === name.toLowerCase() || (t.name_en && t.name_en.toLowerCase() === name.toLowerCase()));
-            if (match) ids.push(match.id);
-        });
-        setData('project_type_ids', ids);
+        setData('project_type_names', names);
     };
 
     const handleCategoryChange = (names: string[]) => {
         setSelectedCategoryNames(names);
-        const ids: number[] = [];
-        names.forEach(name => {
-            const match = allCategories?.find(c => c.name_id.toLowerCase() === name.toLowerCase() || (c.name_en && c.name_en.toLowerCase() === name.toLowerCase()));
-            if (match) ids.push(match.id);
-        });
-        setData('project_category_ids', ids);
+        setData('project_category_names', names);
     };
 
     return (

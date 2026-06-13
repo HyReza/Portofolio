@@ -55,7 +55,7 @@ export default function CertificateIndex({ certificates, allCategories, allCrede
         credential_type: '', credential_type_en: '', credential_type_ids: '',
         image: null as File | null, issued_date: '', expiry_date: '',
         description_id: '', description_en: '',
-        skills: '', category: '', category_en: '', category_ids: '', sort_order: 0 as number | null, show_in_cv: true,
+        skills: '', category: '', category_en: '', category_names: '', credential_type_names: '', sort_order: 0 as number | null, show_in_cv: true,
     });
 
     const handleEdit = (cert: Certificate) => {
@@ -84,8 +84,8 @@ export default function CertificateIndex({ certificates, allCategories, allCrede
             skills: cert.skills ? cert.skills.join(', ') : '',
             category: cert.category || '',
             category_en: cert.category_en || '',
-            category_ids: catIds.join(','),
-            credential_type_ids: credTypeIds.join(','),
+            category_names: catNames.join(','),
+            credential_type_names: credTypeNames.join(','),
             sort_order: cert.sort_order,
             show_in_cv: cert.show_in_cv ?? true,
         });
@@ -93,32 +93,14 @@ export default function CertificateIndex({ certificates, allCategories, allCrede
         setDialogOpen(true);
     };
 
-    const getCategoryIdsFromNames = (names: string[]): string => {
-        const ids: number[] = [];
-        names.forEach(name => {
-            const cat = allCategories.find(c => c.name_id.toLowerCase() === name.toLowerCase() || (c.name_en && c.name_en.toLowerCase() === name.toLowerCase()));
-            if (cat) ids.push(cat.id);
-        });
-        return ids.join(',');
-    };
-
     const handleCategoryChange = (names: string[]) => {
         setSelectedCategoryNames(names);
-        form.setData('category_ids', getCategoryIdsFromNames(names));
-    };
-
-    const getCredentialTypeIdsFromNames = (names: string[]): string => {
-        const ids: number[] = [];
-        names.forEach(name => {
-            const type = allCredentialTypes.find(c => c.name_id.toLowerCase() === name.toLowerCase() || (c.name_en && c.name_en.toLowerCase() === name.toLowerCase()));
-            if (type) ids.push(type.id);
-        });
-        return ids.join(',');
+        form.setData('category_names', names.join(','));
     };
 
     const handleCredentialTypeChange = (names: string[]) => {
         setSelectedCredentialTypeNames(names);
-        form.setData('credential_type_ids', getCredentialTypeIdsFromNames(names));
+        form.setData('credential_type_names', names.join(','));
     };
 
     const handleSubmit = (e: React.FormEvent) => {

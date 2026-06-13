@@ -43,6 +43,10 @@ class TagController extends Controller
 
     public function destroy(BlogTag $tag)
     {
+        if ($tag->blogs()->exists()) {
+            return redirect()->back()->withErrors(['error' => 'Tidak bisa dihapus karena sedang digunakan di blog (Cannot delete because it is used in blogs).']);
+        }
+
         $tag->delete();
 
         return redirect()->back()->with('success', 'Tag deleted successfully.');

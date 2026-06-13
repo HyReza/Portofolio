@@ -46,6 +46,10 @@ class CredentialTypeController extends Controller
 
     public function destroy(CredentialType $credentialType): RedirectResponse
     {
+        if ($credentialType->certificates()->exists()) {
+            return redirect()->back()->withErrors(['error' => 'Tidak bisa dihapus karena sedang digunakan di sertifikat (Cannot delete because it is used in certificates).']);
+        }
+
         $credentialType->delete();
 
         return redirect()->back()->with('success', 'Credential type deleted successfully.');

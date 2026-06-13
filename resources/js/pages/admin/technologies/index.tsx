@@ -42,7 +42,7 @@ export default function TechnologyIndex({ technologies }: Props) {
             onConfirm: () => {
                 router.delete(`/admin/technologies/${tech.slug}`, {
                     onSuccess: () => toast.success('Technology deleted successfully!'),
-                    onError: () => toast.error('Failed to delete technology.'),
+                    onError: (errors) => toast.error(Object.values(errors)[0] as string || 'Failed to delete technology.'),
                 });
             },
         });

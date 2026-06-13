@@ -72,6 +72,10 @@ class SkillController extends Controller
 
     public function destroyCategory(SkillCategory $category): RedirectResponse
     {
+        if ($category->skills()->exists()) {
+            return back()->withErrors(['error' => 'Tidak bisa dihapus karena masih memiliki skill (Cannot delete because it has skills).']);
+        }
+
         $this->skillService->deleteCategory($category);
 
         return back()->with('success', 'Category deleted.');

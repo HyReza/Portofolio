@@ -29,7 +29,12 @@ readonly class ProjectDTO
 
     public static function fromRequest(array $validated): self
     {
-        return new self(...$validated);
+        $reflection = new \ReflectionClass(self::class);
+        $parameters = array_map(fn($p) => $p->getName(), $reflection->getConstructor()->getParameters());
+        
+        $filtered = array_intersect_key($validated, array_flip($parameters));
+        
+        return new self(...$filtered);
     }
 
     public function toArray(): array

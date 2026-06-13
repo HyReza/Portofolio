@@ -25,7 +25,7 @@ interface Props {
 export default function ProjectTypeIndex({ types }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<ProjectType | null>(null);
-    const { confirm, ConfirmDialog } = useConfirmDialog();
+    const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
 
     const form = useForm({
         name_id: '',
@@ -68,6 +68,7 @@ export default function ProjectTypeIndex({ types }: Props) {
             onConfirm: () => {
                 router.delete(`/admin/project-types/${item.id}`, {
                     onSuccess: () => toast.success('Deleted successfully'),
+                    onError: (errors) => toast.error(Object.values(errors)[0] || 'Failed to delete'),
                 });
             },
         });
@@ -76,7 +77,7 @@ export default function ProjectTypeIndex({ types }: Props) {
     return (
         <AppLayout>
             <Head title="ProjectTypes" />
-            <ConfirmDialog />
+            <ConfirmDialog {...dialogProps} />
             <div className="max-w-4xl mx-auto space-y-6">
                 <div className="flex items-center justify-between">
                     <div>

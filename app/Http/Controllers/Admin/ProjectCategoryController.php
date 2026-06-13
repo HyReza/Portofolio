@@ -46,6 +46,10 @@ class ProjectCategoryController extends Controller
 
     public function destroy(ProjectCategory $projectCategory): RedirectResponse
     {
+        if ($projectCategory->projects()->exists()) {
+            return redirect()->back()->withErrors(['error' => 'Tidak bisa dihapus karena sedang digunakan di proyek (Cannot delete because it is used in projects).']);
+        }
+
         $projectCategory->delete();
 
         return redirect()->back()->with('success', 'Project category deleted successfully.');

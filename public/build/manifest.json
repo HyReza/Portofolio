@@ -1197,7 +1197,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-CyjKCJAk.js",
+    "file": "assets/app-BXcw_Rzs.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1435,7 +1435,7 @@
     ]
   },
   "resources/js/pages/admin/certificate-categories/index.tsx": {
-    "file": "assets/certificate-categories-DcGPdvi_.js",
+    "file": "assets/certificate-categories-H42QpCWC.js",
     "name": "certificate-categories",
     "src": "resources/js/pages/admin/certificate-categories/index.tsx",
     "isDynamicEntry": true,
@@ -1459,7 +1459,7 @@
     ]
   },
   "resources/js/pages/admin/certificates/index.tsx": {
-    "file": "assets/certificates-CMzYBg0F.js",
+    "file": "assets/certificates-DYPm4AaG.js",
     "name": "certificates",
     "src": "resources/js/pages/admin/certificates/index.tsx",
     "isDynamicEntry": true,
@@ -1528,7 +1528,7 @@
     ]
   },
   "resources/js/pages/admin/credential-types/index.tsx": {
-    "file": "assets/credential-types-DiUA9DRn.js",
+    "file": "assets/credential-types-B0L4BU8B.js",
     "name": "credential-types",
     "src": "resources/js/pages/admin/credential-types/index.tsx",
     "isDynamicEntry": true,
@@ -1702,7 +1702,7 @@
     ]
   },
   "resources/js/pages/admin/project-categories/index.tsx": {
-    "file": "assets/project-categories-Ci6EqGL_.js",
+    "file": "assets/project-categories-By3lYu4u.js",
     "name": "project-categories",
     "src": "resources/js/pages/admin/project-categories/index.tsx",
     "isDynamicEntry": true,
@@ -1726,7 +1726,7 @@
     ]
   },
   "resources/js/pages/admin/project-types/index.tsx": {
-    "file": "assets/project-types-DIudbWB1.js",
+    "file": "assets/project-types-BpKO4QBp.js",
     "name": "project-types",
     "src": "resources/js/pages/admin/project-types/index.tsx",
     "isDynamicEntry": true,
@@ -1750,7 +1750,7 @@
     ]
   },
   "resources/js/pages/admin/projects/create.tsx": {
-    "file": "assets/create-DMUNq8iU.js",
+    "file": "assets/create-C7iSnSv6.js",
     "name": "create",
     "src": "resources/js/pages/admin/projects/create.tsx",
     "isDynamicEntry": true,
@@ -1773,7 +1773,7 @@
     ]
   },
   "resources/js/pages/admin/projects/edit.tsx": {
-    "file": "assets/edit-C_sLM1Fa.js",
+    "file": "assets/edit-8FwYpAPL.js",
     "name": "edit",
     "src": "resources/js/pages/admin/projects/edit.tsx",
     "isDynamicEntry": true,
@@ -1844,7 +1844,7 @@
     ]
   },
   "resources/js/pages/admin/skills/index.tsx": {
-    "file": "assets/skills-gf2_hVrr.js",
+    "file": "assets/skills-BFHhoGOA.js",
     "name": "skills",
     "src": "resources/js/pages/admin/skills/index.tsx",
     "isDynamicEntry": true,
@@ -1899,7 +1899,7 @@
     ]
   },
   "resources/js/pages/admin/tags/index.tsx": {
-    "file": "assets/tags-96lSw4Dt.js",
+    "file": "assets/tags-DKyPDQJ-.js",
     "name": "tags",
     "src": "resources/js/pages/admin/tags/index.tsx",
     "isDynamicEntry": true,
@@ -1923,7 +1923,7 @@
     ]
   },
   "resources/js/pages/admin/technologies/index.tsx": {
-    "file": "assets/technologies-DJ9RGdxx.js",
+    "file": "assets/technologies-B91lNy4P.js",
     "name": "technologies",
     "src": "resources/js/pages/admin/technologies/index.tsx",
     "isDynamicEntry": true,

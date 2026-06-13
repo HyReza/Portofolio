@@ -104,6 +104,7 @@ export default function SkillsIndex({ categories }: Props) {
             onConfirm: () => {
                 router.delete(`/admin/skills/categories/${cat.id}`, {
                     onSuccess: () => toast.success('Category deleted'),
+                    onError: (errors) => toast.error(Object.values(errors)[0] as string || 'Failed to delete.')
                 });
             },
         });

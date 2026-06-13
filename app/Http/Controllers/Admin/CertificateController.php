@@ -32,8 +32,6 @@ class CertificateController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'title_en' => ['nullable', 'string', 'max:255'],
             'issuer' => ['required', 'string', 'max:255'],
-            'credential_type' => ['nullable', 'string', 'max:255'],
-            'credential_type_en' => ['nullable', 'string', 'max:255'],
             'credential_id' => ['nullable', 'string', 'max:255'],
             'credential_url' => ['nullable', 'url', 'max:500'],
             'image' => ['nullable', 'image', 'max:5120'],
@@ -44,8 +42,8 @@ class CertificateController extends Controller
             'skills' => ['nullable', 'string'],
             'category' => ['nullable', 'string', 'max:255'],
             'category_en' => ['nullable', 'string', 'max:255'],
-            'category_ids' => ['nullable', 'string'],
-            'credential_type_ids' => ['nullable', 'string'],
+            'category_names' => ['nullable', 'string'],
+            'credential_type_names' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer'],
             'show_in_cv' => ['boolean'],
         ]);
@@ -63,10 +61,10 @@ class CertificateController extends Controller
             $validated['skills'] = array_map('trim', explode(',', $validated['skills']));
         }
 
-        // Remove ids before creating (not a model field)
-        $categoryIds = $this->parseIds($validated['category_ids'] ?? null);
-        $credentialTypeIds = $this->parseIds($validated['credential_type_ids'] ?? null);
-        unset($validated['category_ids'], $validated['credential_type_ids']);
+        // Process names into IDs
+        $categoryIds = $this->syncCategories($validated['category_names'] ?? null);
+        $credentialTypeIds = $this->syncCredentialTypes($validated['credential_type_names'] ?? null);
+        unset($validated['category_names'], $validated['credential_type_names']);
 
         $certificate = Certificate::create($validated);
 
@@ -94,8 +92,6 @@ class CertificateController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'title_en' => ['nullable', 'string', 'max:255'],
             'issuer' => ['required', 'string', 'max:255'],
-            'credential_type' => ['nullable', 'string', 'max:255'],
-            'credential_type_en' => ['nullable', 'string', 'max:255'],
             'credential_id' => ['nullable', 'string', 'max:255'],
             'credential_url' => ['nullable', 'url', 'max:500'],
             'image' => ['nullable', 'image', 'max:5120'],
@@ -106,8 +102,8 @@ class CertificateController extends Controller
             'skills' => ['nullable', 'string'],
             'category' => ['nullable', 'string', 'max:255'],
             'category_en' => ['nullable', 'string', 'max:255'],
-            'category_ids' => ['nullable', 'string'],
-            'credential_type_ids' => ['nullable', 'string'],
+            'category_names' => ['nullable', 'string'],
+            'credential_type_names' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer'],
             'show_in_cv' => ['boolean'],
         ]);
@@ -123,10 +119,10 @@ class CertificateController extends Controller
             $validated['skills'] = array_map('trim', explode(',', $validated['skills']));
         }
 
-        // Remove ids before updating (not a model field)
-        $categoryIds = $this->parseIds($validated['category_ids'] ?? null);
-        $credentialTypeIds = $this->parseIds($validated['credential_type_ids'] ?? null);
-        unset($validated['category_ids'], $validated['credential_type_ids']);
+        // Process names into IDs
+        $categoryIds = $this->syncCategories($validated['category_names'] ?? null);
+        $credentialTypeIds = $this->syncCredentialTypes($validated['credential_type_names'] ?? null);
+        unset($validated['category_names'], $validated['credential_type_names']);
 
         $certificate->update($validated);
 
@@ -242,15 +238,40 @@ class CertificateController extends Controller
     }
 
     /**
-     * Parse comma-separated IDs string to array of integers.
+     * Sync categories from comma-separated names.
      */
-    private function parseIds(?string $ids): array
+    private function syncCategories(?string $names): array
     {
-        if (empty($ids)) return [];
+        if (empty($names)) return [];
+        $ids = [];
+        $namesArray = array_map('trim', explode(',', $names));
+        foreach ($namesArray as $name) {
+            if (empty($name)) continue;
+            $cat = CertificateCategory::firstOrCreate(
+                ['name_id' => $name],
+                ['name_en' => $name, 'slug' => Str::slug($name)]
+            );
+            $ids[] = $cat->id;
+        }
+        return $ids;
+    }
 
-        return array_filter(
-            array_map('intval', explode(',', $ids)),
-            fn ($id) => $id > 0
-        );
+    /**
+     * Sync credential types from comma-separated names.
+     */
+    private function syncCredentialTypes(?string $names): array
+    {
+        if (empty($names)) return [];
+        $ids = [];
+        $namesArray = array_map('trim', explode(',', $names));
+        foreach ($namesArray as $name) {
+            if (empty($name)) continue;
+            $type = CredentialType::firstOrCreate(
+                ['name_id' => $name],
+                ['name_en' => $name, 'slug' => Str::slug($name)]
+            );
+            $ids[] = $type->id;
+        }
+        return $ids;
     }
 }

@@ -44,6 +44,10 @@ class ProjectTechnologyController extends Controller
 
     public function destroy(ProjectTechnology $technology): RedirectResponse
     {
+        if ($technology->projects()->exists()) {
+            return redirect()->back()->withErrors(['error' => 'Tidak bisa dihapus karena sedang digunakan di proyek (Cannot delete because it is used in projects).']);
+        }
+
         $technology->delete();
 
         return redirect()->back()->with('success', 'Technology deleted successfully.');
