@@ -3,7 +3,7 @@ import {
     Award, FileText, FolderKanban, GitBranch, GraduationCap,
     LayoutDashboard, Linkedin, Instagram, Mail, MessageSquare,
     Settings, Trophy, User, Users, Zap, Tag, ExternalLink,
-    Layers, Cpu, Brain, LayoutTemplate, Folders, FileBadge
+    Layers, Cpu, Brain, LayoutTemplate, Folders, FileBadge, Sparkles
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -31,6 +31,7 @@ const portfolioNavItems: NavItem[] = [
 ];
 
 const resumeNavItems: NavItem[] = [
+    { title: 'CV Generator', href: '/admin/cv-generator', icon: Sparkles },
     { title: 'Experience', href: '/admin/careers', icon: GitBranch },
     { title: 'Education', href: '/admin/education', icon: GraduationCap },
     { title: 'Organizations', href: '/admin/organizations', icon: Users },

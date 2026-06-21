@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 // ── Types ──
 
@@ -480,6 +481,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
     const [isSaving, setIsSaving] = useState(false);
     const [isRegenerating, setIsRegenerating] = useState(false);
     const [previewKey, setPreviewKey] = useState(0);
+    const [activeViewTab, setActiveViewTab] = useState<'editor' | 'preview'>('editor');
     const [expandedSections, setExpandedSections] = useState<Set<number>>(() => new Set(cvGeneration.cv_data.sections.map((_, i) => i)));
     const [editingSectionTitle, setEditingSectionTitle] = useState<number | null>(null);
     const sectionTitleRef = useRef<HTMLInputElement>(null);
@@ -580,19 +582,6 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         }
     }, [state.cvData, profileData, cvGeneration.language]);
 
-    // Auto-save debounce (3 seconds)
-    useEffect(() => {
-        if (!state.isDirty) return;
-        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-
-        autoSaveTimer.current = setTimeout(() => {
-            handleSave(true);
-        }, 3000);
-
-        return () => {
-            if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-        };
-    }, [state.cvData, state.notes, state.isDirty]);
 
     const handleSave = useCallback((isAutoSave = false) => {
         if (isSaving) return;
@@ -701,22 +690,22 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
             <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 space-y-4 pb-8">
                 {/* Top Action Bar */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
                         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => router.get('/admin/cv-generator')}>
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <div>
-                            <h1 className="text-lg sm:text-xl font-bold tracking-tight line-clamp-1">{cvGeneration.job_title}</h1>
+                        <div className="min-w-0">
+                            <h1 className="text-base sm:text-lg font-bold tracking-tight line-clamp-1">{cvGeneration.job_title}</h1>
                             <div className="flex items-center gap-2 text-xs text-neutral-500">
-                                {cvGeneration.company_name && <span>{cvGeneration.company_name} •</span>}
-                                <span>{new Date(cvGeneration.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                {cvGeneration.company_name && <span className="truncate max-w-[120px] sm:max-w-[200px]">{cvGeneration.company_name} •</span>}
+                                <span>{new Date(cvGeneration.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                 {state.isDirty && <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-500/10">Unsaved</Badge>}
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <Select value={cvGeneration.status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className="h-8 w-28 text-xs">
+                            <SelectTrigger className="h-8 w-28 text-xs flex-1 sm:flex-none">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -730,22 +719,46 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs"
+                            className="h-8 text-xs flex-1 sm:flex-none justify-center"
                             onClick={() => handleSave(false)}
                             disabled={isSaving || !state.isDirty}
                         >
                             {isSaving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
                             Save
                         </Button>
-                        <a href={`/admin/cv-generator/${cvGeneration.id}/download`} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" size="sm" className="h-8 text-xs text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-500/10">
-                                <Download className="mr-1 h-3 w-3" />PDF
-                            </Button>
-                        </a>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 text-xs text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-500/10 w-full sm:w-auto justify-center">
+                                    <Download className="mr-1 h-3 w-3" />Export <ChevronDown className="ml-1 h-3 w-3" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=pdf`} target="_blank" rel="noopener noreferrer">
+                                        Export as PDF
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=word`}>
+                                        Export as Word (.doc)
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=json`}>
+                                        Export as JSON
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=markdown`}>
+                                        Export as Markdown (.md)
+                                    </a>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs"
+                            className="h-8 text-xs flex-1 sm:flex-none justify-center"
                             onClick={handleRegenerate}
                             disabled={isRegenerating}
                         >
@@ -755,10 +768,30 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     </div>
                 </div>
 
+                {/* Mobile View Toggle Tabs (only visible on mobile/tablet) */}
+                <div className="flex lg:hidden border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-10 -mx-4 px-4 py-2 gap-2">
+                    <Button
+                        variant={activeViewTab === 'editor' ? 'default' : 'ghost'}
+                        className={`flex-1 text-xs h-9 font-semibold ${activeViewTab === 'editor' ? 'bg-violet-600 hover:bg-violet-700 text-white' : 'text-neutral-500'}`}
+                        onClick={() => setActiveViewTab('editor')}
+                    >
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                        Edit CV Fields
+                    </Button>
+                    <Button
+                        variant={activeViewTab === 'preview' ? 'default' : 'ghost'}
+                        className={`flex-1 text-xs h-9 font-semibold ${activeViewTab === 'preview' ? 'bg-violet-600 hover:bg-violet-700 text-white' : 'text-neutral-500'}`}
+                        onClick={() => setActiveViewTab('preview')}
+                    >
+                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                        Live PDF Preview
+                    </Button>
+                </div>
+
                 {/* 2-Column Split Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     {/* Left Column: Editor Fields */}
-                    <div className="lg:col-span-7 space-y-4">
+                    <div className={`lg:col-span-7 space-y-4 ${activeViewTab === 'editor' ? 'block' : 'hidden lg:block'}`}>
                         {/* 1-Page Optimization Tip Alert */}
                         <div className="rounded-xl border border-violet-100 bg-violet-50/35 dark:border-violet-950 dark:bg-violet-950/20 p-3 flex items-start gap-2.5 shadow-sm">
                             <Sparkles className="h-4 w-4 text-violet-600 mt-0.5 shrink-0" />
@@ -1014,10 +1047,10 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                 {item.bullets.map((bullet, bIdx) => (
                                                                     <div key={bIdx} className="flex items-start gap-1.5 group">
                                                                         <div className="flex flex-col gap-0 mt-1">
-                                                                            <Button size="icon" variant="ghost" className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" disabled={bIdx === 0} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx - 1 })}>
+                                                                            <Button size="icon" variant="ghost" className="h-3 w-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" disabled={bIdx === 0} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx - 1 })}>
                                                                                 <ChevronUp className="h-2 w-2" />
                                                                             </Button>
-                                                                            <Button size="icon" variant="ghost" className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" disabled={bIdx === item.bullets.length - 1} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx + 1 })}>
+                                                                            <Button size="icon" variant="ghost" className="h-3 w-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" disabled={bIdx === item.bullets.length - 1} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx + 1 })}>
                                                                                 <ChevronDown className="h-2 w-2" />
                                                                             </Button>
                                                                         </div>
@@ -1031,7 +1064,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                         <Button
                                                                             size="icon"
                                                                             variant="ghost"
-                                                                            className="h-6 w-6 shrink-0 mt-1 text-neutral-400 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                            className="h-6 w-6 shrink-0 mt-1 text-neutral-400 hover:text-destructive opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                                                                             onClick={() => dispatch({ type: 'DELETE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, bulletIndex: bIdx })}
                                                                         >
                                                                             <Trash2 className="h-2.5 w-2.5" />
@@ -1105,7 +1138,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     </div>
 
                     {/* Right Column: Live PDF Preview */}
-                    <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-4">
+                    <div className={`lg:col-span-5 lg:sticky lg:top-6 space-y-4 ${activeViewTab === 'preview' ? 'block' : 'hidden lg:block'}`}>
                         <Card className="border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col h-[calc(100vh-140px)] min-h-[600px] overflow-hidden bg-white dark:bg-neutral-950">
                             <CardHeader className="pb-3 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30 flex flex-row items-center justify-between space-y-0 py-2.5">
                                 <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
@@ -1127,26 +1160,50 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                 </div>
 
                 {/* Bottom Action Bar */}
-                <div className="flex items-center justify-between pt-4 border-t border-neutral-200 dark:border-neutral-800">
-                    <Button variant="outline" size="sm" className="text-xs" onClick={() => router.get('/admin/cv-generator')}>
+                <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                    <Button variant="outline" size="sm" className="text-xs w-full sm:w-auto justify-center" onClick={() => router.get('/admin/cv-generator')}>
                         <ArrowLeft className="mr-1 h-3 w-3" />Back to History
                     </Button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="text-xs"
+                            className="text-xs flex-1 sm:flex-none justify-center"
                             onClick={() => handleSave(false)}
                             disabled={isSaving || !state.isDirty}
                         >
                             {isSaving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
                             Save Draft
                         </Button>
-                        <a href={`/admin/cv-generator/${cvGeneration.id}/download`} target="_blank" rel="noopener noreferrer">
-                            <Button size="sm" className="text-xs bg-violet-600 hover:bg-violet-700">
-                                <Download className="mr-1 h-3 w-3" />Download PDF
-                            </Button>
-                        </a>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button size="sm" className="text-xs bg-violet-600 hover:bg-violet-700 text-white w-full sm:w-auto justify-center">
+                                    <Download className="mr-1 h-3 w-3" />Export <ChevronDown className="ml-1 h-3 w-3" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=pdf`} target="_blank" rel="noopener noreferrer">
+                                        Export as PDF
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=word`}>
+                                        Export as Word (.doc)
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=json`}>
+                                        Export as JSON
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a href={`/admin/cv-generator/${cvGeneration.id}/download?format=markdown`}>
+                                        Export as Markdown (.md)
+                                    </a>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </div>
@@ -1224,7 +1281,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                             return filtered.map(item => (
                                 <div
                                     key={item.id}
-                                    className="flex items-center justify-between gap-4 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800 hover:border-violet-200 dark:hover:border-violet-800 bg-neutral-50/50 dark:bg-neutral-900/30 hover:bg-violet-50/5 dark:hover:bg-violet-500/5 transition-all shadow-sm group"
+                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800 hover:border-violet-200 dark:hover:border-violet-800 bg-neutral-50/50 dark:bg-neutral-900/30 hover:bg-violet-50/5 dark:hover:bg-violet-500/5 transition-all shadow-sm group"
                                 >
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 line-clamp-1">{item.title}</h4>
@@ -1236,7 +1293,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                     </div>
                                     <Button
                                         size="sm"
-                                        className="h-7 text-[10px] shrink-0 bg-violet-600 hover:bg-violet-700 text-white font-semibold flex items-center gap-1.5"
+                                        className="h-7 text-[10px] shrink-0 bg-violet-600 hover:bg-violet-700 text-white font-semibold flex items-center gap-1.5 w-full sm:w-auto justify-center"
                                         disabled={isGeneratingItem !== null}
                                         onClick={() => {
                                             if (addDialog) {

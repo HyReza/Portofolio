@@ -202,6 +202,21 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::put('settings/ai', [Admin\SettingController::class, 'updateAiSettings'])->name('settings.ai.update');
     Route::post('settings/ai/reset-exhausted', [Admin\SettingController::class, 'resetExhausted'])->name('settings.ai.reset');
 
+    // CV Generator (ATS)
+    Route::get('cv-generator', [Admin\CvGeneratorController::class, 'index'])->name('cv-generator.index');
+    Route::post('cv-generator/generate', [Admin\CvGeneratorController::class, 'generate'])->name('cv-generator.generate');
+    Route::post('cv-generator/bulk-export', [Admin\CvGeneratorController::class, 'bulkExport'])->name('cv-generator.bulk-export');
+    Route::post('cv-generator/bulk-delete', [Admin\CvGeneratorController::class, 'bulkDelete'])->name('cv-generator.bulk-delete');
+    Route::get('cv-generator/{cvGeneration}', [Admin\CvGeneratorController::class, 'show'])->name('cv-generator.show');
+    Route::put('cv-generator/{cvGeneration}', [Admin\CvGeneratorController::class, 'update'])->name('cv-generator.update');
+    Route::put('cv-generator/{cvGeneration}/sections/reorder', [Admin\CvGeneratorController::class, 'reorderSections'])->name('cv-generator.sections.reorder');
+    Route::put('cv-generator/{cvGeneration}/status', [Admin\CvGeneratorController::class, 'updateStatus'])->name('cv-generator.status');
+    Route::delete('cv-generator/{cvGeneration}', [Admin\CvGeneratorController::class, 'destroy'])->name('cv-generator.destroy');
+    Route::post('cv-generator/{cvGeneration}/duplicate', [Admin\CvGeneratorController::class, 'duplicate'])->name('cv-generator.duplicate');
+    Route::get('cv-generator/{cvGeneration}/download', [Admin\CvGeneratorController::class, 'download'])->name('cv-generator.download');
+    Route::post('cv-generator/{cvGeneration}/regenerate', [Admin\CvGeneratorController::class, 'regenerate'])->name('cv-generator.regenerate');
+    Route::post('cv-generator/{cvGeneration}/generate-item', [Admin\CvGeneratorController::class, 'generateItem'])->name('cv-generator.generate-item');
+
     // TipTap Editor Image Upload
     Route::post('upload-image', [Admin\ImageUploadController::class, 'store'])->name('upload-image');
 });
