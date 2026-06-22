@@ -253,9 +253,21 @@
                             @elseif(!empty($item['bullets']))
                                 <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $item['bullets']) }}
                             @elseif(!empty($item['metadata']['tech_stack']) && is_array($item['metadata']['tech_stack']))
-                                <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $item['metadata']['tech_stack']) }}
+                                @php
+                                    $techStackList = array_map(function($s) {
+                                        return is_array($s) ? ($s['name'] ?? '') : (is_object($s) ? ($s->name ?? '') : (string)$s);
+                                    }, $item['metadata']['tech_stack']);
+                                    $techStackList = array_filter(array_map('trim', $techStackList));
+                                @endphp
+                                <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $techStackList) }}
                             @elseif(!empty($item['metadata']['skills']) && is_array($item['metadata']['skills']))
-                                <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $item['metadata']['skills']) }}
+                                @php
+                                    $skillsList = array_map(function($s) {
+                                        return is_array($s) ? ($s['name'] ?? '') : (is_object($s) ? ($s->name ?? '') : (string)$s);
+                                    }, $item['metadata']['skills']);
+                                    $skillsList = array_filter(array_map('trim', $skillsList));
+                                @endphp
+                                <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $skillsList) }}
                             @else
                                 {{ $item['title'] }}
                             @endif
