@@ -1,10 +1,12 @@
-import { Head, useForm, router, Link } from '@inertiajs/react';
+import { Head, useForm, router, Link, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { useState, useEffect } from 'react';
+import liveChatbotAnimation from '../../../../../public/assets/lottie/live-chatbot.json';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import {
     Plus, Trash2, Sparkles, FileText, Download, Copy, RefreshCw,
     Search, Calendar, Target, ChevronRight, ChevronDown, Loader2, Globe, X,
-    Clock, CheckCircle2, Archive, BarChart3, Building2
+    Clock, CheckCircle2, Archive, BarChart3, Building2, Eye, Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,6 +71,13 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [searchValue, setSearchValue] = useState(filters.search);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+    const { flash } = usePage<{ flash: { success?: string; error?: string } }>().props;
+
+    useEffect(() => {
+        if (flash?.success) toast.success(flash.success);
+        if (flash?.error) toast.error(flash.error);
+    }, [flash]);
 
     const handleToggleSelect = (id: number) => {
         setSelectedIds(prev =>
@@ -399,11 +408,18 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
 
                                         {/* Actions */}
                                         <div className="flex items-center gap-1.5 pt-2 border-t border-neutral-100 dark:border-neutral-800">
-                                            <Link href={`/admin/cv-generator/${cv.id}`} className="flex-1">
-                                                <Button size="sm" variant="outline" className="w-full h-8 text-xs hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 dark:hover:bg-violet-500/10 dark:hover:border-violet-500/30 dark:hover:text-violet-400">
-                                                    <FileText className="mr-1 h-3 w-3" />Edit
-                                                </Button>
-                                            </Link>
+                                            <div className="flex flex-1 gap-1.5">
+                                                 <a href={`/admin/cv-generator/${cv.id}/download?preview=1`} target="_blank" rel="noopener noreferrer" className="flex-1">
+                                                     <Button size="sm" variant="outline" className="w-full h-8 text-xs hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 dark:hover:bg-violet-500/10 dark:hover:border-violet-500/30 dark:hover:text-violet-400 px-2 font-semibold">
+                                                         <Eye className="mr-1 h-3.5 w-3.5" />Preview
+                                                     </Button>
+                                                 </a>
+                                                 <Link href={`/admin/cv-generator/${cv.id}`} className="flex-1">
+                                                     <Button size="sm" variant="outline" className="w-full h-8 text-xs hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 dark:hover:bg-violet-500/10 dark:hover:border-violet-500/30 dark:hover:text-violet-400 px-2 font-semibold">
+                                                         <Pencil className="mr-1 h-3.5 w-3.5" />Edit
+                                                     </Button>
+                                                 </Link>
+                                             </div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button size="icon" variant="outline" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-500/10 shrink-0" title="Export Options">
@@ -470,10 +486,13 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     {form.processing ? (
                         <div className="py-8 px-4 flex flex-col items-center justify-center space-y-6 text-center animate-fade-in">
-                            <div className="relative h-16 w-16 flex items-center justify-center">
-                                <div className="absolute inset-0 rounded-full border-4 border-violet-100 dark:border-violet-900"></div>
-                                <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin"></div>
-                                <Sparkles className="h-6 w-6 text-violet-500 animate-pulse" />
+                            <div className="h-40 w-40 flex items-center justify-center">
+                                 <DotLottieReact
+                                     data={liveChatbotAnimation}
+                                     loop
+                                     autoplay
+                                     style={{ width: '100%', height: '100%' }}
+                                 />
                             </div>
 
                             <div className="space-y-1">
@@ -627,18 +646,22 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
                     <Button 
                         size="sm" 
                         variant="outline" 
-                        className="h-8 text-xs text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-500/10 rounded-full"
+                        className="h-8 text-xs text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-500/10 rounded-full font-semibold"
                         onClick={() => handleBulkExport('pdf')}
                     >
-                        <Download className="mr-1 h-3.5 w-3.5" /> ZIP (PDF Only)
+                        <Download className="mr-1 h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">ZIP (PDF Only)</span>
+                        <span className="inline sm:hidden">PDF Only</span>
                     </Button>
                     <Button 
                         size="sm" 
                         variant="outline" 
-                        className="h-8 text-xs text-violet-600 hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-500/10 rounded-full"
+                        className="h-8 text-xs text-violet-600 hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-500/10 rounded-full font-semibold"
                         onClick={() => handleBulkExport('all')}
                     >
-                        <Download className="mr-1 h-3.5 w-3.5" /> ZIP (All Formats)
+                        <Download className="mr-1 h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">ZIP (All Formats)</span>
+                        <span className="inline sm:hidden">All Formats</span>
                     </Button>
                     <Button 
                         size="sm" 

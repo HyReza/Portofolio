@@ -216,6 +216,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('cv-generator/{cvGeneration}/download', [Admin\CvGeneratorController::class, 'download'])->name('cv-generator.download');
     Route::post('cv-generator/{cvGeneration}/regenerate', [Admin\CvGeneratorController::class, 'regenerate'])->name('cv-generator.regenerate');
     Route::post('cv-generator/{cvGeneration}/generate-item', [Admin\CvGeneratorController::class, 'generateItem'])->name('cv-generator.generate-item');
+    Route::post('cv-generator/{cvGeneration}/generate-custom-item', [Admin\CvGeneratorController::class, 'generateCustomItem'])->name('cv-generator.generate-custom-item');
+    Route::post('cv-generator/{cvGeneration}/solve-suggestion', [Admin\CvGeneratorController::class, 'solveSuggestion'])->name('cv-generator.solve-suggestion');
 
     // TipTap Editor Image Upload
     Route::post('upload-image', [Admin\ImageUploadController::class, 'store'])->name('upload-image');

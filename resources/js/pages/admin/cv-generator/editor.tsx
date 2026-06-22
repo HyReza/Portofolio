@@ -1,10 +1,12 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { useState, useReducer, useCallback, useRef, useEffect } from 'react';
+import liveChatbotAnimation from '../../../../../public/assets/lottie/live-chatbot.json';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import {
     ArrowLeft, Save, Download, RefreshCw, Sparkles, Eye, EyeOff,
     Plus, Trash2, ChevronDown, ChevronUp, ChevronRight, Target, FileText, Loader2,
-    Clock, CheckCircle2, Archive, Pencil, Check, X
+    Clock, CheckCircle2, Archive, Pencil, Check, X, Copy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,7 +107,8 @@ type Action =
     | { type: 'DELETE_BULLET'; sectionIndex: number; itemIndex: number; bulletIndex: number }
     | { type: 'MOVE_BULLET'; sectionIndex: number; itemIndex: number; from: number; to: number }
     | { type: 'UPDATE_NOTES'; payload: string }
-    | { type: 'UPDATE_ATS_METRICS'; score: number; suggestions: string[]; matchedKeywords: string[] };
+    | { type: 'UPDATE_ATS_METRICS'; score: number; suggestions: string[]; matchedKeywords: string[] }
+    | { type: 'ADD_SECTION'; sectionTitle: string; sectionType: string };
 
 interface EditorState {
     cvData: CvData;
@@ -257,6 +260,16 @@ function editorReducer(state: EditorState, action: Action): EditorState {
                 isDirty: true
             };
 
+        case 'ADD_SECTION': {
+            const newSection: CvSectionData = {
+                type: action.sectionType,
+                title: action.sectionTitle,
+                items: [],
+                is_visible: true,
+            };
+            return markDirty({ cvData: { ...state.cvData, sections: [...state.cvData.sections, newSection] } });
+        }
+
         default:
             return state;
     }
@@ -363,8 +376,13 @@ function calculateAtsScoreAndSuggestions(cvData: CvData, profileData: ProfileDat
                 
                 // Action verb check
                 const firstWord = bullet.trim().split(/\s+/)[0]?.toLowerCase().replace(/[.,;:()]/g, '');
-                if (firstWord && actionVerbs.has(firstWord)) {
-                    actionVerbBullets++;
+                if (firstWord) {
+                    const isExplicit = actionVerbs.has(firstWord);
+                    const isIndonesianVerb = isId && firstWord.startsWith('me') && firstWord.length >= 5 && !['media', 'metode', 'meja', 'menit', 'merek', 'mesin', 'mewah', 'merah', 'mental', 'menu', 'mereka', 'merdeka', 'melalui', 'menurut', 'menuju', 'mengapa', 'melainkan', 'meskipun'].includes(firstWord);
+                    const isEnglishVerb = !isId && ((firstWord.endsWith('ed') && firstWord.length > 4 && !['speed', 'bleed', 'indeed', 'breed'].includes(firstWord)) || ['led', 'built', 'wrote', 'ran', 'held', 'made', 'kept', 'won', 'drew', 'cut', 'set', 'sent', 'spent'].includes(firstWord));
+                    if (isExplicit || isIndonesianVerb || isEnglishVerb) {
+                        actionVerbBullets++;
+                    }
                 }
 
                 // Bullet length check
@@ -392,14 +410,17 @@ function calculateAtsScoreAndSuggestions(cvData: CvData, profileData: ProfileDat
         });
         
         const matchRatio = matchedKeywords.length / keywords.length;
-        score += Math.round(matchRatio * 40);
-        
-        if (matchRatio < 0.8 && missingKeywords.length > 0) {
-            const displayKws = missingKeywords.slice(0, 5).join(', ');
-            suggestions.push(isId 
-                ? `Integrasikan keyword penting berikut ke dalam deskripsi Anda: [${displayKws}].`
-                : `Integrate the following key keywords into your descriptions: [${displayKws}].`
-            );
+        if (matchRatio >= 0.8) {
+            score += 40;
+        } else {
+            score += Math.round((matchRatio / 0.8) * 40);
+            if (missingKeywords.length > 0) {
+                const displayKws = missingKeywords.slice(0, 5).join(', ');
+                suggestions.push(isId 
+                    ? `Integrasikan keyword penting berikut ke dalam deskripsi Anda: [${displayKws}].`
+                    : `Integrate the following key keywords into your descriptions: [${displayKws}].`
+                );
+            }
         }
     } else {
         score += 40;
@@ -408,8 +429,11 @@ function calculateAtsScoreAndSuggestions(cvData: CvData, profileData: ProfileDat
     // 3. Metrics (Weight: 20)
     if (totalBullets > 0) {
         const metricRatio = quantifiedBullets / totalBullets;
-        score += Math.round(metricRatio * 20);
-        if (metricRatio < 0.6) {
+        const targetMetricRatio = 0.5;
+        if (metricRatio >= targetMetricRatio) {
+            score += 20;
+        } else {
+            score += Math.round((metricRatio / targetMetricRatio) * 20);
             suggestions.push(isId
                 ? "Tambahkan metrik kuantitatif (seperti % kenaikan, jumlah user, atau waktu yang dihemat) pada bullet points Anda."
                 : "Add quantitative metrics (such as % increase, number of users, or time saved) to your bullet points."
@@ -422,8 +446,11 @@ function calculateAtsScoreAndSuggestions(cvData: CvData, profileData: ProfileDat
     // 4. Action Verbs (Weight: 15)
     if (totalBullets > 0) {
         const verbRatio = actionVerbBullets / totalBullets;
-        score += Math.round(verbRatio * 15);
-        if (verbRatio < 0.7) {
+        const targetVerbRatio = 0.7;
+        if (verbRatio >= targetVerbRatio) {
+            score += 15;
+        } else {
+            score += Math.round((verbRatio / targetVerbRatio) * 15);
             suggestions.push(isId
                 ? "Gunakan kata kerja aksi yang kuat (e.g. Spearheaded, Mengoptimalkan, Merancang) di awal setiap baris."
                 : "Use strong action verbs (e.g., Spearheaded, Optimize, Design) at the start of each line."
@@ -478,10 +505,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 
 export default function CvEditor({ cvGeneration, profileData, references = {} }: Props) {
     const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
+    const { flash } = usePage<{ flash: { success?: string; error?: string } }>().props;
+
+    useEffect(() => {
+        if (flash?.success) toast.success(flash.success);
+        if (flash?.error) toast.error(flash.error);
+    }, [flash]);
+
     const [isSaving, setIsSaving] = useState(false);
     const [isRegenerating, setIsRegenerating] = useState(false);
     const [previewKey, setPreviewKey] = useState(0);
     const [activeViewTab, setActiveViewTab] = useState<'editor' | 'preview'>('editor');
+    const [solvingSuggestion, setSolvingSuggestion] = useState<string | null>(null);
+    const [selectedSuggestions, setSelectedSuggestions] = useState<string[]>([]);
     const [expandedSections, setExpandedSections] = useState<Set<number>>(() => new Set(cvGeneration.cv_data.sections.map((_, i) => i)));
     const [editingSectionTitle, setEditingSectionTitle] = useState<number | null>(null);
     const sectionTitleRef = useRef<HTMLInputElement>(null);
@@ -491,6 +527,54 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
     const [activeTab, setActiveTab] = useState<string>('career');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isGeneratingItem, setIsGeneratingItem] = useState<{ sIdx: number, iIdx?: number } | null>(null);
+
+    const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
+    const [newSectionTitle, setNewSectionTitle] = useState('');
+    const [newSectionType, setNewSectionType] = useState('custom');
+
+    const [addCustomDialog, setAddCustomDialog] = useState<{ isOpen: boolean; sectionIndex: number; sectionType: string } | null>(null);
+    const [customItemTitle, setCustomItemTitle] = useState('');
+    const [customItemSubtitle, setCustomItemSubtitle] = useState('');
+    const [customItemRawInput, setCustomItemRawInput] = useState('');
+    const [isGeneratingCustomItem, setIsGeneratingCustomItem] = useState(false);
+
+    const handleGenerateCustomItem = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!addCustomDialog || !customItemRawInput.trim()) return;
+        
+        setIsGeneratingCustomItem(true);
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/generate-custom-item`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    section_type: addCustomDialog.sectionType,
+                    title: customItemTitle,
+                    subtitle: customItemSubtitle,
+                    raw_input: customItemRawInput
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to generate custom item');
+
+            dispatch({ type: 'ADD_ITEM', sectionIndex: addCustomDialog.sectionIndex, payload: data.item });
+            setExpandedSections(prev => new Set(prev).add(addCustomDialog.sectionIndex));
+            toast.success('Custom item generated and added successfully!');
+            setAddCustomDialog(null);
+            setCustomItemTitle('');
+            setCustomItemSubtitle('');
+            setCustomItemRawInput('');
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setIsGeneratingCustomItem(false);
+        }
+    };
 
     useEffect(() => {
         if (addDialog?.isOpen) {
@@ -631,6 +715,82 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         });
     };
 
+    const handleSolveSuggestion = async (suggestion: string) => {
+        if (solvingSuggestion) return;
+        setSolvingSuggestion(suggestion);
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/solve-suggestion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    suggestion,
+                    cv_data: state.cvData
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to resolve suggestion');
+
+            // Update local CV data reducer state
+            dispatch({ type: 'SET_CV_DATA', payload: data.cv_data });
+            // Remove from selected list if present
+            setSelectedSuggestions(prev => prev.filter(s => s !== suggestion));
+            // Increment key to reload the live preview iframe
+            setPreviewKey(prev => prev + 1);
+            
+            toast.success('Saran perbaikan berhasil diselesaikan!');
+
+            // Reload Inertia props to sync the DB status/scores and profile details
+            router.reload({ only: ['cvGeneration', 'profileData'] });
+        } catch (error: any) {
+            toast.error(error.message || 'Gagal menyelesaikan saran perbaikan.');
+        } finally {
+            setSolvingSuggestion(null);
+        }
+    };
+
+    const handleSolveSelected = async () => {
+        if (selectedSuggestions.length === 0 || solvingSuggestion) return;
+        setSolvingSuggestion('bulk');
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/solve-suggestion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    suggestions: selectedSuggestions,
+                    cv_data: state.cvData
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to resolve suggestions');
+
+            // Update local CV data reducer state
+            dispatch({ type: 'SET_CV_DATA', payload: data.cv_data });
+            // Clear selection list
+            setSelectedSuggestions([]);
+            // Increment key to reload the live preview iframe
+            setPreviewKey(prev => prev + 1);
+            
+            toast.success('Semua saran perbaikan terpilih berhasil diselesaikan!');
+
+            // Reload Inertia props to sync the DB status/scores and profile details
+            router.reload({ only: ['cvGeneration', 'profileData'] });
+        } catch (error: any) {
+            toast.error(error.message || 'Gagal menyelesaikan saran perbaikan terpilih.');
+        } finally {
+            setSolvingSuggestion(null);
+        }
+    };
+
     const handleDeleteSection = (sectionIndex: number) => {
         confirm({
             title: 'Hapus Section?',
@@ -672,10 +832,13 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
             {isRegenerating && (
                 <Dialog open={true} onOpenChange={() => {}}>
                     <DialogContent className="sm:max-w-[420px] flex flex-col items-center justify-center p-8 text-center" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-                        <div className="relative h-16 w-16 flex items-center justify-center">
-                            <div className="absolute inset-0 rounded-full border-4 border-violet-100 dark:border-violet-900"></div>
-                            <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin"></div>
-                            <Sparkles className="h-6 w-6 text-violet-500 animate-pulse" />
+                        <div className="h-32 w-32 flex items-center justify-center">
+                            <DotLottieReact
+                                data={liveChatbotAnimation}
+                                loop
+                                autoplay
+                                style={{ width: '100%', height: '100%' }}
+                            />
                         </div>
                         <h3 className="font-bold text-base mt-4 text-neutral-900 dark:text-neutral-100">
                             Membangun Ulang CV...
@@ -703,9 +866,9 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center sm:w-auto">
                         <Select value={cvGeneration.status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className="h-8 w-28 text-xs flex-1 sm:flex-none">
+                            <SelectTrigger className="h-8 text-xs col-span-2 sm:col-span-1 sm:w-28">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -719,16 +882,24 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs flex-1 sm:flex-none justify-center"
+                            className="h-8 text-xs col-span-1 sm:w-auto justify-center font-semibold"
                             onClick={() => handleSave(false)}
                             disabled={isSaving || !state.isDirty}
                         >
                             {isSaving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
                             Save
                         </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs col-span-1 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-500/10 sm:w-auto justify-center font-semibold"
+                            onClick={() => copyCvMarkdown(state.cvData, profileData)}
+                        >
+                            <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy Text
+                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 text-xs text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-500/10 w-full sm:w-auto justify-center">
+                                <Button variant="outline" size="sm" className="h-8 text-xs col-span-1 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-500/10 w-full sm:w-auto justify-center">
                                     <Download className="mr-1 h-3 w-3" />Export <ChevronDown className="ml-1 h-3 w-3" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -758,7 +929,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs flex-1 sm:flex-none justify-center"
+                            className="h-8 text-xs col-span-1 sm:w-auto justify-center"
                             onClick={handleRegenerate}
                             disabled={isRegenerating}
                         >
@@ -804,8 +975,8 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                         </div>
 
                         {/* ATS Score & Keywords Panel */}
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            <div className={`rounded-xl p-4 ring-1 ${atsColor.ring} ${atsColor.bg} flex flex-col justify-center`}>
+                        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+                            <div className={`rounded-xl p-4 ring-1 ${atsColor.ring} ${atsColor.bg} flex flex-col justify-center md:col-span-1`}>
                                 <div className="flex items-center gap-3">
                                     <Target className={`h-8 w-8 ${atsColor.text}`} />
                                     <div>
@@ -816,12 +987,12 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                     </div>
                                 </div>
                             </div>
-                            <div className="rounded-xl p-4 ring-1 ring-neutral-200 dark:ring-neutral-800 bg-white dark:bg-neutral-950">
+                            <div className="rounded-xl p-4 ring-1 ring-neutral-200 dark:ring-neutral-800 bg-white dark:bg-neutral-950 md:col-span-2">
                                 <div className="text-xs font-semibold text-neutral-500 mb-2 flex items-center gap-1.5">
                                     <Sparkles className="h-3.5 w-3.5 text-violet-500" /> ATS Keywords
                                 </div>
-                                <div className="flex flex-wrap gap-1 max-h-[85px] overflow-y-auto pr-1">
-                                    {(state.cvData.ats_keywords || []).slice(0, 15).map((kw, i) => {
+                                <div className="flex flex-wrap gap-1.5">
+                                    {(state.cvData.ats_keywords || []).slice(0, 20).map((kw, i) => {
                                         const isMatched = (state.cvData.matched_keywords || [])
                                             .map(k => k.toLowerCase().trim())
                                             .includes(kw.toLowerCase().trim());
@@ -829,7 +1000,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                             <Badge
                                                 key={i}
                                                 variant="outline"
-                                                className={`text-[10px] font-mono ${
+                                                className={`text-[10px] font-mono py-0.5 px-2 ${
                                                     isMatched
                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
                                                         : 'bg-neutral-50 text-neutral-600 border-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:border-neutral-800'
@@ -842,25 +1013,101 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                     })}
                                 </div>
                             </div>
-                            <div className="rounded-xl p-4 ring-1 ring-neutral-200 dark:ring-neutral-800 bg-white dark:bg-neutral-950">
-                                <div className="text-xs font-semibold text-neutral-500 mb-1.5 flex items-center gap-1.5">
+                        </div>
+
+                        {/* Saran Perbaikan Panel */}
+                        <div className="rounded-xl p-4 ring-1 ring-neutral-200 dark:ring-neutral-800 bg-white dark:bg-neutral-950">
+                            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-2 mb-3">
+                                <div className="text-xs font-semibold text-neutral-500 flex items-center gap-1.5">
                                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Saran Perbaikan (Menuju 100%)
                                 </div>
-                                <ul className="space-y-1 overflow-y-auto max-h-[85px] pr-1">
-                                    {state.cvData.improvement_suggestions && state.cvData.improvement_suggestions.length > 0 ? (
-                                        state.cvData.improvement_suggestions.map((suggestion, i) => (
-                                            <li key={i} className="text-[10px] text-neutral-600 dark:text-neutral-400 flex items-start gap-1">
-                                                <span className="text-violet-500 select-none shrink-0">•</span>
-                                                <span className="leading-tight">{suggestion}</span>
-                                            </li>
-                                        ))
-                                    ) : (
-                                        <li className="text-[10px] text-neutral-400 italic">
-                                            Tidak ada saran perbaikan. CV Anda sudah sangat selaras dengan JD!
-                                        </li>
-                                    )}
-                                </ul>
+                                {state.cvData.improvement_suggestions && state.cvData.improvement_suggestions.length > 0 && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 px-2 text-[10px] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 font-medium"
+                                            onClick={() => {
+                                                const allSuggestions = state.cvData.improvement_suggestions || [];
+                                                if (selectedSuggestions.length === allSuggestions.length) {
+                                                    setSelectedSuggestions([]);
+                                                } else {
+                                                    setSelectedSuggestions([...allSuggestions]);
+                                                }
+                                            }}
+                                            disabled={solvingSuggestion !== null}
+                                        >
+                                            {selectedSuggestions.length === (state.cvData.improvement_suggestions || []).length ? 'Deselect All' : 'Select All'}
+                                        </Button>
+                                        {selectedSuggestions.length > 0 && (
+                                            <Button
+                                                size="sm"
+                                                className="h-6 px-2.5 text-[10px] bg-violet-600 hover:bg-violet-700 text-white font-bold flex items-center gap-1 shadow-sm transition-colors"
+                                                onClick={handleSolveSelected}
+                                                disabled={solvingSuggestion !== null}
+                                            >
+                                                {solvingSuggestion === 'bulk' ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin text-white" />
+                                                ) : (
+                                                    <Sparkles className="h-3 w-3 text-white" />
+                                                )}
+                                                <span>Solve Selected ({selectedSuggestions.length})</span>
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
+                            <ul className="space-y-2">
+                                {state.cvData.improvement_suggestions && state.cvData.improvement_suggestions.length > 0 ? (
+                                    state.cvData.improvement_suggestions.map((suggestion, i) => {
+                                        const isChecked = selectedSuggestions.includes(suggestion);
+                                        return (
+                                            <li
+                                                key={i}
+                                                className={`text-[11px] text-neutral-600 dark:text-neutral-400 flex items-center justify-between gap-3 p-2 rounded-lg border transition-all ${
+                                                    isChecked 
+                                                        ? 'bg-violet-50/30 dark:bg-violet-950/10 border-violet-200 dark:border-violet-900/50' 
+                                                        : 'bg-neutral-50 dark:bg-neutral-900/50 hover:bg-violet-50/10 border-neutral-100 dark:border-neutral-800/80'
+                                                }`}
+                                            >
+                                                <div className="flex items-start gap-2 flex-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedSuggestions(prev => [...prev, suggestion]);
+                                                            } else {
+                                                                setSelectedSuggestions(prev => prev.filter(s => s !== suggestion));
+                                                            }
+                                                        }}
+                                                        className="mt-0.5 h-3.5 w-3.5 rounded border-neutral-300 dark:border-neutral-800 text-violet-600 focus:ring-violet-500 cursor-pointer shrink-0"
+                                                        disabled={solvingSuggestion !== null}
+                                                    />
+                                                    <span className="leading-relaxed text-neutral-700 dark:text-neutral-300">{suggestion}</span>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="h-6 px-2.5 text-[10px] shrink-0 font-semibold bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/50 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-100/50 dark:border-violet-800/50 transition-colors flex items-center gap-1"
+                                                    disabled={solvingSuggestion !== null}
+                                                    onClick={() => handleSolveSuggestion(suggestion)}
+                                                >
+                                                    {solvingSuggestion === suggestion ? (
+                                                        <Loader2 className="h-3 w-3 animate-spin text-violet-600 dark:text-violet-400" />
+                                                    ) : (
+                                                        <Sparkles className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+                                                    )}
+                                                    <span>Solve</span>
+                                                </Button>
+                                            </li>
+                                        );
+                                    })
+                                ) : (
+                                    <li className="text-xs text-neutral-400 italic">
+                                        Tidak ada saran perbaikan. CV Anda sudah sangat selaras dengan JD!
+                                    </li>
+                                )}
+                            </ul>
                         </div>
 
                         {/* Professional Summary */}
@@ -872,8 +1119,8 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-0">
-                                <textarea
-                                    className="border-input bg-background min-h-[100px] w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none resize-y"
+                                <AutoResizeTextarea
+                                    className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none"
                                     value={state.cvData.professional_summary}
                                     onChange={(e) => dispatch({ type: 'UPDATE_SUMMARY', payload: e.target.value })}
                                     placeholder="Professional summary will be generated by AI..."
@@ -917,10 +1164,10 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                         {/* Section Title (editable) */}
                                         <div className="flex-1 min-w-0">
                                             {editingSectionTitle === sIdx ? (
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center gap-1.5 w-full">
                                                     <Input
                                                         ref={sectionTitleRef}
-                                                        className="h-7 text-sm font-semibold"
+                                                        className="h-7 text-sm font-semibold flex-1 min-w-0"
                                                         defaultValue={section.title}
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') {
@@ -944,13 +1191,13 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                 </div>
                                             ) : (
                                                 <button
-                                                    className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+                                                    className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 hover:text-violet-600 dark:hover:text-violet-400 transition-colors w-full min-w-0"
                                                     onClick={() => toggleSection(sIdx)}
                                                 >
                                                     {expandedSections.has(sIdx) ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                                                    {section.title}
-                                                    <Badge variant="outline" className="text-[9px] ml-1 font-mono">{section.type}</Badge>
-                                                    <span className="text-[10px] font-normal text-neutral-400 ml-1">({section.items.length})</span>
+                                                    <span className="truncate max-w-[120px] sm:max-w-none">{section.title}</span>
+                                                    <Badge variant="outline" className="text-[9px] font-mono shrink-0">{section.type}</Badge>
+                                                    <span className="text-[10px] font-normal text-neutral-400 shrink-0">({section.items.length})</span>
                                                 </button>
                                             )}
                                         </div>
@@ -981,8 +1228,9 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                         className={`rounded-lg border p-3 space-y-2 transition-all ${item.is_visible ? 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950' : 'border-dashed border-neutral-300 dark:border-neutral-700 opacity-50 bg-neutral-50 dark:bg-neutral-900/50'}`}
                                                     >
                                                         {/* Item Header */}
-                                                        <div className="flex items-start justify-between gap-2">
-                                                            <div className="flex items-center gap-1.5">
+                                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                                                            {/* Desktop Reorder Handles (hidden on mobile) */}
+                                                            <div className="hidden md:flex items-center gap-1.5 shrink-0 mt-1">
                                                                 <div className="flex flex-col gap-0">
                                                                     <Button size="icon" variant="ghost" className="h-4 w-4" disabled={iIdx === 0} onClick={() => dispatch({ type: 'MOVE_ITEM', sectionIndex: sIdx, from: iIdx, to: iIdx - 1 })}>
                                                                         <ChevronUp className="h-2.5 w-2.5" />
@@ -992,7 +1240,48 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                     </Button>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex-1 min-w-0 space-y-1.5">
+
+                                                            {/* Mobile Control Header (hidden on desktop) */}
+                                                            <div className="flex md:hidden items-center justify-between w-full border-b border-neutral-100 dark:border-neutral-800 pb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs font-semibold text-neutral-400"># {iIdx + 1}</span>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Button size="icon" variant="outline" className="h-7 w-7" disabled={iIdx === 0} onClick={() => dispatch({ type: 'MOVE_ITEM', sectionIndex: sIdx, from: iIdx, to: iIdx - 1 })}>
+                                                                            <ChevronUp className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                        <Button size="icon" variant="outline" className="h-7 w-7" disabled={iIdx === section.items.length - 1} onClick={() => dispatch({ type: 'MOVE_ITEM', sectionIndex: sIdx, from: iIdx, to: iIdx + 1 })}>
+                                                                            <ChevronDown className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    {item.source_type && item.source_id && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-7 px-2 text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-500/10 flex items-center gap-1 text-[11px]"
+                                                                            disabled={isGeneratingItem?.sIdx === sIdx && isGeneratingItem?.iIdx === iIdx}
+                                                                            onClick={() => handleGenerateItem(sIdx, item.source_type!, item.source_id!, iIdx)}
+                                                                        >
+                                                                            {isGeneratingItem?.sIdx === sIdx && isGeneratingItem?.iIdx === iIdx ? (
+                                                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                                            ) : (
+                                                                                <Sparkles className="h-3 w-3" />
+                                                                            )}
+                                                                            AI Rewrite
+                                                                        </Button>
+                                                                    )}
+                                                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => dispatch({ type: 'TOGGLE_ITEM', sectionIndex: sIdx, itemIndex: iIdx })}>
+                                                                        {item.is_visible ? <Eye className="h-3.5 w-3.5 text-emerald-600" /> : <EyeOff className="h-3.5 w-3.5 text-neutral-400" />}
+                                                                    </Button>
+                                                                    <Button size="icon" variant="outline" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteItem(sIdx, iIdx)}>
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Main Inputs (takes full width on mobile, flex-1 on desktop) */}
+                                                            <div className="flex-1 min-w-0 space-y-1.5 w-full">
                                                                 <Input
                                                                     className="h-8 text-sm font-semibold"
                                                                     value={item.title || ''}
@@ -1014,7 +1303,9 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                     />
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-0.5 shrink-0">
+
+                                                            {/* Desktop Actions (hidden on mobile) */}
+                                                            <div className="hidden md:flex items-center gap-0.5 shrink-0 mt-0.5">
                                                                 {item.source_type && item.source_id && (
                                                                     <Button
                                                                         size="icon"
@@ -1042,33 +1333,35 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
 
                                                         {/* Bullet Points */}
                                                         {item.bullets && item.bullets.length > 0 && (
-                                                            <div className="pl-6 space-y-1.5">
+                                                            <div className="pl-6 space-y-2">
                                                                 <Label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Bullet Points</Label>
                                                                 {item.bullets.map((bullet, bIdx) => (
-                                                                    <div key={bIdx} className="flex items-start gap-1.5 group">
-                                                                        <div className="flex flex-col gap-0 mt-1">
-                                                                            <Button size="icon" variant="ghost" className="h-3 w-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" disabled={bIdx === 0} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx - 1 })}>
-                                                                                <ChevronUp className="h-2 w-2" />
+                                                                    <div key={bIdx} className="flex flex-col sm:flex-row items-stretch sm:items-start gap-1.5 group border-b border-neutral-100 dark:border-neutral-900/50 pb-2 sm:pb-0 sm:border-0">
+                                                                        <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                                                                            <span className="text-violet-500 text-xs mt-2 shrink-0 select-none">•</span>
+                                                                            <AutoResizeTextarea
+                                                                                className="border-input bg-background flex-1 rounded-md border px-2 py-1.5 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none"
+                                                                                value={bullet}
+                                                                                onChange={(e) => dispatch({ type: 'UPDATE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, bulletIndex: bIdx, value: e.target.value })}
+                                                                                rows={2}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="flex items-center justify-end gap-1 sm:mt-1 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                                                            <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-5 sm:w-5" disabled={bIdx === 0} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx - 1 })}>
+                                                                                <ChevronUp className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                                                             </Button>
-                                                                            <Button size="icon" variant="ghost" className="h-3 w-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" disabled={bIdx === item.bullets.length - 1} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx + 1 })}>
-                                                                                <ChevronDown className="h-2 w-2" />
+                                                                            <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-5 sm:w-5" disabled={bIdx === item.bullets.length - 1} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx + 1 })}>
+                                                                                <ChevronDown className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                size="icon"
+                                                                                variant="ghost"
+                                                                                className="h-7 w-7 sm:h-5 sm:w-5 text-neutral-400 hover:text-destructive"
+                                                                                onClick={() => dispatch({ type: 'DELETE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, bulletIndex: bIdx })}
+                                                                            >
+                                                                                <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                                                             </Button>
                                                                         </div>
-                                                                        <span className="text-violet-500 text-xs mt-2 shrink-0">•</span>
-                                                                        <textarea
-                                                                            className="border-input bg-background flex-1 min-h-[36px] rounded-md border px-2 py-1.5 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none resize-y"
-                                                                            value={bullet}
-                                                                            onChange={(e) => dispatch({ type: 'UPDATE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, bulletIndex: bIdx, value: e.target.value })}
-                                                                            rows={2}
-                                                                        />
-                                                                        <Button
-                                                                            size="icon"
-                                                                            variant="ghost"
-                                                                            className="h-6 w-6 shrink-0 mt-1 text-neutral-400 hover:text-destructive opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
-                                                                            onClick={() => dispatch({ type: 'DELETE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, bulletIndex: bIdx })}
-                                                                        >
-                                                                            <Trash2 className="h-2.5 w-2.5" />
-                                                                        </Button>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -1088,20 +1381,38 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                     </div>
                                                 ))
                                             )}
-                                            <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                                            <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800 flex flex-col sm:flex-row gap-2">
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    className="w-full text-xs border-dashed"
+                                                    className="w-full sm:flex-1 text-xs border-dashed"
                                                     onClick={() => setAddDialog({ isOpen: true, sectionIndex: sIdx, sectionType: section.type })}
                                                 >
-                                                    <Plus className="mr-1 h-3 w-3" />Add Item from Database
+                                                    <Plus className="mr-1 h-3 w-3" />Add from Database
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full sm:flex-1 text-xs border-dashed hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700 dark:hover:bg-violet-950/20"
+                                                    onClick={() => setAddCustomDialog({ isOpen: true, sectionIndex: sIdx, sectionType: section.type })}
+                                                >
+                                                    <Sparkles className="mr-1 h-3 w-3 text-violet-500" />Add Custom with AI
                                                 </Button>
                                             </div>
                                         </CardContent>
                                     )}
                                 </Card>
                             ))}
+                            <div className="flex gap-2 justify-center pt-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs bg-white dark:bg-neutral-950 border-dashed w-full hover:bg-violet-50 hover:text-violet-600 dark:hover:bg-violet-950/20"
+                                    onClick={() => setIsAddSectionOpen(true)}
+                                >
+                                    <Plus className="mr-1 h-3.5 w-3.5" /> Add New Section
+                                </Button>
+                            </div>
                         </div>
 
                         {/* Notes */}
@@ -1110,9 +1421,9 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                 <CardTitle className="text-sm font-semibold">Personal Notes</CardTitle>
                             </CardHeader>
                             <CardContent className="pt-0">
-                                <textarea
-                                    className="border-input bg-background min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none resize-y"
-                                    value={state.notes}
+                                <AutoResizeTextarea
+                                    className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                                    value={state.notes || ''}
                                     onChange={(e) => dispatch({ type: 'UPDATE_NOTES', payload: e.target.value })}
                                     placeholder="Add personal notes about this application..."
                                 />
@@ -1164,16 +1475,24 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     <Button variant="outline" size="sm" className="text-xs w-full sm:w-auto justify-center" onClick={() => router.get('/admin/cv-generator')}>
                         <ArrowLeft className="mr-1 h-3 w-3" />Back to History
                     </Button>
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:items-center sm:w-auto">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="text-xs flex-1 sm:flex-none justify-center"
+                            className="text-xs w-full sm:w-auto justify-center"
                             onClick={() => handleSave(false)}
                             disabled={isSaving || !state.isDirty}
                         >
                             {isSaving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
                             Save Draft
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-500/10 w-full sm:w-auto justify-center"
+                            onClick={() => copyCvMarkdown(state.cvData, profileData)}
+                        >
+                            <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy Text
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1323,6 +1642,253 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Add Custom Section Dialog */}
+            <Dialog open={isAddSectionOpen} onOpenChange={(open) => !open && setIsAddSectionOpen(false)}>
+                <DialogContent className="sm:max-w-[420px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Plus className="h-5 w-5 text-violet-500" />
+                            Add Custom Section
+                        </DialogTitle>
+                        <DialogDescription>
+                            Create a new section in your CV. You can then add custom items to it.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!newSectionTitle.trim()) return;
+                        dispatch({ type: 'ADD_SECTION', sectionTitle: newSectionTitle, sectionType: newSectionType });
+                        toast.success(`Section "${newSectionTitle}" added!`);
+                        setIsAddSectionOpen(false);
+                        setNewSectionTitle('');
+                    }} className="space-y-4 pt-2">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="section_title">Section Title</Label>
+                            <Input
+                                id="section_title"
+                                placeholder="e.g. Languages, Publications, Volunteer Work"
+                                value={newSectionTitle}
+                                onChange={(e) => setNewSectionTitle(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="section_type">Section Type (Layout style)</Label>
+                            <Select value={newSectionType} onValueChange={setNewSectionType}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="custom">Standard List (Experience/Projects style)</SelectItem>
+                                    <SelectItem value="skills">Inline/Grid List (Skills style)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <DialogFooter className="pt-2 border-t">
+                            <Button type="button" variant="outline" onClick={() => setIsAddSectionOpen(false)}>Cancel</Button>
+                            <Button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white">Add Section</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Custom Item with AI Dialog */}
+            <Dialog open={addCustomDialog?.isOpen || false} onOpenChange={(open) => !open && setAddCustomDialog(null)}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-violet-500" />
+                            Add Custom Item with AI
+                        </DialogTitle>
+                        <DialogDescription>
+                            Tuliskan apa saja yang Anda lakukan. AI akan memformulasikan bullet points STAR/XYZ profesional secara otomatis.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {isGeneratingCustomItem ? (
+                        <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
+                            <div className="h-32 w-32 flex items-center justify-center">
+                            <DotLottieReact
+                                data={liveChatbotAnimation}
+                                loop
+                                autoplay
+                                style={{ width: '100%', height: '100%' }}
+                            />
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="font-bold text-sm">Menulis Poin CV dengan AI...</h3>
+                                <p className="text-xs text-neutral-500 animate-pulse">Menghubungkan ke engine AI untuk mengoptimalkan deskripsi Anda...</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleGenerateCustomItem} className="space-y-4 pt-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="item_title">Title / Role</Label>
+                                    <Input
+                                        id="item_title"
+                                        placeholder="e.g. Senior Software Engineer"
+                                        value={customItemTitle}
+                                        onChange={(e) => setCustomItemTitle(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="item_subtitle">Subtitle / Company / Org</Label>
+                                    <Input
+                                        id="item_subtitle"
+                                        placeholder="e.g. Google LLC"
+                                        value={customItemSubtitle}
+                                        onChange={(e) => setCustomItemSubtitle(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="item_raw_input">Apa yang Anda lakukan? (Deskripsi singkat)</Label>
+                                <AutoResizeTextarea
+                                    id="item_raw_input"
+                                    className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                                    placeholder="Tulis kasar saja, contoh: Saya bikin sistem payment gateway pake stripe dan integrasi Laravel webhook, transaksinya 10k per bulan, terus query db di-optimize biar cepet."
+                                    value={customItemRawInput}
+                                    onChange={(e) => setCustomItemRawInput(e.target.value)}
+                                    required
+                                />
+                                <p className="text-[10px] text-neutral-400">AI akan otomatis mengubah ini menjadi 2-3 bullet point professional STAR/XYZ dengan metrik kuantitatif.</p>
+                            </div>
+                            <DialogFooter className="pt-2 border-t">
+                                <Button type="button" variant="outline" onClick={() => setAddCustomDialog(null)}>Cancel</Button>
+                                <Button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white flex items-center gap-1.5 font-semibold">
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                    Generate & Add
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
+
+const copyCvMarkdown = (cvData: CvData, profileData: ProfileData) => {
+    let md = `# ${profileData.name}\n`;
+    if (profileData.title) {
+        md += `### ${profileData.title}\n\n`;
+    }
+    const contacts: string[] = [];
+    if (profileData.email) contacts.push(`Email: ${profileData.email}`);
+    if (profileData.phone) contacts.push(`Phone: ${profileData.phone}`);
+    if (profileData.location) contacts.push(`Location: ${profileData.location}`);
+    if (profileData.website) contacts.push(`Website: ${profileData.website}`);
+    if (profileData.linkedin) contacts.push(`LinkedIn: ${profileData.linkedin}`);
+    if (profileData.github) contacts.push(`GitHub: ${profileData.github}`);
+    
+    md += contacts.join(" | ") + "\n\n---\n\n";
+    
+    if (cvData.professional_summary) {
+        md += `## Professional Summary\n${cvData.professional_summary}\n\n---\n\n`;
+    }
+    
+    cvData.sections.forEach(section => {
+        if (!section.is_visible || section.items.length === 0) return;
+        md += `## ${section.title}\n\n`;
+        if (['skills', 'soft_skills'].includes(section.type)) {
+            section.items.forEach(item => {
+                if (!item.is_visible) return;
+                if (item.title) {
+                    if (item.subtitle) {
+                        md += `**${item.title}:** ${item.subtitle}\n\n`;
+                    } else if (item.bullets && item.bullets.length > 0) {
+                        md += `**${item.title}:** ${item.bullets.join(', ')}\n\n`;
+                    } else {
+                        md += `- ${item.title}\n`;
+                    }
+                } else if (item.bullets && item.bullets.length > 0) {
+                    md += `- ${item.bullets.join(', ')}\n\n`;
+                }
+            });
+        } else {
+            section.items.forEach(item => {
+                if (!item.is_visible) return;
+                md += `### ${item.title}\n`;
+                const sub: string[] = [];
+                if (item.subtitle) sub.push(item.subtitle);
+                if (item.location) sub.push(item.location);
+                if (sub.length > 0) {
+                    md += `*${sub.join(" — ")}*\n`;
+                }
+                if (item.bullets && item.bullets.length > 0) {
+                    item.bullets.forEach(bullet => {
+                        if (bullet.trim()) md += `- ${bullet}\n`;
+                    });
+                }
+                md += "\n";
+            });
+        }
+        md += "---\n\n";
+    });
+    
+    navigator.clipboard.writeText(md).then(() => {
+        toast.success("CV text copied to clipboard as markdown!");
+    }).catch(() => {
+        toast.error("Failed to copy CV text.");
+    });
+};
+
+const AutoResizeTextarea = ({
+    className = "",
+    value = "",
+    onChange,
+    placeholder = "",
+    rows = 2,
+    ...props
+}: {
+    className?: string;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    placeholder?: string;
+    rows?: number;
+    [key: string]: any;
+}) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const adjustHeight = useCallback(() => {
+        const el = textareaRef.current;
+        if (el) {
+            el.style.height = 'auto';
+            el.style.height = `${el.scrollHeight}px`;
+        }
+    }, []);
+
+    useEffect(() => {
+        adjustHeight();
+    }, [value, adjustHeight]);
+
+    useEffect(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+
+        const observer = new ResizeObserver(() => {
+            adjustHeight();
+        });
+        observer.observe(el);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [adjustHeight]);
+
+    return (
+        <textarea
+            ref={textareaRef}
+            className={`${className} overflow-hidden resize-none`}
+            value={value}
+            onChange={(e) => {
+                if (onChange) onChange(e);
+                adjustHeight();
+            }}
+            placeholder={placeholder}
+            rows={rows}
+            {...props}
+        />
+    );
+};

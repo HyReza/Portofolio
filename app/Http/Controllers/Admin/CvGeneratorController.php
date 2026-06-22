@@ -42,6 +42,25 @@ class CvGeneratorController extends Controller
 
         $generations = $query->paginate(12)->withQueryString();
 
+        // Sync ATS scores for all visible CVs dynamically to align index score and editor score
+        $profileData = $this->cvGeneratorService->getProfileData();
+        foreach ($generations as $cvGeneration) {
+            $metrics = $this->cvGeneratorService->calculateAtsScoreAndSuggestions($cvGeneration->cv_data ?? [], $profileData, $cvGeneration->language);
+            if ($cvGeneration->ats_score !== $metrics['score'] || 
+                ($cvGeneration->cv_data['ats_match_score'] ?? null) !== $metrics['score']) {
+                
+                $cvData = $cvGeneration->cv_data;
+                $cvData['ats_match_score'] = $metrics['score'];
+                $cvData['improvement_suggestions'] = $metrics['suggestions'];
+                $cvData['matched_keywords'] = $metrics['matched_keywords'];
+                
+                $cvGeneration->update([
+                    'ats_score' => $metrics['score'],
+                    'cv_data' => $cvData
+                ]);
+            }
+        }
+
         return Inertia::render('admin/cv-generator/index', [
             'generations' => $generations,
             'filters' => [
@@ -89,6 +108,22 @@ class CvGeneratorController extends Controller
         $cvGeneration->load('sections.items');
 
         $profileData = $this->cvGeneratorService->getProfileData();
+
+        // Automatically sync the ATS score to the database if there's any mismatch (for older/existing CVs)
+        $metrics = $this->cvGeneratorService->calculateAtsScoreAndSuggestions($cvGeneration->cv_data, $profileData, $cvGeneration->language);
+        if ($cvGeneration->ats_score !== $metrics['score'] || 
+            ($cvGeneration->cv_data['ats_match_score'] ?? null) !== $metrics['score']) {
+            
+            $cvData = $cvGeneration->cv_data;
+            $cvData['ats_match_score'] = $metrics['score'];
+            $cvData['improvement_suggestions'] = $metrics['suggestions'];
+            $cvData['matched_keywords'] = $metrics['matched_keywords'];
+            
+            $cvGeneration->update([
+                'ats_score' => $metrics['score'],
+                'cv_data' => $cvData
+            ]);
+        }
 
         $references = [
             'career' => \App\Models\Career::orderBy('sort_order')->get()->map(fn($m) => [
@@ -144,6 +179,13 @@ class CvGeneratorController extends Controller
         $validated = $request->validate([
             'cv_data' => ['required', 'array'],
             'cv_data.professional_summary' => ['nullable', 'string'],
+            'cv_data.ats_keywords' => ['nullable', 'array'],
+            'cv_data.ats_keywords.*' => ['string'],
+            'cv_data.ats_match_score' => ['nullable', 'integer'],
+            'cv_data.improvement_suggestions' => ['nullable', 'array'],
+            'cv_data.improvement_suggestions.*' => ['string'],
+            'cv_data.matched_keywords' => ['nullable', 'array'],
+            'cv_data.matched_keywords.*' => ['string'],
             'cv_data.sections' => ['required', 'array'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
@@ -327,6 +369,10 @@ class CvGeneratorController extends Controller
 
         $ids = $validated['ids'];
         $format = $validated['format'];
+
+        if (!class_exists('ZipArchive')) {
+            return back()->with('error', 'Ekstensi PHP ZipArchive tidak aktif pada server PHP Anda. Silakan aktifkan ekstensi "zip" (uncomment "extension=zip" di php.ini) untuk menggunakan fitur ekspor massal.');
+        }
 
         $zipFileName = 'CV_Export_' . time() . '.zip';
         $zipPath = storage_path('app/' . $zipFileName);
@@ -542,6 +588,78 @@ class CvGeneratorController extends Controller
         }
 
         return response()->json(['item' => $result['item']]);
+    }
+
+    /**
+     * Generate a new CV item using AI from custom raw input.
+     */
+    public function generateCustomItem(Request $request, CvGeneration $cvGeneration): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'section_type' => ['required', 'string'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'subtitle' => ['nullable', 'string', 'max:255'],
+            'raw_input' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
+
+        $result = $this->cvGeneratorService->generateCustomItem(
+            $cvGeneration,
+            $validated['section_type'],
+            $validated['title'] ?? null,
+            $validated['subtitle'] ?? null,
+            $validated['raw_input']
+        );
+
+        if (!$result['success']) {
+            return response()->json(['error' => $result['error']], 500);
+        }
+
+        return response()->json(['item' => $result['item']]);
+    }
+
+    /**
+     * Solve a specific ATS suggestion.
+     */
+    public function solveSuggestion(Request $request, CvGeneration $cvGeneration): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'suggestion' => ['nullable', 'string', 'max:1000'],
+            'suggestions' => ['nullable', 'array'],
+            'suggestions.*' => ['string', 'max:1000'],
+            'cv_data' => ['nullable', 'array'],
+        ]);
+
+        if (!empty($validated['cv_data'])) {
+            $cvGeneration->update([
+                'cv_data' => $validated['cv_data']
+            ]);
+        }
+
+        $suggestionsToSolve = [];
+        if (!empty($validated['suggestion'])) {
+            $suggestionsToSolve[] = $validated['suggestion'];
+        }
+        if (!empty($validated['suggestions'])) {
+            $suggestionsToSolve = array_merge($suggestionsToSolve, $validated['suggestions']);
+        }
+
+        if (empty($suggestionsToSolve)) {
+            return response()->json(['error' => 'No suggestions provided.'], 400);
+        }
+
+        $result = $this->cvGeneratorService->solveSuggestions(
+            $cvGeneration,
+            $suggestionsToSolve
+        );
+
+        if (!$result['success']) {
+            return response()->json(['error' => $result['error']], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'cv_data' => $result['cv_data']
+        ]);
     }
 
     // ── Private Helpers ──

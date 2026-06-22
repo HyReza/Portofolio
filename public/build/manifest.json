@@ -445,6 +445,15 @@
       "_react-WNQdgQBd.js"
     ]
   },
+  "_dist-D98vZU5b.js": {
+    "file": "assets/dist-D98vZU5b.js",
+    "name": "dist",
+    "imports": [
+      "_react-WNQdgQBd.js",
+      "_createLucideIcon-CHMWCBs6.js",
+      "_jsx-runtime-CHp0-VS7.js"
+    ]
+  },
   "_dist-Dfqcc37M.js": {
     "file": "assets/dist-Dfqcc37M.js",
     "name": "dist",
@@ -846,13 +855,6 @@
       "_createLucideIcon-CHMWCBs6.js"
     ]
   },
-  "_target-TVWhoyoD.js": {
-    "file": "assets/target-TVWhoyoD.js",
-    "name": "target",
-    "imports": [
-      "_createLucideIcon-CHMWCBs6.js"
-    ]
-  },
   "_text-link-Dkjc4Ekh.js": {
     "file": "assets/text-link-Dkjc4Ekh.js",
     "name": "text-link",
@@ -1238,7 +1240,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-DIRM7KCD.css",
+    "file": "assets/app-BlfYyqo1.css",
     "name": "app",
     "names": [
       "app.css"
@@ -1247,7 +1249,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-BQ8Ycq-L.js",
+    "file": "assets/app-OvRVysqT.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1604,25 +1606,26 @@
     ]
   },
   "resources/js/pages/admin/cv-generator/editor.tsx": {
-    "file": "assets/editor-BO2vOcHW.js",
+    "file": "assets/editor-DV3AitVk.js",
     "name": "editor",
     "src": "resources/js/pages/admin/cv-generator/editor.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_react-WNQdgQBd.js",
       "_dist-D2Y67zb_.js",
+      "_dist-D98vZU5b.js",
       "_select-CcRIr3tw.js",
       "_app-layout-BuhiBHdZ.js",
       "_label-DBGM3iob.js",
       "_button-D8R8OYkk.js",
       "_createLucideIcon-CHMWCBs6.js",
-      "_target-TVWhoyoD.js",
       "_arrow-left-BS600l2g.js",
       "_check-B0LsQEaf.js",
       "_chevron-down-Cp7w6EcZ.js",
       "_chevron-up-yzWoy5kL.js",
       "_circle-check-ooMhb0_k.js",
       "_clock-CsgvFnwd.js",
+      "_copy-D_2Cf52p.js",
       "_download-ByKa2Waz.js",
       "_eye-off-wtaCvIzu.js",
       "_eye-GC6i7hli.js",
@@ -1644,19 +1647,19 @@
     ]
   },
   "resources/js/pages/admin/cv-generator/index.tsx": {
-    "file": "assets/cv-generator-Bw6oYIDp.js",
+    "file": "assets/cv-generator-C8gvqcZw.js",
     "name": "cv-generator",
     "src": "resources/js/pages/admin/cv-generator/index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_react-WNQdgQBd.js",
       "_dist-D2Y67zb_.js",
+      "_dist-D98vZU5b.js",
       "_select-CcRIr3tw.js",
       "_app-layout-BuhiBHdZ.js",
       "_checkbox-DpWhv7hp.js",
       "_label-DBGM3iob.js",
       "_button-D8R8OYkk.js",
-      "_target-TVWhoyoD.js",
       "_building-2-BzRVoZfv.js",
       "_calendar-B_GH9mL0.js",
       "_chart-column-BltJOj0E.js",
@@ -1664,9 +1667,11 @@
       "_clock-CsgvFnwd.js",
       "_copy-D_2Cf52p.js",
       "_download-ByKa2Waz.js",
+      "_eye-GC6i7hli.js",
       "_folder-kanban-NUPwfuwC.js",
       "_globe-CxNS5gUb.js",
       "_loader-circle-BKGYph3X.js",
+      "_pencil-Bw3IHtFI.js",
       "_plus-2a25mOtb.js",
       "_search-CmnEpHK_.js",
       "_sparkles-Vi_nhA1V.js",

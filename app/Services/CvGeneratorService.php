@@ -106,6 +106,13 @@ SCHEMA;
             ];
         }
 
+        // Calculate real-time ATS metrics to guarantee consistency
+        $profileData = $this->getProfileData();
+        $metrics = $this->calculateAtsScoreAndSuggestions($parsedCv, $profileData, $language);
+        $parsedCv['ats_match_score'] = $metrics['score'];
+        $parsedCv['improvement_suggestions'] = $metrics['suggestions'];
+        $parsedCv['matched_keywords'] = $metrics['matched_keywords'];
+
         // 5. Save to database
         $cvGeneration = $this->saveCvGeneration(
             jobTitle: $jobTitle,
@@ -887,5 +894,494 @@ PROMPT;
         }
 
         return $cvGeneration->load('sections.items');
+    }
+
+    /**
+     * Generate a single CV item from custom user input.
+     */
+    public function generateCustomItem(CvGeneration $cv, string $sectionType, ?string $title, ?string $subtitle, string $rawInput): array
+    {
+        $lang = $cv->language;
+        
+        $systemPrompt = <<<PROMPT
+You are an elite ATS CV writer. The user wants to add a new custom item to their CV under the section type "{$sectionType}".
+They provided the following draft details or brief description of what they did:
+---
+Draft Title: {$title}
+Draft Subtitle/Organization: {$subtitle}
+User Description of Accomplishments/Role: {$rawInput}
+---
+
+JOB DESCRIPTION CONTEXT:
+Job Title: {$cv->job_title}
+Company: {$cv->company_name}
+JD: {$cv->job_description}
+
+LANGUAGE: {$lang}
+
+INSTRUCTIONS:
+1. Write 2-4 highly impactful bullet points using a diverse set of professional CV writing frameworks: STAR, XYZ (Accomplished [X] as measured by [Y], by doing [Z]), CAR/PAR, SOAR, or WHO.
+2. Naturally integrate ATS keywords from the job description context if relevant.
+3. If no quantitative metrics exist in raw data, use reasonable conservative estimates prefixed with "~".
+4. Ensure extreme professionalism.
+5. You must return ONLY valid JSON matching exactly this schema, and nothing else. No markdown wrapping.
+
+{
+  "source_type": "custom",
+  "source_id": null,
+  "title": "Optimized Title",
+  "subtitle": "Optimized Subtitle",
+  "location": "Location",
+  "bullets": [
+    "Optimized bullet point 1",
+    "Optimized bullet point 2"
+  ],
+  "metadata": {}
+}
+PROMPT;
+
+        $aiResult = $this->callAiWithFallback($systemPrompt, $lang);
+
+        if (!$aiResult['success']) {
+            return ['success' => false, 'error' => 'AI Provider Error: ' . ($aiResult['error'] ?? 'Unknown error')];
+        }
+
+        $parsed = json_decode(trim($aiResult['response'], " \t\n\r\0\x0B`"), true);
+        
+        // Handle markdown block stripping if needed
+        if (!$parsed && preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $aiResult['response'], $matches)) {
+            $parsed = json_decode($matches[1], true);
+        }
+
+        if (!$parsed) {
+            return ['success' => false, 'error' => 'AI returned invalid JSON.'];
+        }
+
+        return ['success' => true, 'item' => $parsed];
+    }
+
+    /**
+     * Mirror of the client-side ATS score and suggestions calculator.
+     */
+    public function calculateAtsScoreAndSuggestions(array $cvData, array $profileData, string $language): array
+    {
+        $suggestions = [];
+        $score = 0;
+        $isId = $language === 'id';
+
+        // 1. Contact line check (Weight: 10)
+        $contactScore = 0;
+        if (!empty($profileData['email'])) {
+            $contactScore += 2;
+        } else {
+            $suggestions[] = $isId ? "Tambahkan alamat email profesional di bagian kontak." : "Add a professional email address in the contact section.";
+        }
+        
+        if (!empty($profileData['phone'])) {
+            $contactScore += 2;
+        } else {
+            $suggestions[] = $isId ? "Tambahkan nomor telepon aktif di bagian kontak." : "Add an active phone number in the contact section.";
+        }
+        
+        if (!empty($profileData['linkedin'])) {
+            $contactScore += 2;
+        } else {
+            $suggestions[] = $isId ? "Tambahkan tautan profil LinkedIn." : "Add a LinkedIn profile link.";
+        }
+        
+        if (!empty($profileData['github'])) {
+            $contactScore += 2;
+        } else {
+            $suggestions[] = $isId ? "Tambahkan tautan repositori GitHub." : "Add a GitHub repository link.";
+        }
+        
+        $hasPortfolio = !empty($profileData['website']) && str_contains($profileData['website'], 'rezaedisaputra.com');
+        if ($hasPortfolio) {
+            $contactScore += 2;
+        } else {
+            $suggestions[] = $isId ? "Pastikan website portofolio resmi https://www.rezaedisaputra.com/ tercantum di bagian kontak." : "Ensure your official portfolio website https://www.rezaedisaputra.com/ is listed in the contact section.";
+        }
+        $score += $contactScore;
+
+        // Gather all text from CV to check keywords
+        $allText = strtolower($cvData['professional_summary'] ?? '');
+        
+        $totalBullets = 0;
+        $quantifiedBullets = 0;
+        $actionVerbBullets = 0;
+        $bulletLengthViolations = 0;
+        $experienceBulletViolations = 0;
+        $projectBulletViolations = 0;
+
+        // Strong action verbs list
+        $actionVerbs = [
+            // Indonesian
+            'memimpin', 'mengembangkan', 'mengoptimalkan', 'merancang', 'mengintegrasikan', 
+            'mengelola', 'meningkatkan', 'membangun', 'membuat', 'mengimplementasikan', 
+            'mempercepat', 'menghemat', 'meminimalkan', 'menyelesaikan', 'mempelopori', 
+            'merekayasa', 'menyederhanakan', 'mengotomatiskan', 'mengarahkan',
+            // English
+            'spearheaded', 'engineered', 'architected', 'optimized', 'overhauled', 
+            'accelerated', 'streamlined', 'decentralized', 'pioneered', 'led', 
+            'developed', 'managed', 'created', 'implemented', 'designed', 'resolved', 
+            'boosted', 'reduced', 'saved', 'automated', 'delivered', 'integrated'
+        ];
+        $actionVerbsSet = array_flip($actionVerbs);
+
+        $sections = $cvData['sections'] ?? [];
+        foreach ($sections as $section) {
+            $sectionVisible = $section['is_visible'] ?? true;
+            if (!$sectionVisible) continue;
+            
+            $allText .= ' ' . strtolower($section['title'] ?? '');
+            
+            $items = $section['items'] ?? [];
+            foreach ($items as $item) {
+                $itemVisible = $item['is_visible'] ?? true;
+                if (!$itemVisible) continue;
+                
+                $allText .= ' ' . strtolower($item['title'] ?? '');
+                $allText .= ' ' . strtolower($item['subtitle'] ?? '');
+                $allText .= ' ' . strtolower($item['location'] ?? '');
+                
+                $bullets = $item['bullets'] ?? [];
+                
+                $sectionType = $section['type'] ?? '';
+                $sectionTitle = strtolower($section['title'] ?? '');
+                $isExperience = $sectionType === 'experience' || str_contains($sectionTitle, 'experience') || str_contains($sectionTitle, 'pengalaman');
+                $isProject = $sectionType === 'projects' || str_contains($sectionTitle, 'project') || str_contains($sectionTitle, 'proyek');
+                
+                if ($isExperience && count($bullets) > 3) {
+                    $experienceBulletViolations++;
+                }
+                if ($isProject && count($bullets) > 2) {
+                    $projectBulletViolations++;
+                }
+                
+                foreach ($bullets as $bullet) {
+                    $bulletTrimmed = trim($bullet);
+                    if (empty($bulletTrimmed)) continue;
+                    $totalBullets++;
+                    $allText .= ' ' . strtolower($bulletTrimmed);
+                    
+                    // Quantification check
+                    $hasMetric = preg_match('/\b\d+(?:%|\s*percent|\s*juta|\s*miliar|\s*ribu|\s*jt|\s*rb|\s*k|\b)/i', $bulletTrimmed) || 
+                                 preg_match('/\b(?:Rp|USD|\$)\s*\d+/i', $bulletTrimmed) ||
+                                 preg_match('/\b(?:~)?\d+\b/', $bulletTrimmed);
+                    if ($hasMetric) {
+                        $quantifiedBullets++;
+                    }
+                    
+                    // Action verb check
+                    $words = preg_split('/\s+/', $bulletTrimmed);
+                    $firstWord = !empty($words[0]) ? strtolower(preg_replace('/[.,;:()]/', '', $words[0])) : '';
+                    if ($firstWord) {
+                        $isExplicit = isset($actionVerbsSet[$firstWord]);
+                        $isIndonesianVerb = $isId && str_starts_with($firstWord, 'me') && strlen($firstWord) >= 5 && !in_array($firstWord, ['media', 'metode', 'meja', 'menit', 'merek', 'mesin', 'mewah', 'merah', 'mental', 'menu', 'mereka', 'merdeka', 'melalui', 'menurut', 'menuju', 'mengapa', 'melainkan', 'meskipun']);
+                        $isEnglishVerb = !$isId && ((str_ends_with($firstWord, 'ed') && strlen($firstWord) > 4 && !in_array($firstWord, ['speed', 'bleed', 'indeed', 'breed'])) || in_array($firstWord, ['led', 'built', 'wrote', 'ran', 'held', 'made', 'kept', 'won', 'drew', 'cut', 'set', 'sent', 'spent']));
+                        if ($isExplicit || $isIndonesianVerb || $isEnglishVerb) {
+                            $actionVerbBullets++;
+                        }
+                    }
+
+                    // Bullet length check
+                    $wordCount = count($words);
+                    if ($wordCount > 25) {
+                        $bulletLengthViolations++;
+                    }
+                }
+            }
+        }
+
+        // 2. Keyword Match (Weight: 40)
+        $keywords = $cvData['ats_keywords'] ?? [];
+        $matchedKeywords = [];
+        $missingKeywords = [];
+        
+        if (count($keywords) > 0) {
+            foreach ($keywords as $kw) {
+                $kwClean = strtolower(trim($kw));
+                if (str_contains($allText, $kwClean)) {
+                    $matchedKeywords[] = $kw;
+                } else {
+                    $missingKeywords[] = $kw;
+                }
+            }
+            
+            $matchRatio = count($matchedKeywords) / count($keywords);
+            if ($matchRatio >= 0.8) {
+                $score += 40;
+            } else {
+                $score += round(($matchRatio / 0.8) * 40);
+                if (count($missingKeywords) > 0) {
+                    $displayKws = implode(', ', array_slice($missingKeywords, 0, 5));
+                    $suggestions[] = $isId 
+                        ? "Integrasikan keyword penting berikut ke dalam deskripsi Anda: [{$displayKws}]."
+                        : "Integrate the following key keywords into your descriptions: [{$displayKws}].";
+                }
+            }
+        } else {
+            $score += 40;
+        }
+
+        // 3. Metrics (Weight: 20)
+        if ($totalBullets > 0) {
+            $metricRatio = $quantifiedBullets / $totalBullets;
+            $targetMetricRatio = 0.5;
+            if ($metricRatio >= $targetMetricRatio) {
+                $score += 20;
+            } else {
+                $score += round(($metricRatio / $targetMetricRatio) * 20);
+                if ($metricRatio < $targetMetricRatio) {
+                    $suggestions[] = $isId
+                        ? "Tambahkan metrik kuantitatif (seperti % kenaikan, jumlah user, atau waktu yang dihemat) pada bullet points Anda."
+                        : "Add quantitative metrics (such as % increase, number of users, or time saved) to your bullet points.";
+                }
+            }
+        } else {
+            $score += 20;
+        }
+
+        // 4. Action Verbs (Weight: 15)
+        if ($totalBullets > 0) {
+            $verbRatio = $actionVerbBullets / $totalBullets;
+            $targetVerbRatio = 0.7;
+            if ($verbRatio >= $targetVerbRatio) {
+                $score += 15;
+            } else {
+                $score += round(($verbRatio / $targetVerbRatio) * 15);
+                if ($verbRatio < $targetVerbRatio) {
+                    $suggestions[] = $isId
+                        ? "Gunakan kata kerja aksi yang kuat (e.g. Spearheaded, Mengoptimalkan, Merancang) di awal setiap baris."
+                        : "Use strong action verbs (e.g., Spearheaded, Optimize, Design) at the start of each line.";
+                }
+            }
+        } else {
+            $score += 15;
+        }
+
+        // 5. Length & Constraints violations (Weight: 15)
+        $layoutPoints = 15;
+        if ($experienceBulletViolations > 0) {
+            $layoutPoints -= 5;
+            $suggestions[] = $isId
+                ? "Batasi setiap pekerjaan maksimal 3 bullet point penting agar CV padat dan muat 1 halaman."
+                : "Limit each job experience to a maximum of 3 key bullet points to keep the CV concise and on 1 page.";
+        }
+        if ($projectBulletViolations > 0) {
+            $layoutPoints -= 5;
+            $suggestions[] = $isId
+                ? "Batasi setiap proyek maksimal 2 bullet point penting."
+                : "Limit each project to a maximum of 2 key bullet points.";
+        }
+        if ($bulletLengthViolations > 0) {
+            $layoutPoints -= 5;
+            $suggestions[] = $isId
+                ? "Persingkat bullet point yang terlalu panjang (> 25 kata) agar mudah dibaca oleh HRD."
+                : "Shorten bullet points that are too long (> 25 words) for better readability.";
+        }
+        $score += max(0, $layoutPoints);
+
+        $score = max(0, min(100, $score));
+
+        return [
+            'score' => (int) $score,
+            'suggestions' => $suggestions,
+            'matched_keywords' => $matchedKeywords,
+        ];
+    }
+
+    /**
+     * Solve a specific ATS suggestion.
+     *
+     * @return array{success: bool, cv_data?: array, error?: string}
+     */
+    public function solveSuggestion(CvGeneration $cvGeneration, string $suggestion): array
+    {
+        return $this->solveSuggestions($cvGeneration, [$suggestion]);
+    }
+
+    /**
+     * Solve a list of ATS suggestions.
+     *
+     * @param CvGeneration $cvGeneration
+     * @param array<string> $suggestions
+     * @return array{success: bool, cv_data?: array, error?: string}
+     */
+    public function solveSuggestions(CvGeneration $cvGeneration, array $suggestions): array
+    {
+        $language = $cvGeneration->language;
+        $profileData = $this->getProfileData();
+        $isId = $language === 'id';
+
+        $phoneKeywords = ['telepon', 'phone number'];
+        $emailKeywords = ['email'];
+        $linkedinKeywords = ['linkedin'];
+        $githubKeywords = ['github'];
+        $websiteKeywords = ['website', 'portofolio resmi'];
+
+        $aiSuggestions = [];
+        $profileUpdated = false;
+
+        foreach ($suggestions as $suggestion) {
+            $suggestionLower = strtolower($suggestion);
+            $matchedKey = null;
+            $newValue = null;
+
+            if ($this->stringContainsAny($suggestionLower, $phoneKeywords)) {
+                $matchedKey = 'phone';
+                $newValue = '+62 812-3456-7890';
+            } elseif ($this->stringContainsAny($suggestionLower, $websiteKeywords)) {
+                $matchedKey = 'website_url';
+                $newValue = 'https://www.rezaedisaputra.com/';
+            } elseif ($this->stringContainsAny($suggestionLower, $linkedinKeywords)) {
+                $matchedKey = 'linkedin_url';
+                $newValue = 'https://linkedin.com/in/rezaedisaputra';
+            } elseif ($this->stringContainsAny($suggestionLower, $githubKeywords)) {
+                $matchedKey = 'github_url';
+                $newValue = 'https://github.com/HyReza';
+            } elseif ($this->stringContainsAny($suggestionLower, $emailKeywords)) {
+                $matchedKey = 'email';
+                $newValue = 'rezaedisaputra@example.com';
+            }
+
+            if ($matchedKey) {
+                // Update profile
+                $profile = Profile::where('key', $matchedKey)->first();
+                if ($profile) {
+                    if ($language === 'id') {
+                        $profile->update(['value_id' => $newValue]);
+                    } else {
+                        $profile->update(['value_en' => $newValue]);
+                    }
+                } else {
+                    Profile::create([
+                        'key' => $matchedKey,
+                        'value_id' => $newValue,
+                        'value_en' => $newValue,
+                        'type' => 'text',
+                    ]);
+                }
+                $profileUpdated = true;
+            } else {
+                $aiSuggestions[] = $suggestion;
+            }
+        }
+
+        // If profile was updated, refresh the profile data
+        if ($profileUpdated) {
+            $profileData = $this->getProfileData();
+        }
+
+        $cvData = $cvGeneration->cv_data;
+
+        // If there are AI suggestions, run them through the AI in a single call
+        if (!empty($aiSuggestions)) {
+            $suggestionsList = "";
+            foreach ($aiSuggestions as $idx => $aiSug) {
+                $suggestionsList .= ($idx + 1) . ". \"" . $aiSug . "\"\n";
+            }
+
+            $systemPrompt = <<<PROMPT
+You are an elite ATS CV Optimizer. The user has a CV and wants to solve the following improvement suggestions.
+
+JOB DESCRIPTION CONTEXT:
+Job Title: {$cvGeneration->job_title}
+Company: {$cvGeneration->company_name}
+JD: {$cvGeneration->job_description}
+
+CURRENT CV DATA (JSON format):
+---
+PROMPT;
+            $systemPrompt .= json_encode($cvData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            $systemPrompt .= <<<PROMPT
+
+---
+
+IMPROVEMENT SUGGESTIONS TO SOLVE:
+{$suggestionsList}
+LANGUAGE: {$language}
+
+INSTRUCTIONS:
+1. Revise the CURRENT CV DATA (specifically summary, sections, or item bullets) to completely solve the IMPROVEMENT SUGGESTIONS listed above.
+2. If suggestions say "Gunakan kata kerja aksi yang kuat" (Use strong action verbs) or "Tambahkan metrik kuantitatif" (Add quantitative metrics), inspect the experience or projects bullets and rewrite them.
+3. If suggestions say "Integrasikan keyword...", naturally weave the specified keywords into the summary or bullets.
+4. If suggestions say "Batasi setiap pekerjaan maksimal 3 bullet point..." or "Batasi setiap proyek maksimal 2...", trim the least relevant bullets.
+5. If suggestions say "Persingkat bullet point...", rewrite longer bullets to be shorter (< 25 words).
+6. Return the updated CV JSON following the exact same schema. Keep all other sections/items identical, only modify what is necessary to solve the suggestions.
+7. Return ONLY valid JSON matching the schema. No explanations, no markdown wrapping.
+PROMPT;
+
+            $aiResult = $this->callAiWithFallback($systemPrompt, $language);
+
+            if (!$aiResult['success']) {
+                return [
+                    'success' => false,
+                    'error' => 'AI Provider Error: ' . ($aiResult['error'] ?? 'Unknown error')
+                ];
+            }
+
+            $parsedCv = $this->parseAiResponse($aiResult['response']);
+            if (!$parsedCv) {
+                return [
+                    'success' => false,
+                    'error' => 'AI returned an invalid response format.'
+                ];
+            }
+
+            $cvData = $parsedCv;
+        }
+
+        // Recalculate real-time metrics
+        $metrics = $this->calculateAtsScoreAndSuggestions($cvData, $profileData, $language);
+        $cvData['ats_match_score'] = $metrics['score'];
+        $cvData['improvement_suggestions'] = $metrics['suggestions'];
+        $cvData['matched_keywords'] = $metrics['matched_keywords'];
+
+        // Save updated data to CV Generation and sync to DB tables (sections & items)
+        $cvGeneration->update([
+            'cv_data' => $cvData,
+            'ats_score' => $metrics['score'],
+        ]);
+
+        // Sync to sections and items DB tables
+        $cvGeneration->sections()->delete();
+        foreach ($cvData['sections'] as $sIndex => $sectionData) {
+            $section = $cvGeneration->sections()->create([
+                'type' => $sectionData['type'] ?? 'custom',
+                'title' => $sectionData['title'] ?? 'Untitled Section',
+                'sort_order' => $sIndex,
+                'is_visible' => $sectionData['is_visible'] ?? true,
+            ]);
+
+            foreach (($sectionData['items'] ?? []) as $iIndex => $itemData) {
+                $section->items()->create([
+                    'source_type' => $itemData['source_type'] ?? null,
+                    'source_id' => $itemData['source_id'] ?? null,
+                    'title' => $itemData['title'] ?? null,
+                    'subtitle' => $itemData['subtitle'] ?? null,
+                    'location' => $itemData['location'] ?? null,
+                    'bullets' => $itemData['bullets'] ?? [],
+                    'metadata' => $itemData['metadata'] ?? [],
+                    'sort_order' => $iIndex,
+                    'is_visible' => $itemData['is_visible'] ?? true,
+                ]);
+            }
+        }
+
+        return [
+            'success' => true,
+            'cv_data' => $cvData
+        ];
+    }
+
+    private function stringContainsAny(string $haystack, array $needles): bool
+    {
+        foreach ($needles as $needle) {
+            if (str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
