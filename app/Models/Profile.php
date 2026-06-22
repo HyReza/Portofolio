@@ -44,6 +44,7 @@ class Profile extends Model
     public function getLocalizedValueAttribute(): ?string
     {
         $locale = app()->getLocale();
+
         return $locale === 'id' ? $this->value_id : $this->value_en;
     }
 }

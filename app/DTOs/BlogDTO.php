@@ -27,6 +27,7 @@ readonly class BlogDTO
     {
         $data = get_object_vars($this);
         unset($data['tag_ids']);
-        return array_filter($data, fn($v) => $v !== null);
+
+        return array_filter($data, fn ($v) => $v !== null);
     }
 }

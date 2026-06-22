@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('certificates', function (Blueprint $table) {
-            if (!Schema::hasColumn('certificates', 'credential_type')) {
+            if (! Schema::hasColumn('certificates', 'credential_type')) {
                 $table->string('credential_type')->nullable()->after('issuer');
             }
-            if (!Schema::hasColumn('certificates', 'credential_type_en')) {
+            if (! Schema::hasColumn('certificates', 'credential_type_en')) {
                 $table->string('credential_type_en')->nullable()->after('credential_type');
             }
         });

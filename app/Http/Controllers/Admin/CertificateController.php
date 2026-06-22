@@ -7,6 +7,7 @@ use App\Models\Certificate;
 use App\Models\CertificateCategory;
 use App\Models\CredentialType;
 use App\Services\MediaService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -69,16 +70,16 @@ class CertificateController extends Controller
         $certificate = Certificate::create($validated);
 
         // Sync categories and credential types
-        if (!empty($categoryIds)) {
+        if (! empty($categoryIds)) {
             $certificate->categories()->sync($categoryIds);
         }
-        if (!empty($credentialTypeIds)) {
+        if (! empty($credentialTypeIds)) {
             $certificate->credentialTypes()->sync($credentialTypeIds);
         }
 
         // Auto-generate SEO
         $certificate->seoMeta()->create([
-            'meta_title_id' => $certificate->title . ' - Certificate',
+            'meta_title_id' => $certificate->title.' - Certificate',
             'meta_description_id' => substr(strip_tags($certificate->description_id ?? 'My Certification'), 0, 160),
             'og_image' => $certificate->image,
         ]);
@@ -134,7 +135,7 @@ class CertificateController extends Controller
         $certificate->seoMeta()->updateOrCreate(
             ['metaable_id' => $certificate->id, 'metaable_type' => Certificate::class],
             [
-                'meta_title_id' => $certificate->title . ' - Certificate',
+                'meta_title_id' => $certificate->title.' - Certificate',
                 'meta_description_id' => substr(strip_tags($certificate->description_id ?? 'My Certification'), 0, 160),
                 'og_image' => $certificate->image,
             ]
@@ -196,7 +197,7 @@ class CertificateController extends Controller
     /**
      * Inline create a new category from the certificate form.
      */
-    public function storeCategory(Request $request): \Illuminate\Http\JsonResponse
+    public function storeCategory(Request $request): JsonResponse
     {
         $request->validate([
             'name_id' => 'required|string|max:255',
@@ -218,7 +219,7 @@ class CertificateController extends Controller
     /**
      * Inline create a new credential type from the certificate form.
      */
-    public function storeCredentialType(Request $request): \Illuminate\Http\JsonResponse
+    public function storeCredentialType(Request $request): JsonResponse
     {
         $request->validate([
             'name_id' => 'required|string|max:255',
@@ -242,17 +243,22 @@ class CertificateController extends Controller
      */
     private function syncCategories(?string $names): array
     {
-        if (empty($names)) return [];
+        if (empty($names)) {
+            return [];
+        }
         $ids = [];
         $namesArray = array_map('trim', explode(',', $names));
         foreach ($namesArray as $name) {
-            if (empty($name)) continue;
+            if (empty($name)) {
+                continue;
+            }
             $cat = CertificateCategory::firstOrCreate(
                 ['name_id' => $name],
                 ['name_en' => $name, 'slug' => Str::slug($name)]
             );
             $ids[] = $cat->id;
         }
+
         return $ids;
     }
 
@@ -261,17 +267,22 @@ class CertificateController extends Controller
      */
     private function syncCredentialTypes(?string $names): array
     {
-        if (empty($names)) return [];
+        if (empty($names)) {
+            return [];
+        }
         $ids = [];
         $namesArray = array_map('trim', explode(',', $names));
         foreach ($namesArray as $name) {
-            if (empty($name)) continue;
+            if (empty($name)) {
+                continue;
+            }
             $type = CredentialType::firstOrCreate(
                 ['name_id' => $name],
                 ['name_en' => $name, 'slug' => Str::slug($name)]
             );
             $ids[] = $type->id;
         }
+
         return $ids;
     }
 }

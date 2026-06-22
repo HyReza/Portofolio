@@ -12,15 +12,14 @@ class OrganizationController extends Controller
 {
     public function __construct(
         private readonly MediaService $mediaService,
-    ) {
-    }
+    ) {}
 
     public function index()
     {
         $organizations = Organization::ordered()->get();
 
         return Inertia::render('admin/organizations/index', [
-            'organizations' => $organizations
+            'organizations' => $organizations,
         ]);
     }
 
@@ -38,7 +37,7 @@ class OrganizationController extends Controller
             'description_en' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
             'sort_order' => 'integer',
-            'show_in_cv' => 'boolean'
+            'show_in_cv' => 'boolean',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -65,7 +64,7 @@ class OrganizationController extends Controller
             'description_en' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
             'sort_order' => 'integer',
-            'show_in_cv' => 'boolean'
+            'show_in_cv' => 'boolean',
         ]);
 
         if ($request->hasFile('logo')) {

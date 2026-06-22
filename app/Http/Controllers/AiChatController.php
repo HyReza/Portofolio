@@ -36,16 +36,16 @@ class AiChatController extends Controller
 
         $result = $this->aiService->chat($conversation, $request->message, $lang);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json([
                 'success' => false,
-                'message' => $result['message']
+                'message' => $result['message'],
             ], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => $result['message']
+            'message' => $result['message'],
         ]);
     }
 
@@ -64,13 +64,13 @@ class AiChatController extends Controller
                 return [
                     'role' => $m->role,
                     'content' => $m->content,
-                    'time' => $m->created_at->diffForHumans()
+                    'time' => $m->created_at->diffForHumans(),
                 ];
             });
 
         return response()->json([
             'success' => true,
-            'messages' => $messages
+            'messages' => $messages,
         ]);
     }
 
@@ -81,13 +81,13 @@ class AiChatController extends Controller
     {
         $sessionId = Session::getId();
         $conversation = $this->aiService->getConversation($sessionId);
-        
+
         $conversation->messages()->delete();
         $conversation->update(['messages_count' => 0]);
 
         return response()->json([
             'success' => true,
-            'message' => 'History cleared'
+            'message' => 'History cleared',
         ]);
     }
 }

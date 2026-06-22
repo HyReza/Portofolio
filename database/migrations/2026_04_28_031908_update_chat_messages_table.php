@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('chat_messages', function (Blueprint $table) {
-            if (!Schema::hasColumn('chat_messages', 'user_id')) {
+            if (! Schema::hasColumn('chat_messages', 'user_id')) {
                 $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             }
-            if (!Schema::hasColumn('chat_messages', 'reply_to_id')) {
+            if (! Schema::hasColumn('chat_messages', 'reply_to_id')) {
                 $table->foreignId('reply_to_id')->nullable()->constrained('chat_messages')->onDelete('cascade');
             }
         });

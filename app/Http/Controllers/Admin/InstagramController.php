@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\InstagramPost;
+use App\Models\Profile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-
-use App\Models\Profile;
 
 class InstagramController extends Controller
 {
@@ -28,13 +27,13 @@ class InstagramController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'post_url'     => ['required', 'url', 'max:500'],
-            'caption'      => ['nullable', 'string', 'max:1000'],
-            'thumbnail'    => ['nullable', 'string', 'max:1000'],
-            'likes_count'  => ['nullable', 'integer', 'min:0'],
-            'media_type'   => ['nullable', 'in:IMAGE,VIDEO,CAROUSEL_ALBUM'],
+            'post_url' => ['required', 'url', 'max:500'],
+            'caption' => ['nullable', 'string', 'max:1000'],
+            'thumbnail' => ['nullable', 'string', 'max:1000'],
+            'likes_count' => ['nullable', 'integer', 'min:0'],
+            'media_type' => ['nullable', 'in:IMAGE,VIDEO,CAROUSEL_ALBUM'],
             'published_at' => ['nullable', 'date'],
-            'is_active'    => ['boolean'],
+            'is_active' => ['boolean'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -46,13 +45,13 @@ class InstagramController extends Controller
     public function update(Request $request, InstagramPost $instagram): RedirectResponse
     {
         $validated = $request->validate([
-            'post_url'     => ['required', 'url', 'max:500'],
-            'caption'      => ['nullable', 'string', 'max:1000'],
-            'thumbnail'    => ['nullable', 'string', 'max:1000'],
-            'likes_count'  => ['nullable', 'integer', 'min:0'],
-            'media_type'   => ['nullable', 'in:IMAGE,VIDEO,CAROUSEL_ALBUM'],
+            'post_url' => ['required', 'url', 'max:500'],
+            'caption' => ['nullable', 'string', 'max:1000'],
+            'thumbnail' => ['nullable', 'string', 'max:1000'],
+            'likes_count' => ['nullable', 'integer', 'min:0'],
+            'media_type' => ['nullable', 'in:IMAGE,VIDEO,CAROUSEL_ALBUM'],
             'published_at' => ['nullable', 'date'],
-            'is_active'    => ['boolean'],
+            'is_active' => ['boolean'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -64,6 +63,7 @@ class InstagramController extends Controller
     public function destroy(InstagramPost $instagram): RedirectResponse
     {
         $instagram->delete();
+
         return back()->with('success', 'Instagram post deleted.');
     }
 }

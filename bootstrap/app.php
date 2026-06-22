@@ -2,10 +2,14 @@
 
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\IsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,28 +28,29 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'admin' => \App\Http\Middleware\IsAdmin::class,
+            'admin' => IsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception, \Illuminate\Http\Request $request) {
+        $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
             $status = $response->getStatusCode();
-            
+
             if (! app()->environment(['local', 'testing']) && in_array($status, [500, 503, 404, 403])) {
                 return inertia('errors/error', [
                     'status' => $status,
-                    'message' => $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface ? $exception->getMessage() : null
+                    'message' => $exception instanceof HttpExceptionInterface ? $exception->getMessage() : null,
                 ])
                     ->toResponse($request)
                     ->setStatusCode($status);
             } elseif (in_array($status, [404, 403])) {
                 return inertia('errors/error', [
                     'status' => $status,
-                    'message' => $exception->getMessage() ?: null
+                    'message' => $exception->getMessage() ?: null,
                 ])
                     ->toResponse($request)
                     ->setStatusCode($status);
             }
+
             return $response;
         });
     })->create();

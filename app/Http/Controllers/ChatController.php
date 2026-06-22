@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ChatMessage;
 use App\Models\MessageReaction;
+use App\Models\User;
+use App\Services\AiChatService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class ChatController extends Controller
 {
@@ -35,7 +37,7 @@ class ChatController extends Controller
     /**
      * Store a new chat message and trigger AI reply if applicable.
      */
-    public function store(Request $request, \App\Services\AiChatService $aiService)
+    public function store(Request $request, AiChatService $aiService)
     {
         $request->validate([
             'message' => 'required|string|max:1000',
@@ -62,13 +64,13 @@ class ChatController extends Controller
 
         // Trigger AI reply if it's general or AI is mentioned
         $shouldReply = false;
-        if (!$request->filled('parent_id')) {
+        if (! $request->filled('parent_id')) {
             $shouldReply = true;
         } elseif (Str::contains(strtolower($request->message), ['ai', 'bot', 'admin', 'reza'])) {
             $shouldReply = true;
         }
 
-        if ($shouldReply && !$user->isAdmin()) {
+        if ($shouldReply && ! $user->isAdmin()) {
             $history = ChatMessage::where('is_show', true)
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
@@ -84,11 +86,11 @@ class ChatController extends Controller
 
             dispatch(function () use ($request, $aiService, $history, $msgId) {
                 $replyText = $aiService->generateReply($request->message, $history);
-                
+
                 if ($replyText) {
                     // Find admin user to attribute AI reply
-                    $admin = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->first();
-                    
+                    $admin = User::where('role', User::ROLE_ADMIN)->first();
+
                     if ($admin) {
                         ChatMessage::create([
                             'id' => Str::uuid()->toString(),
@@ -116,7 +118,7 @@ class ChatController extends Controller
     public function update(Request $request, string $id)
     {
         $request->validate(['message' => 'required|string|max:1000']);
-        
+
         $msg = ChatMessage::findOrFail($id);
         $user = auth()->user();
 
@@ -126,7 +128,7 @@ class ChatController extends Controller
         }
 
         $msg->update(['message' => $request->message]);
-        
+
         return response()->json($msg->load(['user:id,name,avatar,email,role', 'reactions']));
     }
 
@@ -138,7 +140,7 @@ class ChatController extends Controller
         $msg = ChatMessage::findOrFail($id);
         $user = auth()->user();
 
-        if (!$user->isAdmin() && $msg->user_id !== $user->id) {
+        if (! $user->isAdmin() && $msg->user_id !== $user->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -154,9 +156,9 @@ class ChatController extends Controller
     public function react(Request $request, string $id)
     {
         $request->validate(['reaction' => 'required|string|max:50']);
-        
+
         $user = auth()->user();
-        
+
         $existing = MessageReaction::where('chat_message_id', $id)
             ->where('user_id', $user->id)
             ->where('reaction', $request->reaction)
@@ -168,7 +170,7 @@ class ChatController extends Controller
             MessageReaction::create([
                 'chat_message_id' => $id,
                 'user_id' => $user->id,
-                'reaction' => $request->reaction
+                'reaction' => $request->reaction,
             ]); // Toggle on
         }
 

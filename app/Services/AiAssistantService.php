@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Achievement;
 use App\Models\AiConversation;
-use App\Models\AiMessage;
 use App\Models\Blog;
 use App\Models\Career;
 use App\Models\Certificate;
@@ -14,13 +13,11 @@ use App\Models\Organization;
 use App\Models\Profile;
 use App\Models\Project;
 use App\Models\SiteSetting;
-use App\Models\Skill;
 use App\Models\SkillCategory;
 use App\Models\Testimonial;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class AiAssistantService
@@ -42,8 +39,9 @@ class AiAssistantService
      */
     public function isRateLimited(string $sessionId): bool
     {
-        $key = "ai_daily:{$sessionId}:" . now()->format('Y-m-d');
+        $key = "ai_daily:{$sessionId}:".now()->format('Y-m-d');
         $attempts = (int) Cache::get($key, 0);
+
         return $attempts >= self::DAILY_LIMIT;
     }
 
@@ -52,7 +50,7 @@ class AiAssistantService
      */
     private function incrementDaily(string $sessionId): void
     {
-        $key = "ai_daily:{$sessionId}:" . now()->format('Y-m-d');
+        $key = "ai_daily:{$sessionId}:".now()->format('Y-m-d');
         $current = (int) Cache::get($key, 0);
         Cache::put($key, $current + 1, now()->endOfDay());
     }
@@ -147,23 +145,25 @@ class AiAssistantService
         // Check Gemini availability
         $geminiKey = SiteSetting::getValue('gemini_api_key', '');
         $geminiExhausted = SiteSetting::getValue('ai_gemini_exhausted', false);
-        if (!empty($geminiKey) && !$geminiExhausted) {
+        if (! empty($geminiKey) && ! $geminiExhausted) {
             $providers[] = 'gemini';
         }
 
         // Check Qwen availability
         $qwenKey = SiteSetting::getValue('qwen_api_key', '');
         $qwenExhausted = SiteSetting::getValue('ai_qwen_exhausted', false);
-        if (!empty($qwenKey) && !$qwenExhausted) {
+        if (! empty($qwenKey) && ! $qwenExhausted) {
             $providers[] = 'qwen';
         }
 
         // If both exhausted, still try (maybe quota reset)
         if (empty($providers)) {
-            if (!empty($geminiKey))
+            if (! empty($geminiKey)) {
                 $providers[] = 'gemini';
-            if (!empty($qwenKey))
+            }
+            if (! empty($qwenKey)) {
                 $providers[] = 'qwen';
+            }
         }
 
         return $providers;
@@ -177,8 +177,9 @@ class AiAssistantService
     private function callGemini(AiConversation $conversation, string $userMessage, string $systemPrompt, string $lang): ?array
     {
         $apiKey = SiteSetting::getValue('gemini_api_key', '');
-        if (empty($apiKey))
+        if (empty($apiKey)) {
             return null;
+        }
 
         $contents = $this->buildGeminiContents($conversation, $userMessage);
         $model = SiteSetting::getValue('gemini_model', 'gemini-2.0-flash');
@@ -208,21 +209,23 @@ class AiAssistantService
             if ($response->status() === 429 || $response->status() === 403) {
                 SiteSetting::setValue('ai_gemini_exhausted', true, 'api');
                 Log::warning('AI Assistant: Gemini quota exhausted, will try fallback', ['status' => $response->status()]);
+
                 return null; // Trigger fallback to Qwen
             }
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('AI Assistant: Gemini API error', [
                     'status' => $response->status(),
                     'body' => Str::limit($response->body(), 1000),
                 ]);
+
                 return null; // Trigger fallback
             }
 
             $data = $response->json();
             $aiText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
-            if (!$aiText) {
+            if (! $aiText) {
                 $aiText = $lang === 'id'
                     ? 'Maaf, saya tidak bisa menjawab pertanyaan itu. Silakan tanyakan hal lain tentang pemilik portfolio ini.'
                     : 'Sorry, I cannot answer that question. Please ask something else about the portfolio owner.';
@@ -238,6 +241,7 @@ class AiAssistantService
 
         } catch (\Exception $e) {
             Log::error('AI Assistant: Gemini exception', ['error' => $e->getMessage()]);
+
             return null; // Trigger fallback
         }
     }
@@ -250,8 +254,9 @@ class AiAssistantService
     private function callQwen(AiConversation $conversation, string $userMessage, string $systemPrompt, string $lang): ?array
     {
         $apiKey = SiteSetting::getValue('qwen_api_key', '');
-        if (empty($apiKey))
+        if (empty($apiKey)) {
             return null;
+        }
 
         $model = SiteSetting::getValue('qwen_model', 'qwen-plus');
         $endpoint = SiteSetting::getValue('qwen_endpoint', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions');
@@ -275,21 +280,23 @@ class AiAssistantService
             if ($response->status() === 429 || $response->status() === 403) {
                 SiteSetting::setValue('ai_qwen_exhausted', true, 'api');
                 Log::warning('AI Assistant: Qwen quota exhausted', ['status' => $response->status()]);
+
                 return null;
             }
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('AI Assistant: Qwen API error', [
                     'status' => $response->status(),
                     'body' => Str::limit($response->body(), 1000),
                 ]);
+
                 return null;
             }
 
             $data = $response->json();
             $aiText = $data['choices'][0]['message']['content'] ?? null;
 
-            if (!$aiText) {
+            if (! $aiText) {
                 $aiText = $lang === 'id'
                     ? 'Maaf, saya tidak bisa menjawab pertanyaan itu. Silakan tanyakan hal lain tentang pemilik portfolio ini.'
                     : 'Sorry, I cannot answer that question. Please ask something else about the portfolio owner.';
@@ -305,6 +312,7 @@ class AiAssistantService
 
         } catch (\Exception $e) {
             Log::error('AI Assistant: Qwen exception', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -426,11 +434,11 @@ PROMPT;
             $profiles = Profile::ordered()->get();
             if ($profiles->isNotEmpty()) {
                 $contactKeys = ['email', 'location', 'whatsapp', 'github', 'github_url', 'linkedin', 'linkedin_url', 'instagram', 'instagram_url', 'twitter', 'twitter_url'];
-                $parts[] = "## ABOUT REZA EDI SAPUTRA";
+                $parts[] = '## ABOUT REZA EDI SAPUTRA';
                 foreach ($profiles as $p) {
                     $val = $p->value_en ?: $p->value_id;
                     $key = strtolower($p->key);
-                    if ($val && !Str::contains($key, ['photo', 'bullet', 'meta', 'typewriter']) && !in_array($key, $contactKeys)) {
+                    if ($val && ! Str::contains($key, ['photo', 'bullet', 'meta', 'typewriter']) && ! in_array($key, $contactKeys)) {
                         $parts[] = "- **{$p->key}**: {$val}";
                     }
                 }
@@ -445,11 +453,12 @@ PROMPT;
                     $inst = $e->institution_en ?: $e->institution ?: '';
                     $degree = $e->degree_en ?: $e->degree ?: '';
                     $gpa = $e->gpa ? " (GPA: {$e->gpa})" : '';
-                    $year = ($e->start_date ? $e->start_date->format('Y') : '') . '–' . ($e->end_date ? $e->end_date->format('Y') : 'Present');
+                    $year = ($e->start_date ? $e->start_date->format('Y') : '').'–'.($e->end_date ? $e->end_date->format('Y') : 'Present');
                     $desc = $e->description_en ?: $e->description_id ?: '';
                     $line = "- **{$degree}** in {$field} at **{$inst}** ({$year}){$gpa}";
-                    if ($desc)
+                    if ($desc) {
                         $line .= ": {$desc}";
+                    }
                     $parts[] = $line;
                 }
             }
@@ -462,10 +471,11 @@ PROMPT;
                     $position = $c->position_en ?: $c->position_id ?: '';
                     $company = $c->company_en ?: $c->company ?: '';
                     $desc = $c->description_en ?: $c->description_id ?: '';
-                    $period = ($c->start_date ? $c->start_date->format('M Y') : '') . ' – ' . ($c->end_date ? $c->end_date->format('M Y') : 'Present');
+                    $period = ($c->start_date ? $c->start_date->format('M Y') : '').' – '.($c->end_date ? $c->end_date->format('M Y') : 'Present');
                     $line = "- **{$position}** at **{$company}** ({$period})";
-                    if ($desc)
+                    if ($desc) {
                         $line .= ": {$desc}";
+                    }
                     $parts[] = $line;
                 }
             }
@@ -476,9 +486,10 @@ PROMPT;
                 $parts[] = "\n## SKILLS & TECH STACK";
                 foreach ($categories as $cat) {
                     $catName = $cat->name_en ?: $cat->name_id ?: '';
-                    $skills = $cat->skills->map(fn($s) => $s->name_en ?: $s->name_id ?: '')->filter()->join(', ');
-                    if ($skills)
+                    $skills = $cat->skills->map(fn ($s) => $s->name_en ?: $s->name_id ?: '')->filter()->join(', ');
+                    if ($skills) {
                         $parts[] = "- **{$catName}**: {$skills}";
+                    }
                 }
             }
 
@@ -490,10 +501,11 @@ PROMPT;
                     $name = $o->name_en ?: $o->name ?: '';
                     $role = $o->role_en ?: $o->role ?: '';
                     $desc = $o->description_en ?: $o->description_id ?: '';
-                    $period = ($o->start_date ? $o->start_date->format('Y') : '') . '–' . ($o->end_date ? $o->end_date->format('Y') : 'Present');
+                    $period = ($o->start_date ? $o->start_date->format('Y') : '').'–'.($o->end_date ? $o->end_date->format('Y') : 'Present');
                     $line = "- **{$role}** at **{$name}** ({$period})";
-                    if ($desc)
+                    if ($desc) {
                         $line .= ": {$desc}";
+                    }
                     $parts[] = $line;
                 }
             }
@@ -508,8 +520,9 @@ PROMPT;
                     $company = $t->company_en ?: $t->company ?: '';
                     $content = $t->content_en ?: $t->content_id ?: '';
                     $line = "- **{$client}** ({$position} at {$company})";
-                    if ($content)
+                    if ($content) {
                         $line .= ": \"{$content}\"";
+                    }
                     $parts[] = $line;
                 }
             }
@@ -524,8 +537,9 @@ PROMPT;
      */
     private function searchRelevantData(string $query): string
     {
-        if (empty(trim($query)))
+        if (empty(trim($query))) {
             return '';
+        }
 
         $words = preg_split('/[\s\.,\-\?!]+/', mb_strtolower(strip_tags($query)), -1, PREG_SPLIT_NO_EMPTY);
         $stopwords = [
@@ -542,22 +556,25 @@ PROMPT;
             'an',
             'be',
             'as',
-            'it'
+            'it',
         ];
 
         // Remove stopwords and short words
-        $keywords = array_filter($words, fn($w) => mb_strlen($w) >= 3 && !in_array($w, $stopwords));
+        $keywords = array_filter($words, fn ($w) => mb_strlen($w) >= 3 && ! in_array($w, $stopwords));
 
         // Indonesian Suffix Stripping
         $keywords = array_map(function ($w) {
-            if (Str::endsWith($w, ['nya', 'kah', 'pun']))
+            if (Str::endsWith($w, ['nya', 'kah', 'pun'])) {
                 return Str::replaceLast(substr($w, -3), '', $w);
-            if (Str::endsWith($w, ['ku', 'mu']))
+            }
+            if (Str::endsWith($w, ['ku', 'mu'])) {
                 return Str::replaceLast(substr($w, -2), '', $w);
+            }
+
             return $w;
         }, $keywords);
 
-        $keywords = array_values(array_unique(array_filter($keywords, fn($w) => mb_strlen($w) >= 3)));
+        $keywords = array_values(array_unique(array_filter($keywords, fn ($w) => mb_strlen($w) >= 3)));
 
         // Add the whole cleaned question as a phrase for exact matching
         $phrase = trim(preg_replace('/[^\p{L}\p{N}\s]/u', '', $query));
@@ -565,8 +582,9 @@ PROMPT;
             array_unshift($keywords, $phrase);
         }
 
-        if (empty($keywords))
+        if (empty($keywords)) {
             return '';
+        }
 
         $parts = [];
 
@@ -579,11 +597,13 @@ PROMPT;
                 $excerpt = $p->excerpt_en ?: $p->excerpt_id ?: '';
                 $contentSnippet = $p->content_en ?: $p->content_id ?: '';
                 $line = "- **{$title}** (Slug: {$p->slug})";
-                if ($p->repo_url)
+                if ($p->repo_url) {
                     $line .= "\n  GitHub: {$p->repo_url}";
-                if ($p->demo_url)
+                }
+                if ($p->demo_url) {
                     $line .= "\n  Demo: {$p->demo_url}";
-                $line .= "\n  Summary: {$excerpt}\n  Context: " . Str::limit(strip_tags($contentSnippet), 2000);
+                }
+                $line .= "\n  Summary: {$excerpt}\n  Context: ".Str::limit(strip_tags($contentSnippet), 2000);
                 $parts[] = $line;
             }
         }
@@ -601,10 +621,12 @@ PROMPT;
                 $contentSnippet = $content ? Str::limit(strip_tags($content), 5000) : '';
 
                 $line = "- **{$title}** (Slug: {$b->slug})";
-                if ($excerpt)
+                if ($excerpt) {
                     $line .= "\n  Summary: {$excerpt}";
-                if ($contentSnippet)
+                }
+                if ($contentSnippet) {
                     $line .= "\n  Full Content Snippet: {$contentSnippet}";
+                }
                 $parts[] = $line;
             }
         }
@@ -636,7 +658,7 @@ PROMPT;
         if ($profiles->isNotEmpty()) {
             $parts[] = "\n## OTHER REZA INFO";
             foreach ($profiles as $p) {
-                $parts[] = "- **{$p->key}**: " . Str::limit($p->value_en ?: $p->value_id, 300);
+                $parts[] = "- **{$p->key}**: ".Str::limit($p->value_en ?: $p->value_id, 300);
             }
         }
 
@@ -650,8 +672,9 @@ PROMPT;
                 $skills = is_array($c->skills) ? implode(', ', $c->skills) : '';
                 $date = $c->issued_date ? $c->issued_date->format('M Y') : '';
                 $line = "- **{$title}** by {$issuer} ({$date})";
-                if ($skills)
+                if ($skills) {
                     $line .= " [Skills: {$skills}]";
+                }
                 $parts[] = $line;
             }
         }
@@ -664,7 +687,7 @@ PROMPT;
                 $title = $a->title_en ?: $a->title_id ?: '';
                 $desc = $a->description_en ?: $a->description_id ?: '';
                 $date = $a->date ? $a->date->format('M Y') : '';
-                $parts[] = "- **{$title}** ({$date})" . ($desc ? ": {$desc}" : '');
+                $parts[] = "- **{$title}** ({$date})".($desc ? ": {$desc}" : '');
             }
         }
 
@@ -674,7 +697,7 @@ PROMPT;
             $parts[] = "\n## RELEVANT ACHIEVEMENTS";
             foreach ($achievements as $a) {
                 $title = $a->title_en ?: $a->title_id ?: '';
-                $parts[] = "- **{$title}** (" . ($a->date?->format('Y') ?? '') . ")";
+                $parts[] = "- **{$title}** (".($a->date?->format('Y') ?? '').')';
             }
         }
 
@@ -736,7 +759,7 @@ PROMPT;
             foreach ($projects as $p) {
                 $title = $p->title_en ?: $p->title_id ?: '';
                 $tech = is_array($p->tech_stack) ? implode(', ', $p->tech_stack) : '';
-                $parts[] = "- **{$title}**" . ($tech ? " [Tech: {$tech}]" : '');
+                $parts[] = "- **{$title}**".($tech ? " [Tech: {$tech}]" : '');
             }
         }
 
@@ -746,7 +769,7 @@ PROMPT;
             foreach ($blogs as $b) {
                 $title = $b->title_en ?: $b->title_id ?: '';
                 $excerpt = $b->excerpt_en ?: $b->excerpt_id ?: '';
-                $parts[] = "- **{$title}**" . ($excerpt ? ": {$excerpt}" : '');
+                $parts[] = "- **{$title}**".($excerpt ? ": {$excerpt}" : '');
             }
         }
 
@@ -780,7 +803,7 @@ PROMPT;
             'instagram',
             'instagram_url',
             'twitter',
-            'twitter_url'
+            'twitter_url',
         ];
         $profiles = Profile::whereIn('key', $contactKeys)->ordered()->get();
 
@@ -791,21 +814,23 @@ PROMPT;
         $contactMap = [];
         foreach ($profiles as $p) {
             $val = $p->value_en ?: $p->value_id;
-            if (!$val) continue;
+            if (! $val) {
+                continue;
+            }
 
             $cleanVal = trim(strip_tags($val));
             $label = strtolower(str_replace('_url', '', $p->key));
 
-            // If we have multiple for same label (e.g. 'github' and 'github_url'), 
+            // If we have multiple for same label (e.g. 'github' and 'github_url'),
             // prioritize the one that looks like a full URL or is more specific
-            if (!isset($contactMap[$label]) || Str::startsWith($cleanVal, 'http')) {
+            if (! isset($contactMap[$label]) || Str::startsWith($cleanVal, 'http')) {
                 $contactMap[$label] = $cleanVal;
             }
         }
 
         $lines = [];
         foreach ($contactMap as $label => $value) {
-            $lines[] = "- **" . ucfirst($label) . "**: {$value}";
+            $lines[] = '- **'.ucfirst($label)."**: {$value}";
         }
 
         return implode("\n", $lines);
@@ -843,9 +868,9 @@ PROMPT;
             $text = $msg->content;
 
             // Enforce strict alternation — merge consecutive same-role messages
-            if (!empty($contents) && end($contents)['role'] === $role) {
+            if (! empty($contents) && end($contents)['role'] === $role) {
                 $lastIdx = count($contents) - 1;
-                $contents[$lastIdx]['parts'][0]['text'] .= "\n" . $text;
+                $contents[$lastIdx]['parts'][0]['text'] .= "\n".$text;
             } else {
                 $contents[] = [
                     'role' => $role,
@@ -855,7 +880,7 @@ PROMPT;
         }
 
         // Ensure correct alternation: if history ends with 'user', we need a dummy model response
-        if (!empty($contents) && end($contents)['role'] === 'user') {
+        if (! empty($contents) && end($contents)['role'] === 'user') {
             $contents[] = [
                 'role' => 'model',
                 'parts' => [['text' => 'Baik, saya siap menjawab pertanyaan selanjutnya.']],
@@ -869,7 +894,7 @@ PROMPT;
         ];
 
         // Final validation: must start with 'user'
-        if (!empty($contents) && $contents[0]['role'] === 'model') {
+        if (! empty($contents) && $contents[0]['role'] === 'model') {
             array_shift($contents);
         }
 
@@ -884,6 +909,7 @@ PROMPT;
         $text = strip_tags($text);
         $text = trim($text);
         $text = Str::limit($text, 500, '');
+
         return $text;
     }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class CvGeneration extends Model
 {
@@ -74,6 +75,6 @@ class CvGeneration extends Model
 
     public function getShortDescriptionAttribute(): string
     {
-        return \Illuminate\Support\Str::limit(strip_tags($this->job_description), 150);
+        return Str::limit(strip_tags($this->job_description), 150);
     }
 }

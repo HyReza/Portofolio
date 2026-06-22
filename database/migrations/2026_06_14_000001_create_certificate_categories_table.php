@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -26,7 +27,7 @@ return new class extends Migration
         });
 
         // Migrate existing category data to new table
-        $certificates = \DB::table('certificates')
+        $certificates = DB::table('certificates')
             ->whereNotNull('category')
             ->where('category', '!=', '')
             ->get();
@@ -39,17 +40,17 @@ return new class extends Migration
 
             $key = mb_strtolower(trim($categoryId));
 
-            if (!isset($categoryMap[$key])) {
-                $slug = \Illuminate\Support\Str::slug($categoryEn ?: $categoryId);
+            if (! isset($categoryMap[$key])) {
+                $slug = Str::slug($categoryEn ?: $categoryId);
 
                 // Ensure unique slug
                 $baseSlug = $slug;
                 $counter = 1;
-                while (\DB::table('certificate_categories')->where('slug', $slug)->exists()) {
-                    $slug = $baseSlug . '-' . $counter++;
+                while (DB::table('certificate_categories')->where('slug', $slug)->exists()) {
+                    $slug = $baseSlug.'-'.$counter++;
                 }
 
-                $id = \DB::table('certificate_categories')->insertGetId([
+                $id = DB::table('certificate_categories')->insertGetId([
                     'name_id' => trim($categoryId),
                     'name_en' => trim($categoryEn),
                     'slug' => $slug,
@@ -61,7 +62,7 @@ return new class extends Migration
             }
 
             // Create pivot relationship
-            \DB::table('certificate_certificate_category')->insert([
+            DB::table('certificate_certificate_category')->insert([
                 'certificate_id' => $cert->id,
                 'certificate_category_id' => $categoryMap[$key],
                 'created_at' => now(),

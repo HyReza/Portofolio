@@ -58,7 +58,7 @@ class TestimonialController extends Controller
 
         // Auto-generate SEO
         $testimonial->seoMeta()->create([
-            'title' => 'Testimonial from ' . $testimonial->client_name,
+            'title' => 'Testimonial from '.$testimonial->client_name,
             'description' => substr(strip_tags($testimonial->content_id), 0, 160),
             'keywords' => implode(',', array_filter(['testimonial', 'review', $testimonial->client_name, $testimonial->company])),
             'og_image' => $testimonial->image,
@@ -95,7 +95,7 @@ class TestimonialController extends Controller
         $testimonial->seoMeta()->updateOrCreate(
             ['metaable_id' => $testimonial->id, 'metaable_type' => Testimonial::class],
             [
-                'title' => 'Testimonial from ' . $testimonial->client_name,
+                'title' => 'Testimonial from '.$testimonial->client_name,
                 'description' => substr(strip_tags($testimonial->content_id), 0, 160),
                 'keywords' => implode(',', array_filter(['testimonial', 'review', $testimonial->client_name, $testimonial->company])),
                 'og_image' => $testimonial->image,

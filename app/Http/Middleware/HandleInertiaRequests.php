@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\Profile;
+use App\Models\SiteSetting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -52,7 +52,7 @@ class HandleInertiaRequests extends Middleware
                 'value_id' => $p->value_id,
                 'value_en' => $p->value_en,
             ]),
-            'aiAssistantEnabled' => fn () => (bool) \App\Models\SiteSetting::getValue('ai_assistant_enabled', true),
+            'aiAssistantEnabled' => fn () => (bool) SiteSetting::getValue('ai_assistant_enabled', true),
         ];
     }
 }

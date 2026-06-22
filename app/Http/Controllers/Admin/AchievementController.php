@@ -33,6 +33,7 @@ class AchievementController extends Controller
         ]);
 
         Achievement::create($validated);
+
         return back()->with('success', 'Achievement added.');
     }
 
@@ -51,6 +52,7 @@ class AchievementController extends Controller
         ]);
 
         $achievement->update($validated);
+
         return back()->with('success', 'Achievement updated.');
     }
 
@@ -58,6 +60,7 @@ class AchievementController extends Controller
     {
         $achievement->seoMeta?->delete();
         $achievement->delete();
+
         return back()->with('success', 'Achievement deleted.');
     }
 }

@@ -11,15 +11,15 @@ class IsAdmin
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !$request->user()->isAdmin()) {
+        if (! $request->user() || ! $request->user()->isAdmin()) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Forbidden'], 403);
             }
-            
+
             abort(403, 'Anda tidak memiliki akses ke halaman admin.');
         }
 

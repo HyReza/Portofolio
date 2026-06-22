@@ -6,6 +6,8 @@ use App\Models\Achievement;
 use App\Models\Blog;
 use App\Models\Career;
 use App\Models\Certificate;
+use App\Models\CertificateCategory;
+use App\Models\CredentialType;
 use App\Models\Education;
 use App\Models\Organization;
 use App\Models\Profile;
@@ -15,8 +17,7 @@ use App\Models\ProjectTechnology;
 use App\Models\ProjectType;
 use App\Models\SkillCategory;
 use App\Models\SoftSkill;
-use App\Models\CertificateCategory;
-use App\Models\CredentialType;
+use App\Models\Testimonial;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,9 +31,9 @@ class PublicController extends Controller
     public function about(): Response
     {
         return Inertia::render('public/about', [
-            'profiles'   => $this->profiles(),
+            'profiles' => $this->profiles(),
             'educations' => Education::chronological()->get(),
-            'careers'    => Career::with('children')->roots()->chronological()->get(),
+            'careers' => Career::with('children')->roots()->chronological()->get(),
             'organizations' => Organization::ordered()->get(),
             'skillCategories' => SkillCategory::withOrderedSkills()->ordered()->get(),
             'softSkills' => SoftSkill::ordered()->get(),
@@ -107,7 +108,7 @@ class PublicController extends Controller
     public function testimonials(): Response
     {
         return Inertia::render('public/testimonials', [
-            'testimonials' => \App\Models\Testimonial::ordered()->get(),
+            'testimonials' => Testimonial::ordered()->get(),
         ]);
     }
 

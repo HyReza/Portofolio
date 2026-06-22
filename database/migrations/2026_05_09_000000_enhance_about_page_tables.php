@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         // ── Educations: add bilingual fields, GPA, activities ──
-        if (!Schema::hasColumn('educations', 'institution_en')) {
+        if (! Schema::hasColumn('educations', 'institution_en')) {
             Schema::table('educations', function (Blueprint $table) {
                 $table->string('institution_en')->nullable()->after('institution');
                 $table->string('degree_en')->nullable()->after('degree');
@@ -27,7 +27,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasColumn('careers', 'position_en')) {
+        if (! Schema::hasColumn('careers', 'position_en')) {
             Schema::table('careers', function (Blueprint $table) {
                 $table->string('position_en')->nullable()->after('position_id');
                 $table->string('company_en')->nullable()->after('company');
@@ -35,7 +35,7 @@ return new class extends Migration
         }
 
         // ── Organizations: add bilingual name/role ──
-        if (!Schema::hasColumn('organizations', 'name_en')) {
+        if (! Schema::hasColumn('organizations', 'name_en')) {
             Schema::table('organizations', function (Blueprint $table) {
                 $table->string('name_en')->nullable()->after('name');
                 $table->string('role_en')->nullable()->after('role');

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         // Add parent_id for nested replies (uuid)
         Schema::table('chat_messages', function (Blueprint $table) {
-            if (!Schema::hasColumn('chat_messages', 'parent_id')) {
+            if (! Schema::hasColumn('chat_messages', 'parent_id')) {
                 $table->uuid('parent_id')->nullable();
             }
         });

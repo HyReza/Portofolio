@@ -23,6 +23,7 @@ class SkillService
     public function updateCategory(SkillCategory $category, array $data): SkillCategory
     {
         $category->update($data);
+
         return $category->fresh();
     }
 
@@ -39,6 +40,7 @@ class SkillService
     public function updateSkill(Skill $skill, array $data): Skill
     {
         $skill->update($data);
+
         return $skill->fresh();
     }
 

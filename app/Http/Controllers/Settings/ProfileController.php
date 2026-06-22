@@ -36,7 +36,7 @@ class ProfileController extends Controller
         // Handle avatar upload separately
         if ($request->hasFile('avatar')) {
             $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = '/storage/' . $path;
+            $user->avatar = '/storage/'.$path;
         }
 
         // Fill other fields (name, email)

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -25,7 +26,7 @@ return new class extends Migration
         });
 
         // Migrate existing tech_stack JSON data to new table
-        $projects = \DB::table('projects')
+        $projects = DB::table('projects')
             ->whereNotNull('tech_stack')
             ->where('tech_stack', '!=', '[]')
             ->where('tech_stack', '!=', '')
@@ -35,25 +36,29 @@ return new class extends Migration
 
         foreach ($projects as $project) {
             $techStack = json_decode($project->tech_stack, true);
-            if (!is_array($techStack)) continue;
+            if (! is_array($techStack)) {
+                continue;
+            }
 
             foreach ($techStack as $tech) {
                 $trimmed = trim($tech);
-                if (empty($trimmed)) continue;
+                if (empty($trimmed)) {
+                    continue;
+                }
 
                 $key = mb_strtolower($trimmed);
 
-                if (!isset($techMap[$key])) {
-                    $slug = \Illuminate\Support\Str::slug($trimmed);
+                if (! isset($techMap[$key])) {
+                    $slug = Str::slug($trimmed);
 
                     // Ensure unique slug
                     $baseSlug = $slug;
                     $counter = 1;
-                    while (\DB::table('project_technologies')->where('slug', $slug)->exists()) {
-                        $slug = $baseSlug . '-' . $counter++;
+                    while (DB::table('project_technologies')->where('slug', $slug)->exists()) {
+                        $slug = $baseSlug.'-'.$counter++;
                     }
 
-                    $id = \DB::table('project_technologies')->insertGetId([
+                    $id = DB::table('project_technologies')->insertGetId([
                         'name' => $trimmed,
                         'slug' => $slug,
                         'created_at' => now(),
@@ -64,13 +69,13 @@ return new class extends Migration
                 }
 
                 // Create pivot relationship (avoid duplicates)
-                $exists = \DB::table('project_project_technology')
+                $exists = DB::table('project_project_technology')
                     ->where('project_id', $project->id)
                     ->where('project_technology_id', $techMap[$key])
                     ->exists();
 
-                if (!$exists) {
-                    \DB::table('project_project_technology')->insert([
+                if (! $exists) {
+                    DB::table('project_project_technology')->insert([
                         'project_id' => $project->id,
                         'project_technology_id' => $techMap[$key],
                         'created_at' => now(),

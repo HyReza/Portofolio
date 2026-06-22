@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Profile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use App\Models\Profile;
 
 class UrlMetaController extends Controller
 {
@@ -49,7 +49,7 @@ class UrlMetaController extends Controller
 
             return response()->json($meta);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Could not fetch metadata: ' . $e->getMessage()], 422);
+            return response()->json(['error' => 'Could not fetch metadata: '.$e->getMessage()], 422);
         }
     }
 
@@ -76,7 +76,7 @@ class UrlMetaController extends Controller
             }
 
             $html = $response->body();
-            
+
             // Extract from meta description: "1,751 Followers, 343 Following, 17 Posts - See Instagram photos..."
             $followers = '0';
             $following = '0';
@@ -85,9 +85,15 @@ class UrlMetaController extends Controller
 
             if (preg_match('/<meta\s+name=["\']description["\']\s+content=["\']([^"\']*)["\']/is', $html, $match)) {
                 $desc = html_entity_decode($match[1], ENT_QUOTES, 'UTF-8');
-                if (preg_match('/([\d\.,MK]+)\s+Followers/i', $desc, $m)) $followers = $m[1];
-                if (preg_match('/([\d\.,MK]+)\s+Following/i', $desc, $m)) $following = $m[1];
-                if (preg_match('/([\d\.,MK]+)\s+Posts/i', $desc, $m)) $posts = $m[1];
+                if (preg_match('/([\d\.,MK]+)\s+Followers/i', $desc, $m)) {
+                    $followers = $m[1];
+                }
+                if (preg_match('/([\d\.,MK]+)\s+Following/i', $desc, $m)) {
+                    $following = $m[1];
+                }
+                if (preg_match('/([\d\.,MK]+)\s+Posts/i', $desc, $m)) {
+                    $posts = $m[1];
+                }
             }
 
             // Try to extract avatar from og:image
@@ -101,7 +107,7 @@ class UrlMetaController extends Controller
                 'ig_following' => $following,
                 'ig_posts' => $posts,
             ];
-            
+
             if ($avatar) {
                 $keys['ig_avatar'] = $avatar;
             }
@@ -115,7 +121,7 @@ class UrlMetaController extends Controller
 
             return response()->json($keys);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Could not fetch profile: ' . $e->getMessage()], 422);
+            return response()->json(['error' => 'Could not fetch profile: '.$e->getMessage()], 422);
         }
     }
 
@@ -139,7 +145,7 @@ class UrlMetaController extends Controller
         ];
 
         foreach ($ogMapping as $property => $key) {
-            if (preg_match('/<meta\s+(?:property|name)=["\']' . preg_quote($property, '/') . '["\']\s+content=["\']([^"\']*)["\']|<meta\s+content=["\']([^"\']*?)["\']\s+(?:property|name)=["\']' . preg_quote($property, '/') . '["\']/is', $html, $match)) {
+            if (preg_match('/<meta\s+(?:property|name)=["\']'.preg_quote($property, '/').'["\']\s+content=["\']([^"\']*)["\']|<meta\s+content=["\']([^"\']*?)["\']\s+(?:property|name)=["\']'.preg_quote($property, '/').'["\']/is', $html, $match)) {
                 $meta[$key] = html_entity_decode($match[1] ?: $match[2], ENT_QUOTES, 'UTF-8');
             }
         }
@@ -159,10 +165,19 @@ class UrlMetaController extends Controller
 
     private function detectPlatform(string $url): string
     {
-        if (str_contains($url, 'instagram.com')) return 'instagram';
-        if (str_contains($url, 'linkedin.com')) return 'linkedin';
-        if (str_contains($url, 'twitter.com') || str_contains($url, 'x.com')) return 'twitter';
-        if (str_contains($url, 'youtube.com') || str_contains($url, 'youtu.be')) return 'youtube';
+        if (str_contains($url, 'instagram.com')) {
+            return 'instagram';
+        }
+        if (str_contains($url, 'linkedin.com')) {
+            return 'linkedin';
+        }
+        if (str_contains($url, 'twitter.com') || str_contains($url, 'x.com')) {
+            return 'twitter';
+        }
+        if (str_contains($url, 'youtube.com') || str_contains($url, 'youtu.be')) {
+            return 'youtube';
+        }
+
         return 'other';
     }
 
@@ -170,11 +185,12 @@ class UrlMetaController extends Controller
     {
         try {
             // Instagram oEmbed API (public, no token needed for basic embed HTML)
-            $oembedUrl = 'https://api.instagram.com/oembed?url=' . urlencode($url) . '&omitscript=true';
+            $oembedUrl = 'https://api.instagram.com/oembed?url='.urlencode($url).'&omitscript=true';
             $response = Http::timeout(8)->get($oembedUrl);
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return $data['html'] ?? null;
             }
         } catch (\Exception $e) {
@@ -183,7 +199,8 @@ class UrlMetaController extends Controller
 
         // Fallback embed using iframe
         $cleanUrl = rtrim(strtok($url, '?'), '/');
-        return '<blockquote class="instagram-media" data-instgrm-permalink="' . e($cleanUrl) . '/" data-instgrm-version="14"></blockquote>';
+
+        return '<blockquote class="instagram-media" data-instgrm-permalink="'.e($cleanUrl).'/" data-instgrm-version="14"></blockquote>';
     }
 
     private function getLinkedinEmbed(string $url): ?string
@@ -196,11 +213,12 @@ class UrlMetaController extends Controller
 
         if (preg_match('/activity[:-](\d+)/', $url, $match)) {
             $activityId = $match[1];
-            return '<iframe src="https://www.linkedin.com/embed/feed/update/urn:li:activity:' . e($activityId) . '" height="600" width="100%" frameborder="0" allowfullscreen="" title="LinkedIn Post"></iframe>';
+
+            return '<iframe src="https://www.linkedin.com/embed/feed/update/urn:li:activity:'.e($activityId).'" height="600" width="100%" frameborder="0" allowfullscreen="" title="LinkedIn Post"></iframe>';
         }
 
         // For share URLs: https://www.linkedin.com/posts/...
         // We can try to use the URL directly
-        return '<iframe src="' . e($url) . '?trk=embed" height="600" width="100%" frameborder="0" allowfullscreen="" title="LinkedIn Post"></iframe>';
+        return '<iframe src="'.e($url).'?trk=embed" height="600" width="100%" frameborder="0" allowfullscreen="" title="LinkedIn Post"></iframe>';
     }
 }

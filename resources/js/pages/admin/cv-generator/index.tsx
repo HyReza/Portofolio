@@ -95,41 +95,64 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
         }
     };
 
-    const handleBulkExport = (format: 'pdf' | 'all') => {
+    const handleBulkExport = async (format: 'pdf' | 'all') => {
         if (selectedIds.length === 0) return;
         
-        const formEl = document.createElement('form');
-        formEl.method = 'POST';
-        formEl.action = '/admin/cv-generator/bulk-export';
+        const toastId = toast.loading('Sedang menyiapkan berkas ZIP...');
         
-        const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = '_token';
-        csrfInput.value = csrfToken;
-        formEl.appendChild(csrfInput);
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch('/admin/cv-generator/bulk-export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    ids: selectedIds,
+                    format: format
+                })
+            });
 
-        selectedIds.forEach(id => {
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'ids[]';
-            idInput.value = String(id);
-            formEl.appendChild(idInput);
-        });
+            if (!res.ok) {
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Gagal mengekspor CV.');
+                } else {
+                    throw new Error('Gagal mengekspor CV. Pastikan ekstensi ZIP aktif di server.');
+                }
+            }
 
-        const formatInput = document.createElement('input');
-        formatInput.type = 'hidden';
-        formatInput.name = 'format';
-        formatInput.value = format;
-        formEl.appendChild(formatInput);
-
-        document.body.appendChild(formEl);
-        formEl.submit();
-        document.body.removeChild(formEl);
-        
-        setSelectedIds([]);
-        toast.success('Pengeksporan massal dimulai...');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Extract filename from header
+            const disposition = res.headers.get('content-disposition');
+            let filename = `CV_Export_${format}_${Date.now()}.zip`;
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(disposition);
+                if (matches != null && matches[1]) { 
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            
+            setSelectedIds([]);
+            toast.success('CV berhasil diekspor!', { id: toastId });
+        } catch (error: any) {
+            console.error('Bulk export error:', error);
+            toast.error(error.message || 'Gagal mengekspor CV.', { id: toastId });
+        }
     };
 
     const handleBulkDelete = () => {
@@ -161,19 +184,64 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
         language: 'en' as 'en' | 'id',
     });
 
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [clarification, setClarification] = useState<{
+        isOpen: boolean;
+        questions: string[];
+        answers: string[];
+        history: Array<{ question: string; answer: string }>;
+    } | null>(null);
+
     const handleGenerate = (e: React.FormEvent) => {
         e.preventDefault();
-        form.post('/admin/cv-generator/generate', {
-            onSuccess: () => {
-                setDialogOpen(false);
-                form.reset();
-                toast.success('CV berhasil digenerate!');
-            },
-            onError: (errors) => {
-                const firstError = Object.values(errors)[0];
-                toast.error(typeof firstError === 'string' ? firstError : 'Gagal generate CV. Silakan coba lagi.');
-            },
-        });
+        handleGenerateWithAnswers([], []);
+    };
+
+    const handleGenerateWithAnswers = async (currentAnswers: string[], currentHistory: Array<{ question: string; answer: string }>) => {
+        setIsGenerating(true);
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch('/admin/cv-generator/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    job_title: form.data.job_title,
+                    company_name: form.data.company_name,
+                    job_description: form.data.job_description,
+                    job_url: form.data.job_url,
+                    language: form.data.language,
+                    clarification_answers: currentHistory
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to generate CV');
+
+            if (data.need_clarification) {
+                setClarification({
+                    isOpen: true,
+                    questions: data.questions,
+                    answers: data.questions.map(() => ''),
+                    history: currentHistory
+                });
+                return;
+            }
+
+            setDialogOpen(false);
+            form.reset();
+            toast.success('CV berhasil digenerate!');
+            if (data.redirect_url) {
+                router.visit(data.redirect_url);
+            }
+        } catch (error: any) {
+            toast.error(error.message || 'Gagal generate CV. Silakan coba lagi.');
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -205,7 +273,7 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
     const [loadingStep, setLoadingStep] = useState(0);
 
     useEffect(() => {
-        if (!form.processing) {
+        if (!isGenerating) {
             setLoadingStep(0);
             return;
         }
@@ -217,7 +285,7 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
             setTimeout(() => setLoadingStep(5), 22000),
         ];
         return () => timers.forEach(clearTimeout);
-    }, [form.processing]);
+    }, [isGenerating]);
 
     const loadingMessages = [
         "Menganalisis Job Description & Kebutuhan Loker...",
@@ -482,9 +550,9 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
             </div>
 
             {/* Generate Dialog */}
-            <Dialog open={dialogOpen} onOpenChange={(open) => !open && !form.processing && setDialogOpen(false)}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => !open && !isGenerating && setDialogOpen(false)}>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    {form.processing ? (
+                    {isGenerating ? (
                         <div className="py-8 px-4 flex flex-col items-center justify-center space-y-6 text-center animate-fade-in">
                             <div className="h-40 w-40 flex items-center justify-center">
                                  <DotLottieReact
@@ -625,7 +693,7 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={form.processing}
+                                    disabled={isGenerating}
                                     className="w-full bg-violet-600 hover:bg-violet-700 h-11 text-sm font-medium transition-all cursor-pointer shadow-sm"
                                 >
                                     <Sparkles className="mr-2 h-4 w-4" />
@@ -634,6 +702,63 @@ export default function CvGeneratorIndex({ generations, filters }: Props) {
                             </form>
                         </>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Clarification Dialog */}
+            <Dialog open={clarification?.isOpen || false} onOpenChange={(open) => !open && setClarification(null)}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" />
+                            Validasi Data Tambahan
+                        </DialogTitle>
+                        <DialogDescription>
+                            AI membutuhkan informasi tambahan untuk membuat CV dengan lebih baik dan akurat. Silakan jawab pertanyaan di bawah ini:
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
+                        {clarification?.questions.map((question, index) => (
+                            <div key={index} className="space-y-2">
+                                <Label className="text-xs sm:text-sm font-semibold block text-neutral-800 dark:text-neutral-200">
+                                    {index + 1}. {question}
+                                </Label>
+                                <Input
+                                    value={clarification.answers[index] || ''}
+                                    onChange={(e) => {
+                                        const newAnswers = [...clarification.answers];
+                                        newAnswers[index] = e.target.value;
+                                        setClarification({ ...clarification, answers: newAnswers });
+                                    }}
+                                    placeholder="Jawab atau kosongkan jika ingin AI melompati..."
+                                    className="w-full text-xs sm:text-sm"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => setClarification(null)}>
+                            Batal
+                        </Button>
+                        <Button 
+                            className="bg-violet-600 hover:bg-violet-700" 
+                            size="sm"
+                            onClick={() => {
+                                if (!clarification) return;
+                                const newHistory = [...clarification.history];
+                                clarification.questions.forEach((q, idx) => {
+                                    newHistory.push({
+                                        question: q,
+                                        answer: clarification.answers[idx] || ''
+                                    });
+                                });
+                                setClarification(null);
+                                handleGenerateWithAnswers(clarification.answers, newHistory);
+                            }}
+                        >
+                            Lanjutkan
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 

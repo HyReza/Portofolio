@@ -15,16 +15,16 @@ class SettingController extends Controller
     public function index(): Response
     {
         $geminiKey = SiteSetting::getValue('gemini_api_key', '');
-        $geminiMasked = $geminiKey ? substr($geminiKey, 0, 8) . '...' . substr($geminiKey, -4) : '';
+        $geminiMasked = $geminiKey ? substr($geminiKey, 0, 8).'...'.substr($geminiKey, -4) : '';
 
         $qwenKey = SiteSetting::getValue('qwen_api_key', '');
-        $qwenMasked = $qwenKey ? substr($qwenKey, 0, 8) . '...' . substr($qwenKey, -4) : '';
+        $qwenMasked = $qwenKey ? substr($qwenKey, 0, 8).'...'.substr($qwenKey, -4) : '';
 
         return Inertia::render('admin/settings/index', [
             'settings' => [
                 // Gemini
                 'gemini_api_key_masked' => $geminiMasked,
-                'gemini_api_key_set' => !empty($geminiKey),
+                'gemini_api_key_set' => ! empty($geminiKey),
                 'gemini_api_valid' => (bool) SiteSetting::getValue('gemini_api_valid', false),
                 'gemini_api_error' => SiteSetting::getValue('gemini_api_error', ''),
                 'gemini_model' => SiteSetting::getValue('gemini_model', 'gemini-2.0-flash'),
@@ -32,7 +32,7 @@ class SettingController extends Controller
 
                 // Qwen
                 'qwen_api_key_masked' => $qwenMasked,
-                'qwen_api_key_set' => !empty($qwenKey),
+                'qwen_api_key_set' => ! empty($qwenKey),
                 'qwen_api_valid' => (bool) SiteSetting::getValue('qwen_api_valid', false),
                 'qwen_api_error' => SiteSetting::getValue('qwen_api_error', ''),
                 'qwen_model' => SiteSetting::getValue('qwen_model', 'qwen-plus'),
@@ -64,7 +64,7 @@ class SettingController extends Controller
                 'Content-Type' => 'application/json',
             ])->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
                 'contents' => [
-                    ['parts' => [['text' => 'Hello, respond with just "OK"']]]
+                    ['parts' => [['text' => 'Hello, respond with just "OK"']]],
                 ],
             ]);
 
@@ -89,7 +89,7 @@ class SettingController extends Controller
             SiteSetting::setValue('gemini_api_valid', false, 'api');
             SiteSetting::setValue('gemini_api_error', $e->getMessage(), 'api');
 
-            return back()->with('error', 'Gagal menguji Gemini API Key: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menguji Gemini API Key: '.$e->getMessage());
         }
     }
 
@@ -148,7 +148,7 @@ class SettingController extends Controller
             SiteSetting::setValue('qwen_api_valid', false, 'api');
             SiteSetting::setValue('qwen_api_error', $e->getMessage(), 'api');
 
-            return back()->with('error', 'Gagal menguji Qwen API Key: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menguji Qwen API Key: '.$e->getMessage());
         }
     }
 
@@ -185,6 +185,7 @@ class SettingController extends Controller
         SiteSetting::setValue('ai_gemini_exhausted', false, 'api');
         SiteSetting::setValue('ai_qwen_exhausted', false, 'api');
         SiteSetting::setValue('ai_token_exhausted', false, 'api');
+
         return back()->with('success', 'All provider exhaustion flags have been reset.');
     }
 }

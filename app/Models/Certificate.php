@@ -79,6 +79,6 @@ class Certificate extends Model
 
     public function getIsValidAttribute(): bool
     {
-        return !$this->is_expired;
+        return ! $this->is_expired;
     }
 }

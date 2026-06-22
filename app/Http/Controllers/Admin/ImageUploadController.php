@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ImageUploadController extends Controller
 {
@@ -19,8 +18,9 @@ class ImageUploadController extends Controller
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('tiptap', 'public');
+
             return response()->json([
-                'url' => asset('storage/' . $path)
+                'url' => asset('storage/'.$path),
             ]);
         }
 

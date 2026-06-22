@@ -6,10 +6,10 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import {
     ArrowLeft, Save, Download, RefreshCw, Sparkles, Eye, EyeOff,
     Plus, Trash2, ChevronDown, ChevronUp, ChevronRight, Target, FileText, Loader2,
-    Clock, CheckCircle2, Archive, Pencil, Check, X, Copy
+    Clock, CheckCircle2, Archive, Pencil, Check, X, Copy, Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,14 @@ interface CvData {
     improvement_suggestions?: string[];
     sections: CvSectionData[];
     matched_keywords?: string[];
+    contact_name?: string;
+    contact_title?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    contact_location?: string;
+    contact_linkedin?: string;
+    contact_github?: string;
+    contact_website?: string;
 }
 
 interface CvGeneration {
@@ -92,6 +100,7 @@ interface Props {
 type Action =
     | { type: 'SET_CV_DATA'; payload: CvData }
     | { type: 'UPDATE_SUMMARY'; payload: string }
+    | { type: 'UPDATE_CONTACT_FIELD'; field: string; value: string }
     | { type: 'TOGGLE_SECTION'; sectionIndex: number }
     | { type: 'RENAME_SECTION'; sectionIndex: number; title: string }
     | { type: 'DELETE_SECTION'; sectionIndex: number }
@@ -125,6 +134,9 @@ function editorReducer(state: EditorState, action: Action): EditorState {
 
         case 'UPDATE_SUMMARY':
             return markDirty({ cvData: { ...state.cvData, professional_summary: action.payload } });
+
+        case 'UPDATE_CONTACT_FIELD':
+            return markDirty({ cvData: { ...state.cvData, [action.field]: action.value } });
 
         case 'TOGGLE_SECTION': {
             const sections = [...state.cvData.sections];
@@ -291,21 +303,27 @@ function calculateAtsScoreAndSuggestions(cvData: CvData, profileData: ProfileDat
     let score = 0;
     const isId = language === 'id';
 
+    const email = cvData.contact_email !== undefined && cvData.contact_email !== null ? cvData.contact_email : profileData.email;
+    const phone = cvData.contact_phone !== undefined && cvData.contact_phone !== null ? cvData.contact_phone : profileData.phone;
+    const linkedin = cvData.contact_linkedin !== undefined && cvData.contact_linkedin !== null ? cvData.contact_linkedin : profileData.linkedin;
+    const github = cvData.contact_github !== undefined && cvData.contact_github !== null ? cvData.contact_github : profileData.github;
+    const website = cvData.contact_website !== undefined && cvData.contact_website !== null ? cvData.contact_website : profileData.website;
+
     // 1. Contact line check (Weight: 10)
     let contactScore = 0;
-    if (profileData.email) contactScore += 2;
+    if (email) contactScore += 2;
     else suggestions.push(isId ? "Tambahkan alamat email profesional di bagian kontak." : "Add a professional email address in the contact section.");
     
-    if (profileData.phone) contactScore += 2;
+    if (phone) contactScore += 2;
     else suggestions.push(isId ? "Tambahkan nomor telepon aktif di bagian kontak." : "Add an active phone number in the contact section.");
     
-    if (profileData.linkedin) contactScore += 2;
+    if (linkedin) contactScore += 2;
     else suggestions.push(isId ? "Tambahkan tautan profil LinkedIn." : "Add a LinkedIn profile link.");
     
-    if (profileData.github) contactScore += 2;
+    if (github) contactScore += 2;
     else suggestions.push(isId ? "Tambahkan tautan repositori GitHub." : "Add a GitHub repository link.");
     
-    const hasPortfolio = profileData.website && profileData.website.includes('rezaedisaputra.com');
+    const hasPortfolio = website && website.includes('rezaedisaputra.com');
     if (hasPortfolio) {
         contactScore += 2;
     } else {
@@ -500,8 +518,7 @@ const statusOptions = [
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-// ... (other code is skipped because I'm just replacing the component definition top part)
-// Wait, I need to do a precise replacement, let me replace starting from export default function.
+
 
 export default function CvEditor({ cvGeneration, profileData, references = {} }: Props) {
     const { confirm, dialogProps, ConfirmDialog } = useConfirmDialog();
@@ -538,10 +555,22 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
     const [customItemRawInput, setCustomItemRawInput] = useState('');
     const [isGeneratingCustomItem, setIsGeneratingCustomItem] = useState(false);
 
+    const [clarification, setClarification] = useState<{
+        isOpen: boolean;
+        questions: string[];
+        answers: string[];
+        actionType: 'regenerate' | 'generate-item' | 'generate-custom-item' | 'solve-suggestion';
+        payload: any;
+        history: Array<{ question: string; answer: string }>;
+    } | null>(null);
+
     const handleGenerateCustomItem = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!addCustomDialog || !customItemRawInput.trim()) return;
-        
+        await handleGenerateCustomItemWithAnswers(addCustomDialog.sectionIndex, addCustomDialog.sectionType, customItemTitle, customItemSubtitle, customItemRawInput, [], []);
+    };
+
+    const handleGenerateCustomItemWithAnswers = async (sectionIndex: number, sectionType: string, title: string, subtitle: string, rawInput: string, currentAnswers: string[], currentHistory: Array<{ question: string; answer: string }>) => {
         setIsGeneratingCustomItem(true);
         try {
             const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -553,17 +582,30 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     'X-CSRF-TOKEN': csrfToken
                 },
                 body: JSON.stringify({
-                    section_type: addCustomDialog.sectionType,
-                    title: customItemTitle,
-                    subtitle: customItemSubtitle,
-                    raw_input: customItemRawInput
+                    section_type: sectionType,
+                    title,
+                    subtitle,
+                    raw_input: rawInput,
+                    clarification_answers: currentHistory
                 })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to generate custom item');
 
-            dispatch({ type: 'ADD_ITEM', sectionIndex: addCustomDialog.sectionIndex, payload: data.item });
-            setExpandedSections(prev => new Set(prev).add(addCustomDialog.sectionIndex));
+            if (data.need_clarification) {
+                setClarification({
+                    isOpen: true,
+                    questions: data.questions,
+                    answers: data.questions.map(() => ''),
+                    actionType: 'generate-custom-item',
+                    payload: { sectionIndex, sectionType, title, subtitle, rawInput },
+                    history: currentHistory
+                });
+                return;
+            }
+
+            dispatch({ type: 'ADD_ITEM', sectionIndex, payload: data.item });
+            setExpandedSections(prev => new Set(prev).add(sectionIndex));
             toast.success('Custom item generated and added successfully!');
             setAddCustomDialog(null);
             setCustomItemTitle('');
@@ -598,7 +640,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         }
     }, [addDialog]);
 
-    const handleGenerateItem = async (sectionIndex: number, sourceType: string, sourceId: number, replaceItemIndex?: number) => {
+    const handleGenerateItem = async (sectionIndex: number, sourceType: string, sourceId: number, replaceItemIndex?: number, currentAnswers?: string[], currentHistory?: Array<{ question: string; answer: string }>) => {
         setIsGeneratingItem({ sIdx: sectionIndex, iIdx: replaceItemIndex });
         try {
             const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -609,10 +651,26 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken
                 },
-                body: JSON.stringify({ source_type: sourceType, source_id: sourceId })
+                body: JSON.stringify({
+                    source_type: sourceType,
+                    source_id: sourceId,
+                    clarification_answers: currentHistory || []
+                })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to generate item');
+
+            if (data.need_clarification) {
+                setClarification({
+                    isOpen: true,
+                    questions: data.questions,
+                    answers: data.questions.map(() => ''),
+                    actionType: 'generate-item',
+                    payload: { sectionIndex, sourceType, sourceId, replaceItemIndex },
+                    history: currentHistory || []
+                });
+                return;
+            }
 
             if (replaceItemIndex !== undefined) {
                 dispatch({ type: 'REPLACE_ITEM', sectionIndex, itemIndex: replaceItemIndex, payload: data.item });
@@ -633,6 +691,14 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         professional_summary: cvGeneration.cv_data.professional_summary || '',
         ats_keywords: cvGeneration.cv_data.ats_keywords || [],
         ats_match_score: cvGeneration.cv_data.ats_match_score || 0,
+        contact_name: cvGeneration.cv_data.contact_name,
+        contact_title: cvGeneration.cv_data.contact_title,
+        contact_email: cvGeneration.cv_data.contact_email,
+        contact_phone: cvGeneration.cv_data.contact_phone,
+        contact_location: cvGeneration.cv_data.contact_location,
+        contact_linkedin: cvGeneration.cv_data.contact_linkedin,
+        contact_github: cvGeneration.cv_data.contact_github,
+        contact_website: cvGeneration.cv_data.contact_website,
         sections: (cvGeneration.cv_data.sections || []).map(s => ({
             ...s,
             is_visible: s.is_visible ?? true,
@@ -692,6 +758,8 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         confirm({
             title: 'Ubah Status?',
             description: `Status CV akan diubah ke "${status}".`,
+            confirmText: 'Ubah Status',
+            variant: 'info',
             onConfirm: () => {
                 router.put(`/admin/cv-generator/${cvGeneration.id}/status`, { status }, {
                     preserveScroll: true,
@@ -705,19 +773,65 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         confirm({
             title: 'Regenerate CV?',
             description: 'AI akan membuat CV baru dari job description yang sama. CV ini akan tetap tersimpan.',
-            variant: 'danger',
-            onConfirm: () => {
-                setIsRegenerating(true);
-                router.post(`/admin/cv-generator/${cvGeneration.id}/regenerate`, {}, {
-                    onError: () => { toast.error('Gagal regenerate CV.'); setIsRegenerating(false); },
-                });
-            },
+            confirmText: 'Regenerate',
+            variant: 'info',
+            onConfirm: () => performRegenerate([], []),
         });
+    };
+
+    const performRegenerate = async (currentAnswers: string[], currentHistory: Array<{ question: string; answer: string }>) => {
+        setIsRegenerating(true);
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/regenerate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    clarification_answers: currentHistory
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to regenerate CV');
+
+            if (data.need_clarification) {
+                setClarification({
+                    isOpen: true,
+                    questions: data.questions,
+                    answers: data.questions.map(() => ''),
+                    actionType: 'regenerate',
+                    payload: {},
+                    history: currentHistory
+                });
+                return;
+            }
+
+            toast.success('CV baru berhasil digenerate!');
+            if (data.redirect_url) {
+                router.visit(data.redirect_url);
+            }
+        } catch (error: any) {
+            toast.error(error.message || 'Gagal regenerate CV.');
+        } finally {
+            setIsRegenerating(false);
+        }
     };
 
     const handleSolveSuggestion = async (suggestion: string) => {
         if (solvingSuggestion) return;
-        setSolvingSuggestion(suggestion);
+        await handleSolveSuggestionWithAnswers([suggestion], [], []);
+    };
+
+    const handleSolveSelected = async () => {
+        if (selectedSuggestions.length === 0 || solvingSuggestion) return;
+        await handleSolveSuggestionWithAnswers(selectedSuggestions, [], []);
+    };
+
+    const handleSolveSuggestionWithAnswers = async (suggestions: string[], currentAnswers: string[], currentHistory: Array<{ question: string; answer: string }>) => {
+        setSolvingSuggestion(suggestions.length > 1 ? 'bulk' : suggestions[0]);
         try {
             const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/solve-suggestion`, {
@@ -728,64 +842,43 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     'X-CSRF-TOKEN': csrfToken
                 },
                 body: JSON.stringify({
-                    suggestion,
-                    cv_data: state.cvData
+                    suggestions,
+                    cv_data: state.cvData,
+                    clarification_answers: currentHistory
                 })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to resolve suggestion');
 
+            if (data.need_clarification) {
+                setClarification({
+                    isOpen: true,
+                    questions: data.questions,
+                    answers: data.questions.map(() => ''),
+                    actionType: 'solve-suggestion',
+                    payload: { suggestions },
+                    history: currentHistory
+                });
+                return;
+            }
+
             // Update local CV data reducer state
             dispatch({ type: 'SET_CV_DATA', payload: data.cv_data });
-            // Remove from selected list if present
-            setSelectedSuggestions(prev => prev.filter(s => s !== suggestion));
+            // Clear selection list / selected item
+            if (suggestions.length > 1) {
+                setSelectedSuggestions([]);
+            } else {
+                setSelectedSuggestions(prev => prev.filter(s => s !== suggestions[0]));
+            }
             // Increment key to reload the live preview iframe
             setPreviewKey(prev => prev + 1);
             
-            toast.success('Saran perbaikan berhasil diselesaikan!');
+            toast.success(suggestions.length > 1 ? 'Semua saran perbaikan terpilih berhasil diselesaikan!' : 'Saran perbaikan berhasil diselesaikan!');
 
             // Reload Inertia props to sync the DB status/scores and profile details
             router.reload({ only: ['cvGeneration', 'profileData'] });
         } catch (error: any) {
             toast.error(error.message || 'Gagal menyelesaikan saran perbaikan.');
-        } finally {
-            setSolvingSuggestion(null);
-        }
-    };
-
-    const handleSolveSelected = async () => {
-        if (selectedSuggestions.length === 0 || solvingSuggestion) return;
-        setSolvingSuggestion('bulk');
-        try {
-            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/solve-suggestion`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: JSON.stringify({
-                    suggestions: selectedSuggestions,
-                    cv_data: state.cvData
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to resolve suggestions');
-
-            // Update local CV data reducer state
-            dispatch({ type: 'SET_CV_DATA', payload: data.cv_data });
-            // Clear selection list
-            setSelectedSuggestions([]);
-            // Increment key to reload the live preview iframe
-            setPreviewKey(prev => prev + 1);
-            
-            toast.success('Semua saran perbaikan terpilih berhasil diselesaikan!');
-
-            // Reload Inertia props to sync the DB status/scores and profile details
-            router.reload({ only: ['cvGeneration', 'profileData'] });
-        } catch (error: any) {
-            toast.error(error.message || 'Gagal menyelesaikan saran perbaikan terpilih.');
         } finally {
             setSolvingSuggestion(null);
         }
@@ -1109,6 +1202,108 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                 )}
                             </ul>
                         </div>
+
+                        {/* Contact Information Override */}
+                        <Card className="border-neutral-200 dark:border-neutral-800">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                    <Building2 className="h-4 w-4 text-violet-500" />
+                                    Informasi Kontak (Header CV)
+                                </CardTitle>
+                                <CardDescription className="text-xs">
+                                    Sesuaikan detail kontak utama yang akan tampil pada bagian atas lembar CV Anda.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0 space-y-4">
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_name" className="text-xs font-semibold">Nama Lengkap</Label>
+                                        <Input
+                                            id="contact_name"
+                                            value={state.cvData.contact_name !== undefined && state.cvData.contact_name !== null ? state.cvData.contact_name : profileData.name}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_name', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="Masukkan Nama Lengkap..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_title" className="text-xs font-semibold">Gelar Profesional / Jabatan</Label>
+                                        <Input
+                                            id="contact_title"
+                                            value={state.cvData.contact_title !== undefined && state.cvData.contact_title !== null ? state.cvData.contact_title : profileData.title}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_title', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="e.g. AI Engineer & Full-Stack Developer"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_location" className="text-xs font-semibold">Lokasi / Domisili</Label>
+                                        <Input
+                                            id="contact_location"
+                                            value={state.cvData.contact_location !== undefined && state.cvData.contact_location !== null ? state.cvData.contact_location : profileData.location}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_location', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="e.g. Indonesia"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_phone" className="text-xs font-semibold">Nomor Telepon</Label>
+                                        <Input
+                                            id="contact_phone"
+                                            value={state.cvData.contact_phone !== undefined && state.cvData.contact_phone !== null ? state.cvData.contact_phone : profileData.phone}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_phone', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="e.g. +62 812-3456-7890"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_email" className="text-xs font-semibold">Alamat Email</Label>
+                                        <Input
+                                            id="contact_email"
+                                            type="email"
+                                            value={state.cvData.contact_email !== undefined && state.cvData.contact_email !== null ? state.cvData.contact_email : profileData.email}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_email', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="e.g. reza@example.com"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_linkedin" className="text-xs font-semibold">LinkedIn URL</Label>
+                                        <Input
+                                            id="contact_linkedin"
+                                            value={state.cvData.contact_linkedin !== undefined && state.cvData.contact_linkedin !== null ? state.cvData.contact_linkedin : profileData.linkedin}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_linkedin', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="linkedin.com/in/..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_github" className="text-xs font-semibold">GitHub URL</Label>
+                                        <Input
+                                            id="contact_github"
+                                            value={state.cvData.contact_github !== undefined && state.cvData.contact_github !== null ? state.cvData.contact_github : profileData.github}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_github', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="github.com/..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="contact_website" className="text-xs font-semibold">Website / Portofolio URL</Label>
+                                        <Input
+                                            id="contact_website"
+                                            value={state.cvData.contact_website !== undefined && state.cvData.contact_website !== null ? state.cvData.contact_website : profileData.website}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'contact_website', value: e.target.value })}
+                                            className="h-9 text-xs sm:text-sm"
+                                            placeholder="rezaedisaputra.com"
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* Professional Summary */}
                         <Card className="border-neutral-200 dark:border-neutral-800">
@@ -1765,22 +1960,100 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Clarification Dialog */}
+            <Dialog open={clarification?.isOpen || false} onOpenChange={(open) => !open && setClarification(null)}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" />
+                            Validasi Data Tambahan
+                        </DialogTitle>
+                        <DialogDescription>
+                            AI membutuhkan informasi tambahan untuk membuat atau menyelesaikan bagian ini dengan lebih baik. Silakan jawab pertanyaan di bawah ini:
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
+                        {clarification?.questions.map((question, index) => (
+                            <div key={index} className="space-y-2">
+                                <Label className="text-xs sm:text-sm font-semibold block text-neutral-800 dark:text-neutral-200">
+                                    {index + 1}. {question}
+                                </Label>
+                                <Input
+                                    value={clarification.answers[index] || ''}
+                                    onChange={(e) => {
+                                        const newAnswers = [...clarification.answers];
+                                        newAnswers[index] = e.target.value;
+                                        setClarification({ ...clarification, answers: newAnswers });
+                                    }}
+                                    placeholder="Jawab atau kosongkan jika ingin AI melompati..."
+                                    className="w-full text-xs sm:text-sm"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => setClarification(null)}>
+                            Batal
+                        </Button>
+                        <Button 
+                            className="bg-violet-600 hover:bg-violet-700" 
+                            size="sm"
+                            onClick={() => {
+                                if (!clarification) return;
+                                const newHistory = [...clarification.history];
+                                clarification.questions.forEach((q, idx) => {
+                                    newHistory.push({
+                                        question: q,
+                                        answer: clarification.answers[idx] || ''
+                                    });
+                                });
+                                const answers = clarification.answers;
+                                const type = clarification.actionType;
+                                const payload = clarification.payload;
+                                setClarification(null);
+                                
+                                if (type === 'regenerate') {
+                                    performRegenerate(answers, newHistory);
+                                } else if (type === 'generate-item') {
+                                    handleGenerateItem(payload.sectionIndex, payload.sourceType, payload.sourceId, payload.replaceItemIndex, answers, newHistory);
+                                } else if (type === 'generate-custom-item') {
+                                    handleGenerateCustomItemWithAnswers(payload.sectionIndex, payload.sectionType, payload.title, payload.subtitle, payload.rawInput, answers, newHistory);
+                                } else if (type === 'solve-suggestion') {
+                                    handleSolveSuggestionWithAnswers(payload.suggestions, answers, newHistory);
+                                }
+                            }}
+                        >
+                            Lanjutkan
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
 
 const copyCvMarkdown = (cvData: CvData, profileData: ProfileData) => {
-    let md = `# ${profileData.name}\n`;
-    if (profileData.title) {
-        md += `### ${profileData.title}\n\n`;
+    const name = cvData.contact_name !== undefined && cvData.contact_name !== null ? cvData.contact_name : profileData.name;
+    const title = cvData.contact_title !== undefined && cvData.contact_title !== null ? cvData.contact_title : profileData.title;
+    const email = cvData.contact_email !== undefined && cvData.contact_email !== null ? cvData.contact_email : profileData.email;
+    const phone = cvData.contact_phone !== undefined && cvData.contact_phone !== null ? cvData.contact_phone : profileData.phone;
+    const location = cvData.contact_location !== undefined && cvData.contact_location !== null ? cvData.contact_location : profileData.location;
+    const website = cvData.contact_website !== undefined && cvData.contact_website !== null ? cvData.contact_website : profileData.website;
+    const linkedin = cvData.contact_linkedin !== undefined && cvData.contact_linkedin !== null ? cvData.contact_linkedin : profileData.linkedin;
+    const github = cvData.contact_github !== undefined && cvData.contact_github !== null ? cvData.contact_github : profileData.github;
+
+    let md = `# ${name}\n`;
+    if (title) {
+        md += `### ${title}\n\n`;
     }
     const contacts: string[] = [];
-    if (profileData.email) contacts.push(`Email: ${profileData.email}`);
-    if (profileData.phone) contacts.push(`Phone: ${profileData.phone}`);
-    if (profileData.location) contacts.push(`Location: ${profileData.location}`);
-    if (profileData.website) contacts.push(`Website: ${profileData.website}`);
-    if (profileData.linkedin) contacts.push(`LinkedIn: ${profileData.linkedin}`);
-    if (profileData.github) contacts.push(`GitHub: ${profileData.github}`);
+    if (email) contacts.push(`Email: ${email}`);
+    if (phone) contacts.push(`Phone: ${phone}`);
+    if (location) contacts.push(`Location: ${location}`);
+    if (website) contacts.push(`Website: ${website}`);
+    if (linkedin) contacts.push(`LinkedIn: ${linkedin}`);
+    if (github) contacts.push(`GitHub: ${github}`);
     
     md += contacts.join(" | ") + "\n\n---\n\n";
     

@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StoreProjectRequest extends FormRequest
 {
@@ -13,15 +16,15 @@ class StoreProjectRequest extends FormRequest
 
     protected function prepareForValidation()
     {
-        $baseSlug = $this->slug ?: \Illuminate\Support\Str::slug($this->title_en ?? $this->title_id);
+        $baseSlug = $this->slug ?: Str::slug($this->title_en ?? $this->title_id);
         if ($baseSlug) {
             $slug = $baseSlug;
             $count = 1;
 
             $projectId = $this->route('project')?->id;
 
-            while (\App\Models\Project::where('slug', $slug)->when($projectId, fn($q) => $q->where('id', '!=', $projectId))->exists()) {
-                $slug = $baseSlug . '-' . $count;
+            while (Project::where('slug', $slug)->when($projectId, fn ($q) => $q->where('id', '!=', $projectId))->exists()) {
+                $slug = $baseSlug.'-'.$count;
                 $count++;
             }
 
@@ -38,7 +41,7 @@ class StoreProjectRequest extends FormRequest
         return [
             'title_id' => ['required', 'string', 'max:255'],
             'title_en' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', \Illuminate\Validation\Rule::unique('projects', 'slug')->ignore($projectId)],
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('projects', 'slug')->ignore($projectId)],
             'excerpt_id' => ['nullable', 'string', 'max:1000'],
             'excerpt_en' => ['nullable', 'string', 'max:1000'],
             'problem_id' => ['nullable', 'string'],

@@ -17,11 +17,11 @@ return new class extends Migration
             'careers',
             'educations',
             'organizations',
-            'achievements'
+            'achievements',
         ];
 
         foreach ($tables as $table) {
-            if (Schema::hasTable($table) && !Schema::hasColumn($table, 'show_in_cv')) {
+            if (Schema::hasTable($table) && ! Schema::hasColumn($table, 'show_in_cv')) {
                 Schema::table($table, function (Blueprint $table) {
                     $table->boolean('show_in_cv')->default(true)->after('id');
                 });
@@ -40,7 +40,7 @@ return new class extends Migration
             'careers',
             'educations',
             'organizations',
-            'achievements'
+            'achievements',
         ];
 
         foreach ($tables as $table) {

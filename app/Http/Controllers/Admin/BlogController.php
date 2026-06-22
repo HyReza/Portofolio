@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\DTOs\BlogDTO;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreBlogRequest;
 use App\Models\Blog;
 use App\Models\BlogTag;
 use App\Services\BlogService;
 use App\Services\MediaService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -84,7 +87,7 @@ class BlogController extends Controller
             ->with('success', 'Blog post deleted successfully.');
     }
 
-    public function storeTag(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    public function storeTag(Request $request): JsonResponse
     {
         $request->validate([
             'name_id' => 'required|string|max:50',
@@ -94,12 +97,12 @@ class BlogController extends Controller
         $tag = BlogTag::create([
             'name_id' => $request->name_id,
             'name_en' => $request->name_en,
-            'slug' => \Illuminate\Support\Str::slug($request->name_en),
+            'slug' => Str::slug($request->name_en),
         ]);
 
         return response()->json([
             'message' => 'Tag created successfully',
-            'tag' => $tag
+            'tag' => $tag,
         ]);
     }
 }

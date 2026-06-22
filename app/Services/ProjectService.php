@@ -53,6 +53,7 @@ class ProjectService
     public function update(Project $project, ProjectDTO $dto): Project
     {
         $project->update($dto->toArray());
+
         return $project->fresh();
     }
 

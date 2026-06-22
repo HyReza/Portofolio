@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LinkedinPost;
+use App\Models\Profile;
 use Inertia\Inertia;
 
 class LinkedinController extends Controller
@@ -13,7 +14,7 @@ class LinkedinController extends Controller
             ->orderByDesc('published_at')
             ->get();
 
-        $stats = \App\Models\Profile::whereIn('key', ['li_username', 'li_bio'])
+        $stats = Profile::whereIn('key', ['li_username', 'li_bio'])
             ->get()
             ->pluck('value_en', 'key');
 

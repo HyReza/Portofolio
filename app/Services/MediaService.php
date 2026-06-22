@@ -5,6 +5,8 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class MediaService
 {
@@ -13,7 +15,7 @@ class MediaService
      */
     public function upload(UploadedFile $file, string $directory = 'uploads'): array
     {
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
         $path = $file->storeAs($directory, $filename, 'public');
 
         $result = [
@@ -24,14 +26,14 @@ class MediaService
         ];
 
         // Auto-convert images to WebP if Intervention Image is available
-        if ($this->isImage($file) && class_exists(\Intervention\Image\ImageManager::class)) {
+        if ($this->isImage($file) && class_exists(ImageManager::class)) {
             try {
                 $result['webp_path'] = $this->convertToWebp($path, $directory);
             } catch (\Exception $e) {
                 // Silently fail — original image is still available
                 report($e);
             }
-        } else if ($this->isImage($file)) {
+        } elseif ($this->isImage($file)) {
             // Fallback: Native PHP GD Compression & Resizing
             try {
                 $this->compressNativeImage(Storage::disk('public')->path($path), $file->getMimeType());
@@ -49,18 +51,18 @@ class MediaService
      */
     protected function convertToWebp(string $originalPath, string $directory): ?string
     {
-        $manager = new \Intervention\Image\ImageManager(
-            new \Intervention\Image\Drivers\Gd\Driver()
+        $manager = new ImageManager(
+            new Driver
         );
 
         $fullPath = Storage::disk('public')->path($originalPath);
-        $webpFilename = pathinfo($originalPath, PATHINFO_FILENAME) . '.webp';
-        $webpPath = $directory . '/webp/' . $webpFilename;
+        $webpFilename = pathinfo($originalPath, PATHINFO_FILENAME).'.webp';
+        $webpPath = $directory.'/webp/'.$webpFilename;
         $webpFullPath = Storage::disk('public')->path($webpPath);
 
         // Ensure directory exists
         $webpDir = dirname($webpFullPath);
-        if (!is_dir($webpDir)) {
+        if (! is_dir($webpDir)) {
             mkdir($webpDir, 0755, true);
         }
 
@@ -77,10 +79,14 @@ class MediaService
      */
     protected function compressNativeImage(string $fullPath, string $mime): void
     {
-        if (!in_array($mime, ['image/jpeg', 'image/png'])) return;
+        if (! in_array($mime, ['image/jpeg', 'image/png'])) {
+            return;
+        }
 
         $image = $mime === 'image/jpeg' ? @imagecreatefromjpeg($fullPath) : @imagecreatefrompng($fullPath);
-        if ($image === false) return;
+        if ($image === false) {
+            return;
+        }
 
         $width = imagesx($image);
         $height = imagesy($image);
@@ -89,10 +95,10 @@ class MediaService
         // Resize if too large
         if ($width > $maxWidth) {
             $newWidth = $maxWidth;
-            $newHeight = (int)($height * ($maxWidth / $width));
-            
+            $newHeight = (int) ($height * ($maxWidth / $width));
+
             $resized = imagecreatetruecolor($newWidth, $newHeight);
-            
+
             // Preserve transparency for PNG
             if ($mime === 'image/png') {
                 imagealphablending($resized, false);
@@ -100,7 +106,7 @@ class MediaService
                 $transparent = imagecolorallocatealpha($resized, 255, 255, 255, 127);
                 imagefilledrectangle($resized, 0, 0, $newWidth, $newHeight, $transparent);
             }
-            
+
             imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
             imagedestroy($image);
             $image = $resized;
@@ -109,10 +115,10 @@ class MediaService
         // Save compressed image back to disk
         if ($mime === 'image/jpeg') {
             imagejpeg($image, $fullPath, 85); // 85% high quality
-        } else if ($mime === 'image/png') {
+        } elseif ($mime === 'image/png') {
             imagepng($image, $fullPath, 8); // PNG compression 0-9
         }
-        
+
         imagedestroy($image);
     }
 

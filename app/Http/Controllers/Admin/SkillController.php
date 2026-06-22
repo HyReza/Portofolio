@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\SkillCategory;
 use App\Models\Skill;
+use App\Models\SkillCategory;
 use App\Services\SkillService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

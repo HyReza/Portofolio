@@ -1240,7 +1240,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BlfYyqo1.css",
+    "file": "assets/app-Bxz7N8v4.css",
     "name": "app",
     "names": [
       "app.css"
@@ -1249,7 +1249,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-OvRVysqT.js",
+    "file": "assets/app-DuVXsGeP.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1606,7 +1606,7 @@
     ]
   },
   "resources/js/pages/admin/cv-generator/editor.tsx": {
-    "file": "assets/editor-DV3AitVk.js",
+    "file": "assets/editor-vI5-7JfD.js",
     "name": "editor",
     "src": "resources/js/pages/admin/cv-generator/editor.tsx",
     "isDynamicEntry": true,
@@ -1620,6 +1620,7 @@
       "_button-D8R8OYkk.js",
       "_createLucideIcon-CHMWCBs6.js",
       "_arrow-left-BS600l2g.js",
+      "_building-2-BzRVoZfv.js",
       "_check-B0LsQEaf.js",
       "_chevron-down-Cp7w6EcZ.js",
       "_chevron-up-yzWoy5kL.js",
@@ -1647,7 +1648,7 @@
     ]
   },
   "resources/js/pages/admin/cv-generator/index.tsx": {
-    "file": "assets/cv-generator-C8gvqcZw.js",
+    "file": "assets/cv-generator-DJTVYpCG.js",
     "name": "cv-generator",
     "src": "resources/js/pages/admin/cv-generator/index.tsx",
     "isDynamicEntry": true,

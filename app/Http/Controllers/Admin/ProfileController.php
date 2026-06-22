@@ -59,7 +59,7 @@ class ProfileController extends Controller
         $key = $request->input('key', 'profile_photo');
 
         $result = $this->mediaService->upload($request->file('photo'), 'profile');
-        $photoPath = '/storage/' . $result['path'];
+        $photoPath = '/storage/'.$result['path'];
 
         // Save to both value_id and value_en (same photo for both languages)
         $this->profileService->upsert($key, [

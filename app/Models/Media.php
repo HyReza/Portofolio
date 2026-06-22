@@ -35,12 +35,12 @@ class Media extends Model
 
     public function getUrlAttribute(): string
     {
-        return asset('storage/' . $this->path);
+        return asset('storage/'.$this->path);
     }
 
     public function getWebpUrlAttribute(): ?string
     {
-        return $this->webp_path ? asset('storage/' . $this->webp_path) : null;
+        return $this->webp_path ? asset('storage/'.$this->webp_path) : null;
     }
 
     /**

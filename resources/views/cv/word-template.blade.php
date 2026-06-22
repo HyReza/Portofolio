@@ -198,29 +198,38 @@
             @php
                 $parts = [];
                 if (!empty($location)) $parts[] = e($location);
-                if (!empty($phone)) $parts[] = e($phone);
+                if (!empty($phone)) {
+                    $waNumber = preg_replace('/[\s\-\(\)]+/', '', $phone);
+                    if (str_starts_with($waNumber, '+')) {
+                        $waNumber = substr($waNumber, 1);
+                    }
+                    $parts[] = "<a href='https://wa.me/" . e($waNumber) . "'>" . e($phone) . "</a>";
+                }
                 if (!empty($email)) $parts[] = "<a href='mailto:{$email}'>{$email}</a>";
                 if (!empty($linkedin)) {
                     $cleanLinkedin = rtrim(preg_replace('#^https?://(www\.)?#', '', $linkedin), '/');
-                    $parts[] = "<a href='{$linkedin}'>{$cleanLinkedin}</a>";
+                    $linkedinUrl = $linkedin;
+                    if (!preg_match('#^https?://#', $linkedinUrl)) {
+                        $linkedinUrl = 'https://' . $linkedinUrl;
+                    }
+                    $parts[] = "<a href='" . e($linkedinUrl) . "'>" . e($cleanLinkedin) . "</a>";
                 }
                 if (!empty($github)) {
                     $cleanGithub = rtrim(preg_replace('#^https?://(www\.)?#', '', $github), '/');
-                    $parts[] = "<a href='{$github}'>{$cleanGithub}</a>";
+                    $githubUrl = $github;
+                    if (!preg_match('#^https?://#', $githubUrl)) {
+                        $githubUrl = 'https://' . $githubUrl;
+                    }
+                    $parts[] = "<a href='" . e($githubUrl) . "'>" . e($cleanGithub) . "</a>";
                 }
-                
-                // Enforce portfolio URL
-                $webUrl = 'https://www.rezaedisaputra.com/';
                 if (!empty($website)) {
                     $webUrl = $website;
                     if (!preg_match('#^https?://#', $webUrl)) {
                         $webUrl = 'https://' . $webUrl;
                     }
+                    $cleanWeb = rtrim(preg_replace('#^https?://(www\.)?#', '', $webUrl), '/');
+                    $parts[] = "<a href='" . e($webUrl) . "'>" . e($cleanWeb) . "</a>";
                 }
-                if (str_contains($webUrl, 'rezaedisaputra.com')) {
-                    $webUrl = 'https://www.rezaedisaputra.com/';
-                }
-                $parts[] = "<a href='{$webUrl}'>{$webUrl}</a>";
             @endphp
             {!! implode(' <span class="cv-contact-separator"> &bull; </span> ', $parts) !!}
         </p>

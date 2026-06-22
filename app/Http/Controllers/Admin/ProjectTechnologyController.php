@@ -34,7 +34,7 @@ class ProjectTechnologyController extends Controller
     public function update(Request $request, ProjectTechnology $technology): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:project_technologies,name,' . $technology->id,
+            'name' => 'required|string|max:255|unique:project_technologies,name,'.$technology->id,
         ]);
 
         $technology->update($validated);

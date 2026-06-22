@@ -21,10 +21,10 @@ class TranslationController extends Controller
             $target = $request->target;
             $text = $request->text;
 
-            $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl={$source}&tl={$target}&dt=t&q=" . urlencode($text);
-            
+            $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl={$source}&tl={$target}&dt=t&q=".urlencode($text);
+
             $response = Http::withoutVerifying()->timeout(10)->get($url);
-            
+
             if ($response->successful()) {
                 $result = $response->json();
                 $translatedText = '';
@@ -36,22 +36,22 @@ class TranslationController extends Controller
                         }
                     }
                 }
-                
+
                 return response()->json([
                     'success' => true,
-                    'translated' => trim($translatedText)
+                    'translated' => trim($translatedText),
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to connect to Google Translate.'
+                'message' => 'Failed to connect to Google Translate.',
             ], 500);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

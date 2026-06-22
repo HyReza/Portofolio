@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\LinkedinPost;
+use App\Models\Profile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,7 +14,7 @@ class LinkedinController extends Controller
 {
     public function index(): Response
     {
-        $stats = \App\Models\Profile::whereIn('key', ['li_username', 'li_bio'])
+        $stats = Profile::whereIn('key', ['li_username', 'li_bio'])
             ->get()
             ->pluck('value_en', 'key');
 
@@ -26,14 +27,14 @@ class LinkedinController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'post_url'       => ['required', 'url', 'max:500'],
-            'title'          => ['nullable', 'string', 'max:255'],
-            'description'    => ['nullable', 'string', 'max:1000'],
-            'thumbnail'      => ['nullable', 'string', 'max:1000'],
-            'likes_count'    => ['nullable', 'integer', 'min:0'],
+            'post_url' => ['required', 'url', 'max:500'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'thumbnail' => ['nullable', 'string', 'max:1000'],
+            'likes_count' => ['nullable', 'integer', 'min:0'],
             'comments_count' => ['nullable', 'integer', 'min:0'],
-            'published_at'   => ['nullable', 'date'],
-            'is_active'      => ['boolean'],
+            'published_at' => ['nullable', 'date'],
+            'is_active' => ['boolean'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -45,14 +46,14 @@ class LinkedinController extends Controller
     public function update(Request $request, LinkedinPost $linkedin): RedirectResponse
     {
         $validated = $request->validate([
-            'post_url'       => ['required', 'url', 'max:500'],
-            'title'          => ['nullable', 'string', 'max:255'],
-            'description'    => ['nullable', 'string', 'max:1000'],
-            'thumbnail'      => ['nullable', 'string', 'max:1000'],
-            'likes_count'    => ['nullable', 'integer', 'min:0'],
+            'post_url' => ['required', 'url', 'max:500'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'thumbnail' => ['nullable', 'string', 'max:1000'],
+            'likes_count' => ['nullable', 'integer', 'min:0'],
             'comments_count' => ['nullable', 'integer', 'min:0'],
-            'published_at'   => ['nullable', 'date'],
-            'is_active'      => ['boolean'],
+            'published_at' => ['nullable', 'date'],
+            'is_active' => ['boolean'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -64,6 +65,7 @@ class LinkedinController extends Controller
     public function destroy(LinkedinPost $linkedin): RedirectResponse
     {
         $linkedin->delete();
+
         return back()->with('success', 'LinkedIn post deleted.');
     }
 }

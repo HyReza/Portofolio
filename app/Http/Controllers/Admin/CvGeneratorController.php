@@ -3,13 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Achievement;
+use App\Models\Career;
+use App\Models\Certificate;
 use App\Models\CvGeneration;
 use App\Models\CvSection;
+use App\Models\Education;
+use App\Models\Organization;
+use App\Models\Project;
 use App\Services\CvGeneratorService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -46,17 +52,17 @@ class CvGeneratorController extends Controller
         $profileData = $this->cvGeneratorService->getProfileData();
         foreach ($generations as $cvGeneration) {
             $metrics = $this->cvGeneratorService->calculateAtsScoreAndSuggestions($cvGeneration->cv_data ?? [], $profileData, $cvGeneration->language);
-            if ($cvGeneration->ats_score !== $metrics['score'] || 
+            if ($cvGeneration->ats_score !== $metrics['score'] ||
                 ($cvGeneration->cv_data['ats_match_score'] ?? null) !== $metrics['score']) {
-                
+
                 $cvData = $cvGeneration->cv_data;
                 $cvData['ats_match_score'] = $metrics['score'];
                 $cvData['improvement_suggestions'] = $metrics['suggestions'];
                 $cvData['matched_keywords'] = $metrics['matched_keywords'];
-                
+
                 $cvGeneration->update([
                     'ats_score' => $metrics['score'],
-                    'cv_data' => $cvData
+                    'cv_data' => $cvData,
                 ]);
             }
         }
@@ -73,7 +79,7 @@ class CvGeneratorController extends Controller
     /**
      * AI generate a new CV.
      */
-    public function generate(Request $request): RedirectResponse
+    public function generate(Request $request)
     {
         $validated = $request->validate([
             'job_title' => ['required', 'string', 'max:500'],
@@ -81,6 +87,7 @@ class CvGeneratorController extends Controller
             'job_description' => ['required', 'string', 'min:50'],
             'job_url' => ['nullable', 'url', 'max:2048'],
             'language' => ['required', 'in:en,id'],
+            'clarification_answers' => ['nullable', 'array'],
         ]);
 
         $result = $this->cvGeneratorService->generateCv(
@@ -89,9 +96,27 @@ class CvGeneratorController extends Controller
             language: $validated['language'],
             companyName: $validated['company_name'] ?? null,
             jobUrl: $validated['job_url'] ?? null,
+            clarificationAnswers: $validated['clarification_answers'] ?? null,
         );
 
-        if (!$result['success']) {
+        if ($request->wantsJson() || $request->ajax()) {
+            if (! $result['success']) {
+                return response()->json(['error' => $result['error']], 500);
+            }
+            if (isset($result['need_clarification']) && $result['need_clarification'] === true) {
+                return response()->json([
+                    'need_clarification' => true,
+                    'questions' => $result['questions'],
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('admin.cv-generator.show', $result['cv_generation']->id),
+            ]);
+        }
+
+        if (! $result['success']) {
             return back()->with('error', $result['error'])->withInput();
         }
 
@@ -111,56 +136,56 @@ class CvGeneratorController extends Controller
 
         // Automatically sync the ATS score to the database if there's any mismatch (for older/existing CVs)
         $metrics = $this->cvGeneratorService->calculateAtsScoreAndSuggestions($cvGeneration->cv_data, $profileData, $cvGeneration->language);
-        if ($cvGeneration->ats_score !== $metrics['score'] || 
+        if ($cvGeneration->ats_score !== $metrics['score'] ||
             ($cvGeneration->cv_data['ats_match_score'] ?? null) !== $metrics['score']) {
-            
+
             $cvData = $cvGeneration->cv_data;
             $cvData['ats_match_score'] = $metrics['score'];
             $cvData['improvement_suggestions'] = $metrics['suggestions'];
             $cvData['matched_keywords'] = $metrics['matched_keywords'];
-            
+
             $cvGeneration->update([
                 'ats_score' => $metrics['score'],
-                'cv_data' => $cvData
+                'cv_data' => $cvData,
             ]);
         }
 
         $references = [
-            'career' => \App\Models\Career::orderBy('sort_order')->get()->map(fn($m) => [
+            'career' => Career::orderBy('sort_order')->get()->map(fn ($m) => [
                 'id' => $m->id,
                 'title' => $m->position_en ?: $m->position_id,
                 'subtitle' => $m->company,
-                'date' => ($m->start_date?->format('M Y') ?? '') . ' - ' . ($m->is_current ? 'Present' : ($m->end_date?->format('M Y') ?? ''))
+                'date' => ($m->start_date?->format('M Y') ?? '').' - '.($m->is_current ? 'Present' : ($m->end_date?->format('M Y') ?? '')),
             ]),
-            'project' => \App\Models\Project::orderBy('published_at', 'desc')->get()->map(fn($m) => [
+            'project' => Project::orderBy('published_at', 'desc')->get()->map(fn ($m) => [
                 'id' => $m->id,
                 'title' => $m->title_en ?: $m->title_id,
                 'subtitle' => is_array($m->tech_stack) ? implode(', ', $m->tech_stack) : '',
-                'date' => $m->published_at?->format('Y') ?? ''
+                'date' => $m->published_at?->format('Y') ?? '',
             ]),
-            'education' => \App\Models\Education::orderBy('sort_order')->get()->map(fn($m) => [
+            'education' => Education::orderBy('sort_order')->get()->map(fn ($m) => [
                 'id' => $m->id,
                 'title' => $m->institution,
                 'subtitle' => $m->degree_en ?: $m->degree,
-                'date' => ($m->start_date?->format('Y') ?? '') . ' - ' . ($m->end_date?->format('Y') ?? '')
+                'date' => ($m->start_date?->format('Y') ?? '').' - '.($m->end_date?->format('Y') ?? ''),
             ]),
-            'certificate' => \App\Models\Certificate::orderBy('sort_order')->get()->map(fn($m) => [
+            'certificate' => Certificate::orderBy('sort_order')->get()->map(fn ($m) => [
                 'id' => $m->id,
                 'title' => $m->title_en ?: $m->title,
                 'subtitle' => $m->issuer,
-                'date' => $m->issued_date?->format('M Y') ?? ''
+                'date' => $m->issued_date?->format('M Y') ?? '',
             ]),
-            'organization' => \App\Models\Organization::orderBy('sort_order')->get()->map(fn($m) => [
+            'organization' => Organization::orderBy('sort_order')->get()->map(fn ($m) => [
                 'id' => $m->id,
                 'title' => $m->role_en ?: $m->role,
                 'subtitle' => $m->name_en ?: $m->name,
-                'date' => ($m->start_date?->format('Y') ?? '') . ' - ' . ($m->end_date?->format('Y') ?? '')
+                'date' => ($m->start_date?->format('Y') ?? '').' - '.($m->end_date?->format('Y') ?? ''),
             ]),
-            'achievement' => \App\Models\Achievement::orderBy('sort_order')->get()->map(fn($m) => [
+            'achievement' => Achievement::orderBy('sort_order')->get()->map(fn ($m) => [
                 'id' => $m->id,
                 'title' => $m->title_en ?: $m->title_id,
                 'subtitle' => ucfirst($m->type),
-                'date' => $m->date?->format('M Y') ?? ''
+                'date' => $m->date?->format('M Y') ?? '',
             ]),
         ];
 
@@ -187,13 +212,39 @@ class CvGeneratorController extends Controller
             'cv_data.matched_keywords' => ['nullable', 'array'],
             'cv_data.matched_keywords.*' => ['string'],
             'cv_data.sections' => ['required', 'array'],
+            'cv_data.contact_name' => ['nullable', 'string', 'max:255'],
+            'cv_data.contact_title' => ['nullable', 'string', 'max:255'],
+            'cv_data.contact_email' => ['nullable', 'string', 'max:255'],
+            'cv_data.contact_phone' => ['nullable', 'string', 'max:255'],
+            'cv_data.contact_location' => ['nullable', 'string', 'max:255'],
+            'cv_data.contact_linkedin' => ['nullable', 'string', 'max:500'],
+            'cv_data.contact_github' => ['nullable', 'string', 'max:500'],
+            'cv_data.contact_website' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
+        $cvData = $validated['cv_data'];
+        $rawCvData = json_decode($request->getContent(), true)['cv_data'] ?? [];
+        $contactFields = [
+            'contact_name',
+            'contact_title',
+            'contact_email',
+            'contact_phone',
+            'contact_location',
+            'contact_linkedin',
+            'contact_github',
+            'contact_website',
+        ];
+        foreach ($contactFields as $field) {
+            if (array_key_exists($field, $rawCvData) && $rawCvData[$field] === '') {
+                $cvData[$field] = '';
+            }
+        }
+
         // Update cv_data JSON & sync ats_score
         $cvGeneration->update([
-            'cv_data' => $validated['cv_data'],
-            'ats_score' => $validated['cv_data']['ats_match_score'] ?? $cvGeneration->ats_score,
+            'cv_data' => $cvData,
+            'ats_score' => $cvData['ats_match_score'] ?? $cvGeneration->ats_score,
             'notes' => $validated['notes'] ?? $cvGeneration->notes,
         ]);
 
@@ -275,7 +326,7 @@ class CvGeneratorController extends Controller
      */
     public function download(Request $request, CvGeneration $cvGeneration)
     {
-        $cvGeneration->load(['sections' => fn($q) => $q->where('is_visible', true)->orderBy('sort_order'), 'sections.items' => fn($q) => $q->where('is_visible', true)->orderBy('sort_order')]);
+        $cvGeneration->load(['sections' => fn ($q) => $q->where('is_visible', true)->orderBy('sort_order'), 'sections.items' => fn ($q) => $q->where('is_visible', true)->orderBy('sort_order')]);
 
         $profileData = $this->cvGeneratorService->getProfileData();
         $cvData = $cvGeneration->cv_data;
@@ -300,27 +351,39 @@ class CvGeneratorController extends Controller
             ];
         }
 
+        // Helper: use cv_data override if explicitly set (even if empty string),
+        // only fall back to profileData if the key doesn't exist or is null in cv_data.
+        $contactVal = function (string $field, string $fallbackKey) use ($cvData, $profileData) {
+            if (array_key_exists($field, $cvData) && $cvData[$field] !== null) {
+                return $cvData[$field]; // user-set value (could be "" if cleared)
+            }
+
+            return $profileData[$fallbackKey] ?? '';
+        };
+
         $data = [
-            'name' => $profileData['name'],
-            'title' => $profileData['title'] ?? null,
-            'email' => $profileData['email'],
-            'phone' => $profileData['phone'],
-            'location' => $profileData['location'],
-            'linkedin' => $profileData['linkedin'],
-            'github' => $profileData['github'],
-            'website' => $profileData['website'],
+            'name' => $contactVal('contact_name', 'name'),
+            'title' => $contactVal('contact_title', 'title'),
+            'email' => $contactVal('contact_email', 'email'),
+            'phone' => $contactVal('contact_phone', 'phone'),
+            'location' => $contactVal('contact_location', 'location'),
+            'linkedin' => $contactVal('contact_linkedin', 'linkedin'),
+            'github' => $contactVal('contact_github', 'github'),
+            'website' => $contactVal('contact_website', 'website'),
             'summary' => $cvData['professional_summary'] ?? '',
             'sections' => $sections,
             'language' => $cvGeneration->language,
         ];
 
-        $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $profileData['name'] ?: 'CV');
+        $displayName = $cvData['contact_name'] ?? $profileData['name'];
+        $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $displayName ?: 'CV');
         $safeJob = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $cvGeneration->job_title);
 
         $format = $request->input('format', 'pdf');
 
         if ($format === 'json') {
             $filename = "{$safeName}_CV_{$safeJob}_{$cvGeneration->language}.json";
+
             return response()->json($data, 200, [
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
             ]);
@@ -329,6 +392,7 @@ class CvGeneratorController extends Controller
         if ($format === 'markdown' || $format === 'md') {
             $filename = "{$safeName}_CV_{$safeJob}_{$cvGeneration->language}.md";
             $markdown = $this->generateMarkdownContent($data);
+
             return response($markdown, 200, [
                 'Content-Type' => 'text/markdown',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
@@ -338,6 +402,7 @@ class CvGeneratorController extends Controller
         if ($format === 'word' || $format === 'doc' || $format === 'docx') {
             $filename = "{$safeName}_CV_{$safeJob}_{$cvGeneration->language}.doc";
             $html = view('cv.word-template', $data)->render();
+
             return response($html, 200, [
                 'Content-Type' => 'application/msword',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
@@ -370,82 +435,114 @@ class CvGeneratorController extends Controller
         $ids = $validated['ids'];
         $format = $validated['format'];
 
-        if (!class_exists('ZipArchive')) {
-            return back()->with('error', 'Ekstensi PHP ZipArchive tidak aktif pada server PHP Anda. Silakan aktifkan ekstensi "zip" (uncomment "extension=zip" di php.ini) untuk menggunakan fitur ekspor massal.');
+        if (! class_exists('ZipArchive')) {
+            $msg = 'Ekstensi PHP ZipArchive tidak aktif pada server PHP Anda. Silakan aktifkan ekstensi "zip" (uncomment "extension=zip" di php.ini) untuk menggunakan fitur ekspor massal.';
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json(['error' => $msg], 400);
+            }
+
+            return back()->with('error', $msg);
         }
 
-        $zipFileName = 'CV_Export_' . time() . '.zip';
-        $zipPath = storage_path('app/' . $zipFileName);
+        $zipFileName = 'CV_Export_'.time().'.zip';
+        $zipPath = storage_path('app/'.$zipFileName);
 
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-            return back()->with('error', 'Gagal membuat berkas ZIP.');
+            $msg = 'Gagal membuat berkas ZIP.';
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json(['error' => $msg], 500);
+            }
+
+            return back()->with('error', $msg);
         }
 
-        foreach ($ids as $id) {
-            $cvGeneration = CvGeneration::findOrFail($id);
-            $cvGeneration->load(['sections' => fn($q) => $q->where('is_visible', true)->orderBy('sort_order'), 'sections.items' => fn($q) => $q->where('is_visible', true)->orderBy('sort_order')]);
+        try {
+            foreach ($ids as $id) {
+                $cvGeneration = CvGeneration::findOrFail($id);
+                $cvGeneration->load(['sections' => fn ($q) => $q->where('is_visible', true)->orderBy('sort_order'), 'sections.items' => fn ($q) => $q->where('is_visible', true)->orderBy('sort_order')]);
 
-            $profileData = $this->cvGeneratorService->getProfileData();
-            $cvData = $cvGeneration->cv_data;
+                $profileData = $this->cvGeneratorService->getProfileData();
+                $cvData = $cvGeneration->cv_data;
 
-            $sections = [];
-            foreach ($cvGeneration->sections as $section) {
-                $items = [];
-                foreach ($section->items as $item) {
-                    $items[] = [
-                        'title' => $item->title,
-                        'subtitle' => $item->subtitle,
-                        'location' => $item->location,
-                        'bullets' => $item->bullets ?? [],
-                        'metadata' => $item->metadata ?? [],
+                $sections = [];
+                foreach ($cvGeneration->sections as $section) {
+                    $items = [];
+                    foreach ($section->items as $item) {
+                        $items[] = [
+                            'title' => $item->title,
+                            'subtitle' => $item->subtitle,
+                            'location' => $item->location,
+                            'bullets' => $item->bullets ?? [],
+                            'metadata' => $item->metadata ?? [],
+                        ];
+                    }
+                    $sections[] = [
+                        'type' => $section->type,
+                        'title' => $section->title,
+                        'items' => $items,
                     ];
                 }
-                $sections[] = [
-                    'type' => $section->type,
-                    'title' => $section->title,
-                    'items' => $items,
+
+                $contactVal = function (string $field, string $fallbackKey) use ($cvData, $profileData) {
+                    if (array_key_exists($field, $cvData) && $cvData[$field] !== null) {
+                        return $cvData[$field];
+                    }
+
+                    return $profileData[$fallbackKey] ?? '';
+                };
+
+                $data = [
+                    'name' => $contactVal('contact_name', 'name'),
+                    'title' => $contactVal('contact_title', 'title'),
+                    'email' => $contactVal('contact_email', 'email'),
+                    'phone' => $contactVal('contact_phone', 'phone'),
+                    'location' => $contactVal('contact_location', 'location'),
+                    'linkedin' => $contactVal('contact_linkedin', 'linkedin'),
+                    'github' => $contactVal('contact_github', 'github'),
+                    'website' => $contactVal('contact_website', 'website'),
+                    'summary' => $cvData['professional_summary'] ?? '',
+                    'sections' => $sections,
+                    'language' => $cvGeneration->language,
                 ];
+
+                $displayName = $contactVal('contact_name', 'name');
+                $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $displayName ?: 'CV');
+                $safeJob = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $cvGeneration->job_title);
+                $baseFilename = "{$safeName}_CV_{$safeJob}_{$cvGeneration->language}_{$cvGeneration->id}";
+
+                // PDF (Always included)
+                $pdf = Pdf::loadView('cv.ats-template', $data);
+                $pdf->setPaper('a4', 'portrait');
+                $zip->addFromString("{$baseFilename}.pdf", $pdf->output());
+
+                if ($format === 'all') {
+                    // Word
+                    $html = view('cv.word-template', $data)->render();
+                    $zip->addFromString("{$baseFilename}.doc", $html);
+
+                    // JSON
+                    $zip->addFromString("{$baseFilename}.json", json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+                    // Markdown
+                    $markdown = $this->generateMarkdownContent($data);
+                    $zip->addFromString("{$baseFilename}.md", $markdown);
+                }
             }
 
-            $data = [
-                'name' => $profileData['name'],
-                'title' => $profileData['title'] ?? null,
-                'email' => $profileData['email'],
-                'phone' => $profileData['phone'],
-                'location' => $profileData['location'],
-                'linkedin' => $profileData['linkedin'],
-                'github' => $profileData['github'],
-                'website' => $profileData['website'],
-                'summary' => $cvData['professional_summary'] ?? '',
-                'sections' => $sections,
-                'language' => $cvGeneration->language,
-            ];
-
-            $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $profileData['name'] ?: 'CV');
-            $safeJob = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $cvGeneration->job_title);
-            $baseFilename = "{$safeName}_CV_{$safeJob}_{$cvGeneration->language}_{$cvGeneration->id}";
-
-            // PDF (Always included)
-            $pdf = Pdf::loadView('cv.ats-template', $data);
-            $pdf->setPaper('a4', 'portrait');
-            $zip->addFromString("{$baseFilename}.pdf", $pdf->output());
-
-            if ($format === 'all') {
-                // Word
-                $html = view('cv.word-template', $data)->render();
-                $zip->addFromString("{$baseFilename}.doc", $html);
-
-                // JSON
-                $zip->addFromString("{$baseFilename}.json", json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-                // Markdown
-                $markdown = $this->generateMarkdownContent($data);
-                $zip->addFromString("{$baseFilename}.md", $markdown);
+            $zip->close();
+        } catch (\Exception $e) {
+            if (file_exists($zipPath)) {
+                @unlink($zipPath);
             }
+            \Log::error('Bulk export failed: '.$e->getMessage());
+            $msg = 'Gagal mengekspor beberapa CV: '.$e->getMessage();
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json(['error' => $msg], 500);
+            }
+
+            return back()->with('error', $msg);
         }
-
-        $zip->close();
 
         return response()->download($zipPath)->deleteFileAfterSend(true);
     }
@@ -481,57 +578,75 @@ class CvGeneratorController extends Controller
     private function generateMarkdownContent(array $data): string
     {
         $md = "# {$data['name']}\n";
-        if (!empty($data['title'])) {
+        if (! empty($data['title'])) {
             $md .= "### {$data['title']}\n\n";
         }
 
         $contacts = [];
-        if (!empty($data['email'])) $contacts[] = "Email: {$data['email']}";
-        if (!empty($data['phone'])) $contacts[] = "Phone: {$data['phone']}";
-        if (!empty($data['location'])) $contacts[] = "Location: {$data['location']}";
-        if (!empty($data['website'])) $contacts[] = "Website: {$data['website']}";
-        if (!empty($data['linkedin'])) $contacts[] = "LinkedIn: {$data['linkedin']}";
-        if (!empty($data['github'])) $contacts[] = "GitHub: {$data['github']}";
+        if (! empty($data['email'])) {
+            $contacts[] = "Email: {$data['email']}";
+        }
+        if (! empty($data['phone'])) {
+            $contacts[] = "Phone: {$data['phone']}";
+        }
+        if (! empty($data['location'])) {
+            $contacts[] = "Location: {$data['location']}";
+        }
+        if (! empty($data['website'])) {
+            $contacts[] = "Website: {$data['website']}";
+        }
+        if (! empty($data['linkedin'])) {
+            $contacts[] = "LinkedIn: {$data['linkedin']}";
+        }
+        if (! empty($data['github'])) {
+            $contacts[] = "GitHub: {$data['github']}";
+        }
 
-        $md .= implode(" | ", $contacts) . "\n\n";
+        $md .= implode(' | ', $contacts)."\n\n";
         $md .= "---\n\n";
 
-        if (!empty($data['summary'])) {
+        if (! empty($data['summary'])) {
             $md .= "## Professional Summary\n";
             $md .= "{$data['summary']}\n\n";
             $md .= "---\n\n";
         }
 
         foreach ($data['sections'] as $section) {
-            if (empty($section['items'])) continue;
-            
+            if (empty($section['items'])) {
+                continue;
+            }
+
             $md .= "## {$section['title']}\n\n";
-            
+
             if (in_array($section['type'], ['skills', 'soft_skills'])) {
                 foreach ($section['items'] as $item) {
-                    if (!empty($item['title'])) {
-                        if (!empty($item['subtitle'])) {
+                    if (! empty($item['title'])) {
+                        if (! empty($item['subtitle'])) {
                             $md .= "**{$item['title']}:** {$item['subtitle']}\n\n";
-                        } elseif (!empty($item['bullets'])) {
-                            $md .= "**{$item['title']}:** " . implode(', ', $item['bullets']) . "\n\n";
+                        } elseif (! empty($item['bullets'])) {
+                            $md .= "**{$item['title']}:** ".implode(', ', $item['bullets'])."\n\n";
                         } else {
                             $md .= "- {$item['title']}\n";
                         }
-                    } elseif (!empty($item['bullets'])) {
-                        $md .= "- " . implode(', ', $item['bullets']) . "\n\n";
+                    } elseif (! empty($item['bullets'])) {
+                        $md .= '- '.implode(', ', $item['bullets'])."\n\n";
                     }
                 }
             } else {
                 foreach ($section['items'] as $item) {
                     $md .= "### {$item['title']}\n";
-                    if (!empty($item['subtitle']) || !empty($item['location'])) {
+                    if (! empty($item['subtitle']) || ! empty($item['location'])) {
                         $sub = [];
-                        if (!empty($item['subtitle'])) $sub[] = $item['subtitle'];
-                        if (!empty($item['location'])) $sub[] = $item['location'];
-                        $md .= "*" . implode(" — ", $sub) . "*\n";
+                        if (! empty($item['subtitle'])) {
+                            $sub[] = $item['subtitle'];
+                        }
+                        if (! empty($item['location'])) {
+                            $sub[] = $item['location'];
+                        }
+                        $md .= '*'.implode(' — ', $sub)."*\n";
                     }
-                    
-                    if (!empty($item['bullets'])) {
+
+                    if (! empty($item['bullets'])) {
                         foreach ($item['bullets'] as $bullet) {
                             $md .= "- {$bullet}\n";
                         }
@@ -548,17 +663,39 @@ class CvGeneratorController extends Controller
     /**
      * Regenerate CV with same JD (creates new version).
      */
-    public function regenerate(CvGeneration $cvGeneration): RedirectResponse
+    public function regenerate(Request $request, CvGeneration $cvGeneration)
     {
+        $validated = $request->validate([
+            'clarification_answers' => ['nullable', 'array'],
+        ]);
+
         $result = $this->cvGeneratorService->generateCv(
             jobTitle: $cvGeneration->job_title,
             jobDescription: $cvGeneration->job_description,
             language: $cvGeneration->language,
             companyName: $cvGeneration->company_name,
             jobUrl: $cvGeneration->job_url,
+            clarificationAnswers: $validated['clarification_answers'] ?? null,
         );
 
-        if (!$result['success']) {
+        if ($request->wantsJson() || $request->ajax()) {
+            if (! $result['success']) {
+                return response()->json(['error' => $result['error']], 500);
+            }
+            if (isset($result['need_clarification']) && $result['need_clarification'] === true) {
+                return response()->json([
+                    'need_clarification' => true,
+                    'questions' => $result['questions'],
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('admin.cv-generator.show', $result['cv_generation']->id),
+            ]);
+        }
+
+        if (! $result['success']) {
             return back()->with('error', $result['error']);
         }
 
@@ -570,21 +707,30 @@ class CvGeneratorController extends Controller
     /**
      * Generate a single CV item from a reference.
      */
-    public function generateItem(Request $request, CvGeneration $cvGeneration): \Illuminate\Http\JsonResponse
+    public function generateItem(Request $request, CvGeneration $cvGeneration): JsonResponse
     {
         $validated = $request->validate([
             'source_type' => ['required', 'string', 'in:career,project,education,certificate,organization,achievement,skill,soft_skill'],
             'source_id' => ['required', 'integer'],
+            'clarification_answers' => ['nullable', 'array'],
         ]);
 
         $result = $this->cvGeneratorService->generateSingleItem(
             $cvGeneration,
             $validated['source_type'],
-            $validated['source_id']
+            $validated['source_id'],
+            $validated['clarification_answers'] ?? null
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json(['error' => $result['error']], 500);
+        }
+
+        if (isset($result['need_clarification']) && $result['need_clarification'] === true) {
+            return response()->json([
+                'need_clarification' => true,
+                'questions' => $result['questions'],
+            ]);
         }
 
         return response()->json(['item' => $result['item']]);
@@ -593,13 +739,14 @@ class CvGeneratorController extends Controller
     /**
      * Generate a new CV item using AI from custom raw input.
      */
-    public function generateCustomItem(Request $request, CvGeneration $cvGeneration): \Illuminate\Http\JsonResponse
+    public function generateCustomItem(Request $request, CvGeneration $cvGeneration): JsonResponse
     {
         $validated = $request->validate([
             'section_type' => ['required', 'string'],
             'title' => ['nullable', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'raw_input' => ['required', 'string', 'min:3', 'max:2000'],
+            'clarification_answers' => ['nullable', 'array'],
         ]);
 
         $result = $this->cvGeneratorService->generateCustomItem(
@@ -607,11 +754,19 @@ class CvGeneratorController extends Controller
             $validated['section_type'],
             $validated['title'] ?? null,
             $validated['subtitle'] ?? null,
-            $validated['raw_input']
+            $validated['raw_input'],
+            $validated['clarification_answers'] ?? null
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json(['error' => $result['error']], 500);
+        }
+
+        if (isset($result['need_clarification']) && $result['need_clarification'] === true) {
+            return response()->json([
+                'need_clarification' => true,
+                'questions' => $result['questions'],
+            ]);
         }
 
         return response()->json(['item' => $result['item']]);
@@ -620,26 +775,44 @@ class CvGeneratorController extends Controller
     /**
      * Solve a specific ATS suggestion.
      */
-    public function solveSuggestion(Request $request, CvGeneration $cvGeneration): \Illuminate\Http\JsonResponse
+    public function solveSuggestion(Request $request, CvGeneration $cvGeneration): JsonResponse
     {
         $validated = $request->validate([
             'suggestion' => ['nullable', 'string', 'max:1000'],
             'suggestions' => ['nullable', 'array'],
             'suggestions.*' => ['string', 'max:1000'],
             'cv_data' => ['nullable', 'array'],
+            'clarification_answers' => ['nullable', 'array'],
         ]);
 
-        if (!empty($validated['cv_data'])) {
+        if (! empty($validated['cv_data'])) {
+            $cvData = $validated['cv_data'];
+            $rawCvData = json_decode($request->getContent(), true)['cv_data'] ?? [];
+            $contactFields = [
+                'contact_name',
+                'contact_title',
+                'contact_email',
+                'contact_phone',
+                'contact_location',
+                'contact_linkedin',
+                'contact_github',
+                'contact_website',
+            ];
+            foreach ($contactFields as $field) {
+                if (array_key_exists($field, $rawCvData) && $rawCvData[$field] === '') {
+                    $cvData[$field] = '';
+                }
+            }
             $cvGeneration->update([
-                'cv_data' => $validated['cv_data']
+                'cv_data' => $cvData,
             ]);
         }
 
         $suggestionsToSolve = [];
-        if (!empty($validated['suggestion'])) {
+        if (! empty($validated['suggestion'])) {
             $suggestionsToSolve[] = $validated['suggestion'];
         }
-        if (!empty($validated['suggestions'])) {
+        if (! empty($validated['suggestions'])) {
             $suggestionsToSolve = array_merge($suggestionsToSolve, $validated['suggestions']);
         }
 
@@ -649,16 +822,24 @@ class CvGeneratorController extends Controller
 
         $result = $this->cvGeneratorService->solveSuggestions(
             $cvGeneration,
-            $suggestionsToSolve
+            $suggestionsToSolve,
+            $validated['clarification_answers'] ?? null
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json(['error' => $result['error']], 500);
+        }
+
+        if (isset($result['need_clarification']) && $result['need_clarification'] === true) {
+            return response()->json([
+                'need_clarification' => true,
+                'questions' => $result['questions'],
+            ]);
         }
 
         return response()->json([
             'success' => true,
-            'cv_data' => $result['cv_data']
+            'cv_data' => $result['cv_data'],
         ]);
     }
 

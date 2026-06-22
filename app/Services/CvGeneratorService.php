@@ -6,7 +6,6 @@ use App\Models\Achievement;
 use App\Models\Career;
 use App\Models\Certificate;
 use App\Models\CvGeneration;
-use App\Models\CvSection;
 use App\Models\Education;
 use App\Models\Organization;
 use App\Models\Profile;
@@ -74,6 +73,7 @@ SCHEMA;
         string $language = 'en',
         ?string $companyName = null,
         ?string $jobUrl = null,
+        ?array $clarificationAnswers = null,
     ): array {
         // 1. Gather all portfolio data
         $portfolioData = $this->gatherPortfolioData($language);
@@ -85,12 +85,13 @@ SCHEMA;
             $companyName,
             $language,
             $portfolioData,
+            $clarificationAnswers,
         );
 
         // 3. Call AI provider
         $aiResult = $this->callAiWithFallback($systemPrompt, $language);
 
-        if (!$aiResult['success']) {
+        if (! $aiResult['success']) {
             return [
                 'success' => false,
                 'error' => $aiResult['error'] ?? 'All AI providers failed. Please check API keys in Settings.',
@@ -99,10 +100,19 @@ SCHEMA;
 
         // 4. Parse the AI response JSON
         $parsedCv = $this->parseAiResponse($aiResult['response']);
-        if (!$parsedCv) {
+        if (! $parsedCv) {
             return [
                 'success' => false,
                 'error' => 'AI returned an invalid response format. Please try again.',
+            ];
+        }
+
+        // Check if clarification is needed
+        if (isset($parsedCv['need_clarification']) && $parsedCv['need_clarification'] === true) {
+            return [
+                'success' => true,
+                'need_clarification' => true,
+                'questions' => $parsedCv['questions'] ?? [],
             ];
         }
 
@@ -139,7 +149,7 @@ SCHEMA;
     {
         $newCv = $source->replicate(['pdf_path']);
         $newCv->status = 'draft';
-        $newCv->job_title = $source->job_title . ' (Copy)';
+        $newCv->job_title = $source->job_title.' (Copy)';
         $newCv->notes = null;
         $newCv->save();
 
@@ -161,27 +171,31 @@ SCHEMA;
     /**
      * Generate a single CV item from a reference.
      */
-    public function generateSingleItem(CvGeneration $cv, string $sourceType, int $sourceId): array
+    public function generateSingleItem(CvGeneration $cv, string $sourceType, int $sourceId, ?array $clarificationAnswers = null): array
     {
         $lang = $cv->language;
-        $l = fn(string $id, string $en) => $lang === 'id' ? ($id ?: $en) : ($en ?: $id);
-        
-        $sourceData = "";
-        
+        $l = fn (string $id, string $en) => $lang === 'id' ? ($id ?: $en) : ($en ?: $id);
+
+        $sourceData = '';
+
         switch ($sourceType) {
             case 'career':
                 $model = Career::find($sourceId);
-                if (!$model) return ['success' => false, 'error' => 'Career not found'];
+                if (! $model) {
+                    return ['success' => false, 'error' => 'Career not found'];
+                }
                 $sourceData = "Role: {$l($model->position_id ?? '', $model->position_en ?? '')}\n";
                 $sourceData .= "Company: {$model->company}\n";
                 $sourceData .= "Desc: {$l($model->description_id ?? '', $model->description_en ?? '')}\n";
                 break;
             case 'project':
                 $model = Project::find($sourceId);
-                if (!$model) return ['success' => false, 'error' => 'Project not found'];
+                if (! $model) {
+                    return ['success' => false, 'error' => 'Project not found'];
+                }
                 $sourceData = "Project: {$l($model->title_id ?? '', $model->title_en ?? '')}\n";
                 $sourceData .= "Summary: {$l($model->excerpt_id ?? '', $model->excerpt_en ?? '')}\n";
-                $sourceData .= "Details: " . \Illuminate\Support\Str::limit(strip_tags($l($model->content_id ?? '', $model->content_en ?? '')), 1000) . "\n";
+                $sourceData .= 'Details: '.Str::limit(strip_tags($l($model->content_id ?? '', $model->content_en ?? '')), 1000)."\n";
                 $tech = is_array($model->tech_stack) ? implode(', ', $model->tech_stack) : '';
                 if ($model->technologies && $model->technologies->isNotEmpty()) {
                     $relTech = $model->technologies->pluck('name')->implode(', ');
@@ -193,7 +207,9 @@ SCHEMA;
                 break;
             case 'education':
                 $model = Education::find($sourceId);
-                if (!$model) return ['success' => false, 'error' => 'Education not found'];
+                if (! $model) {
+                    return ['success' => false, 'error' => 'Education not found'];
+                }
                 $sourceData = "Institution: {$model->institution}\n";
                 $sourceData .= "Degree: {$l($model->degree ?? '', $model->degree_en ?? '')}\n";
                 $sourceData .= "Field: {$l($model->field ?? '', $model->field_en ?? '')}\n";
@@ -201,26 +217,44 @@ SCHEMA;
                 break;
             case 'certificate':
                 $model = Certificate::find($sourceId);
-                if (!$model) return ['success' => false, 'error' => 'Certificate not found'];
+                if (! $model) {
+                    return ['success' => false, 'error' => 'Certificate not found'];
+                }
                 $sourceData = "Name: {$l($model->title ?? '', $model->title_en ?? '')}\n";
                 $sourceData .= "Issuer: {$model->issuer}\n";
                 $sourceData .= "Desc: {$l($model->description_id ?? '', $model->description_en ?? '')}\n";
                 break;
             case 'organization':
                 $model = Organization::find($sourceId);
-                if (!$model) return ['success' => false, 'error' => 'Organization not found'];
+                if (! $model) {
+                    return ['success' => false, 'error' => 'Organization not found'];
+                }
                 $sourceData = "Org: {$l($model->name ?? '', $model->name_en ?? '')}\n";
                 $sourceData .= "Role: {$l($model->role ?? '', $model->role_en ?? '')}\n";
                 $sourceData .= "Desc: {$l($model->description_id ?? '', $model->description_en ?? '')}\n";
                 break;
             case 'achievement':
                 $model = Achievement::find($sourceId);
-                if (!$model) return ['success' => false, 'error' => 'Achievement not found'];
+                if (! $model) {
+                    return ['success' => false, 'error' => 'Achievement not found'];
+                }
                 $sourceData = "Title: {$l($model->title_id ?? '', $model->title_en ?? '')}\n";
                 $sourceData .= "Desc: {$l($model->description_id ?? '', $model->description_en ?? '')}\n";
                 break;
             default:
                 return ['success' => false, 'error' => 'Unsupported source type'];
+        }
+
+        $clarificationPrompt = '';
+        if (! empty($clarificationAnswers)) {
+            $clarificationPrompt = "\n# PREVIOUS CLARIFICATION Q&A HISTORY\n";
+            $clarificationPrompt .= "The user has provided the following answers to your previous validation questions. You MUST use these answers to resolve ambiguities, and DO NOT ask these same questions again:\n";
+            foreach ($clarificationAnswers as $item) {
+                if (isset($item['question'], $item['answer'])) {
+                    $clarificationPrompt .= "- Question: {$item['question']}\n  Answer: {$item['answer']}\n";
+                }
+            }
+            $clarificationPrompt .= "\n";
         }
 
         $systemPrompt = <<<PROMPT
@@ -235,13 +269,29 @@ RAW PORTFOLIO DATA (Source Type: {$sourceType}):
 {$sourceData}
 
 LANGUAGE: {$lang}
-
+{$clarificationPrompt}
 INSTRUCTIONS:
-1. Write 2-4 highly impactful bullet points using a diverse set of professional CV writing frameworks: STAR (Situation, Task, Action, Result), XYZ (Accomplished X, measured by Y, by doing Z), CAR/PAR (Challenge/Problem, Action, Result), SOAR (Situation, Obstacle, Action, Result), or WHO (What, How, Outcome). Select the best technique matching this item (e.g. XYZ for technical/performance work, STAR/CAR for general development, SOAR for leadership, WHO for integrations). Do not repeat the same style across all bullets; mix them to make it dynamic but extremely professional and consistent.
+1. Write 2-4 highly impactful bullet points using a diverse set of professional CV writing frameworks: STAR (Situation, Task, Action, Result), XYZ (Accomplished [X] as measured by [Y], by doing [Z]), CAR/PAR (Challenge/Problem, Action, Result), SOAR (Situation, Obstacle, Action, Result), or WHO (What, How, Outcome). Select the best technique matching this item (e.g. XYZ for technical/performance work, STAR/CAR for general development, SOAR for leadership, WHO for integrations). Do not repeat the same style across all bullets; mix them to make it dynamic but extremely professional and consistent.
 2. Naturally integrate ATS keywords from the job description context if relevant.
 3. If no quantitative metrics exist in raw data, use reasonable conservative estimates prefixed with "~".
 4. Ensure extreme professionalism.
 5. You must return ONLY valid JSON matching exactly this schema, and nothing else. No markdown wrapping.
+6. CLARIFICATION & VALIDATION PROTOCOL:
+   - Before generating, evaluate if there are key missing details in the raw portfolio data that are crucial for the target Job Description (e.g., missing specific dates, technologies used, or quantitative results/metrics).
+   - If key details are missing or highly ambiguous, and you need to ask questions to clarify or validate the data, you MUST halt generation and ask the user for clarification.
+   - To ask for clarification, return a JSON response matching exactly this schema (and nothing else):
+     {
+       "need_clarification": true,
+       "questions": [
+         "Short question 1 to validate or fill in missing info...",
+         "Short question 2..."
+       ]
+     }
+   - Limit to a maximum of 3 highly relevant, specific, and clear questions.
+   - Write all clarification questions based on the target language constraints:
+     * If CV language is 'id' (Bahasa Indonesia): Write questions strictly in Bahasa Indonesia.
+     * If CV language is 'en' (English): Write questions in professional English, followed by their Indonesian translation in parentheses (e.g., "What was the budget for the project? (Berapa anggaran untuk proyek tersebut?)").
+   - If previous Q&A history is present under "PREVIOUS CLARIFICATION Q&A HISTORY" and all your questions have been resolved, proceed with generating the item JSON. If you STILL have new critical questions, you may ask them, but DO NOT repeat any questions already present in the history.
 
 {
   "source_type": "{$sourceType}",
@@ -259,19 +309,27 @@ PROMPT;
 
         $aiResult = $this->callAiWithFallback($systemPrompt, $lang);
 
-        if (!$aiResult['success']) {
-            return ['success' => false, 'error' => 'AI Provider Error: ' . ($aiResult['error'] ?? 'Unknown error')];
+        if (! $aiResult['success']) {
+            return ['success' => false, 'error' => 'AI Provider Error: '.($aiResult['error'] ?? 'Unknown error')];
         }
 
         $parsed = json_decode(trim($aiResult['response'], " \t\n\r\0\x0B`"), true);
-        
+
         // Handle markdown block stripping if needed
-        if (!$parsed && preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $aiResult['response'], $matches)) {
+        if (! $parsed && preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $aiResult['response'], $matches)) {
             $parsed = json_decode($matches[1], true);
         }
 
-        if (!$parsed) {
+        if (! $parsed) {
             return ['success' => false, 'error' => 'AI returned invalid JSON.'];
+        }
+
+        if (isset($parsed['need_clarification']) && $parsed['need_clarification'] === true) {
+            return [
+                'success' => true,
+                'need_clarification' => true,
+                'questions' => $parsed['questions'] ?? [],
+            ];
         }
 
         return ['success' => true, 'item' => $parsed];
@@ -284,7 +342,7 @@ PROMPT;
     {
         $profiles = Profile::ordered()->get()->keyBy('key');
 
-        $getValue = fn(string $key) => $profiles[$key]->value_en ?? $profiles[$key]->value_id ?? '';
+        $getValue = fn (string $key) => $profiles[$key]->value_en ?? $profiles[$key]->value_id ?? '';
 
         return [
             'name' => $getValue('name') ?: $getValue('full_name'),
@@ -306,16 +364,16 @@ PROMPT;
     private function gatherPortfolioData(string $lang): string
     {
         $parts = [];
-        $l = fn(string $id, string $en) => $lang === 'id' ? ($id ?: $en) : ($en ?: $id);
+        $l = fn (string $id, string $en) => $lang === 'id' ? ($id ?: $en) : ($en ?: $id);
 
         // Profile
         $profiles = Profile::ordered()->get();
         if ($profiles->isNotEmpty()) {
-            $parts[] = "## CANDIDATE PROFILE";
+            $parts[] = '## CANDIDATE PROFILE';
             foreach ($profiles as $p) {
                 $val = $l($p->value_id ?? '', $p->value_en ?? '');
                 $key = strtolower($p->key);
-                if ($val && !Str::contains($key, ['photo', 'bullet', 'meta', 'typewriter'])) {
+                if ($val && ! Str::contains($key, ['photo', 'bullet', 'meta', 'typewriter'])) {
                     $parts[] = "- **{$p->key}**: {$val}";
                 }
             }
@@ -323,7 +381,7 @@ PROMPT;
 
         // Careers
         $careers = Career::where('show_in_cv', true)
-            ->with(['children' => fn($q) => $q->where('show_in_cv', true)->orderBy('sort_order')])
+            ->with(['children' => fn ($q) => $q->where('show_in_cv', true)->orderBy('sort_order')])
             ->roots()
             ->chronological()
             ->get();
@@ -334,22 +392,22 @@ PROMPT;
                 $position = $l($c->position_id ?? '', $c->position_en ?? '');
                 $company = $l($c->company ?? '', $c->company_en ?? '');
                 $desc = $l($c->description_id ?? '', $c->description_en ?? '');
-                $period = ($c->start_date?->format('M Y') ?? '') . ' – ' . ($c->end_date?->format('M Y') ?? 'Present');
+                $period = ($c->start_date?->format('M Y') ?? '').' – '.($c->end_date?->format('M Y') ?? 'Present');
                 $parts[] = "### [ID:{$c->id}] {$position} at {$company} ({$period})";
                 if ($desc) {
-                    $parts[] = "Description: " . Str::limit(strip_tags($desc), 2000);
+                    $parts[] = 'Description: '.Str::limit(strip_tags($desc), 2000);
                 }
                 if ($c->is_current) {
-                    $parts[] = "Status: Currently employed here";
+                    $parts[] = 'Status: Currently employed here';
                 }
 
                 foreach ($c->children as $child) {
                     $cpos = $l($child->position_id ?? '', $child->position_en ?? '');
                     $cdesc = $l($child->description_id ?? '', $child->description_en ?? '');
-                    $cperiod = ($child->start_date?->format('M Y') ?? '') . ' – ' . ($child->end_date?->format('M Y') ?? 'Present');
+                    $cperiod = ($child->start_date?->format('M Y') ?? '').' – '.($child->end_date?->format('M Y') ?? 'Present');
                     $parts[] = "  - Sub-role [ID:{$child->id}]: {$cpos} ({$cperiod})";
                     if ($cdesc) {
-                        $parts[] = "    Description: " . Str::limit(strip_tags($cdesc), 1000);
+                        $parts[] = '    Description: '.Str::limit(strip_tags($cdesc), 1000);
                     }
                 }
             }
@@ -372,7 +430,7 @@ PROMPT;
                     $parts[] = "Summary: {$excerpt}";
                 }
                 if ($content) {
-                    $parts[] = "Details: " . Str::limit(strip_tags($content), 1500);
+                    $parts[] = 'Details: '.Str::limit(strip_tags($content), 1500);
                 }
                 if ($p->demo_url) {
                     $parts[] = "Demo: {$p->demo_url}";
@@ -394,13 +452,13 @@ PROMPT;
                 $desc = $l($e->description_id ?? '', $e->description_en ?? '');
                 $activities = $l($e->activities_id ?? '', $e->activities_en ?? '');
                 $gpa = $e->gpa ? "GPA: {$e->gpa}" : '';
-                $period = ($e->start_date?->format('Y') ?? '') . ' – ' . ($e->end_date?->format('Y') ?? 'Present');
+                $period = ($e->start_date?->format('Y') ?? '').' – '.($e->end_date?->format('Y') ?? 'Present');
                 $parts[] = "### [ID:{$e->id}] {$degree} in {$field} at {$institution} ({$period}) {$gpa}";
                 if ($desc) {
-                    $parts[] = "Description: " . Str::limit(strip_tags($desc), 800);
+                    $parts[] = 'Description: '.Str::limit(strip_tags($desc), 800);
                 }
                 if ($activities) {
-                    $parts[] = "Activities: " . Str::limit(strip_tags($activities), 500);
+                    $parts[] = 'Activities: '.Str::limit(strip_tags($activities), 500);
                 }
             }
         }
@@ -413,6 +471,7 @@ PROMPT;
                 $catName = $l($cat->name_id ?? '', $cat->name_en ?? '');
                 $skills = $cat->skills->map(function (Skill $s) use ($l) {
                     $name = $l($s->name_id ?? '', $s->name_en ?? '');
+
                     return $s->proficiency ? "{$name} (Proficiency: {$s->proficiency}%)" : $name;
                 })->filter()->join(', ');
                 if ($skills) {
@@ -425,7 +484,7 @@ PROMPT;
         $softSkills = SoftSkill::where('show_in_cv', true)->ordered()->get();
         if ($softSkills->isNotEmpty()) {
             $parts[] = "\n## SOFT SKILLS (Raw Data)";
-            $list = $softSkills->map(fn($s) => $l($s->name_id ?? '', $s->name_en ?? ''))->filter()->join(', ');
+            $list = $softSkills->map(fn ($s) => $l($s->name_id ?? '', $s->name_en ?? ''))->filter()->join(', ');
             $parts[] = $list;
         }
 
@@ -443,7 +502,7 @@ PROMPT;
                     $parts[] = "Skills: {$skills}";
                 }
                 if ($desc) {
-                    $parts[] = "Description: " . Str::limit(strip_tags($desc), 500);
+                    $parts[] = 'Description: '.Str::limit(strip_tags($desc), 500);
                 }
                 if ($c->credential_url) {
                     $parts[] = "Credential: {$c->credential_url}";
@@ -459,10 +518,10 @@ PROMPT;
                 $name = $l($o->name ?? '', $o->name_en ?? '');
                 $role = $l($o->role ?? '', $o->role_en ?? '');
                 $desc = $l($o->description_id ?? '', $o->description_en ?? '');
-                $period = ($o->start_date?->format('Y') ?? '') . ' – ' . ($o->end_date?->format('Y') ?? 'Present');
+                $period = ($o->start_date?->format('Y') ?? '').' – '.($o->end_date?->format('Y') ?? 'Present');
                 $parts[] = "- [ID:{$o->id}] **{$role}** at {$name} ({$period})";
                 if ($desc) {
-                    $parts[] = "  Description: " . Str::limit(strip_tags($desc), 500);
+                    $parts[] = '  Description: '.Str::limit(strip_tags($desc), 500);
                 }
             }
         }
@@ -475,7 +534,7 @@ PROMPT;
                 $title = $l($a->title_id ?? '', $a->title_en ?? '');
                 $desc = $l($a->description_id ?? '', $a->description_en ?? '');
                 $date = $a->date?->format('M Y') ?? '';
-                $parts[] = "- [ID:{$a->id}] {$title} ({$date})" . ($desc ? ": {$desc}" : '');
+                $parts[] = "- [ID:{$a->id}] {$title} ({$date})".($desc ? ": {$desc}" : '');
             }
         }
 
@@ -493,12 +552,25 @@ PROMPT;
         ?string $companyName,
         string $language,
         string $portfolioData,
+        ?array $clarificationAnswers = null,
     ): string {
         $langInstruction = $language === 'id'
             ? 'Generate ALL content (summary, bullets, section titles) in Bahasa Indonesia. Use professional Indonesian language. Translate section titles to Indonesian (e.g., "Ringkasan Profesional", "Pengalaman Kerja", "Pendidikan", "Keahlian Teknis", "Proyek", "Sertifikat", "Organisasi", "Pencapaian").'
             : 'Generate ALL content in professional English.';
 
         $companyLine = $companyName ? "Company: {$companyName}" : 'Company: Not specified';
+
+        $clarificationPrompt = '';
+        if (! empty($clarificationAnswers)) {
+            $clarificationPrompt = "\n# PREVIOUS CLARIFICATION Q&A HISTORY\n";
+            $clarificationPrompt .= "The user has provided the following answers to your previous validation questions. You MUST use these answers to enrich the data, fill in gaps, or avoid guessing, and DO NOT ask these same questions again:\n";
+            foreach ($clarificationAnswers as $item) {
+                if (isset($item['question'], $item['answer'])) {
+                    $clarificationPrompt .= "- Question: {$item['question']}\n  Answer: {$item['answer']}\n";
+                }
+            }
+            $clarificationPrompt .= "\n";
+        }
 
         return <<<PROMPT
 # ROLE & MISSION
@@ -514,6 +586,9 @@ Job Description:
 
 # LANGUAGE INSTRUCTION
 {$langInstruction}
+
+# PREVIOUS CLARIFICATION Q&A HISTORY
+{$clarificationPrompt}
 
 # CANDIDATE RAW DATA (Portfolio Database)
 The following is the candidate's complete professional data extracted from their portfolio database. Each entry has an [ID:X] reference. You MUST preserve these IDs in your output as source_id.
@@ -602,6 +677,23 @@ IMPORTANT:
 - For soft_skills section, use source_type "soft_skill" and set source_id to null
 - Each section type must be one of: experience, education, skills, projects, certificates, organizations, achievements, soft_skills, summary
 - Bullets array should have 2-3 bullets per experience entry, 1-2 per project entry
+
+## 11. CLARIFICATION & VALIDATION PROTOCOL (CRITICAL)
+- You MUST be highly proactive in asking clarification questions. If the raw portfolio data is missing any key context, specific technologies, project scopes, role responsibilities, or quantitative achievements/metrics that are relevant to the target Job Description, DO NOT guess or hallucinate.
+- You MUST halt execution and ask the user validation questions to gather this information first.
+- To ask for clarification, return a JSON response matching exactly this schema (and nothing else):
+  {
+    "need_clarification": true,
+    "questions": [
+      "Pertanyaan spesifik tentang info yang kurang...",
+      "Pertanyaan lain..."
+    ]
+  }
+- Limit to a maximum of 5 highly specific, clear, and action-oriented questions.
+- Write all clarification questions based on the target language constraints:
+  * If CV language is 'id' (Bahasa Indonesia): Write questions strictly in Bahasa Indonesia.
+  * If CV language is 'en' (English): Write questions in professional English, followed by their Indonesian translation in parentheses (e.g., "What was your main role in this project? (Apa peran utama Anda dalam proyek ini?)").
+- If previous Q&A history is present under "PREVIOUS CLARIFICATION Q&A HISTORY", evaluate the user's answers. If they successfully resolve your questions, proceed with generating the CV JSON. If you STILL need further details or have new questions, you may ask them (up to 5), but NEVER repeat the same questions that are already in the Q&A history.
 PROMPT;
     }
 
@@ -657,12 +749,12 @@ PROMPT;
         $providers = [];
 
         $geminiKey = SiteSetting::getValue('gemini_api_key', '');
-        if (!empty($geminiKey)) {
+        if (! empty($geminiKey)) {
             $providers[] = 'gemini';
         }
 
         $qwenKey = SiteSetting::getValue('qwen_api_key', '');
-        if (!empty($qwenKey)) {
+        if (! empty($qwenKey)) {
             $providers[] = 'qwen';
         }
 
@@ -705,14 +797,16 @@ PROMPT;
 
             if ($response->status() === 429 || $response->status() === 403) {
                 Log::warning('CV Generator: Gemini quota exhausted', ['status' => $response->status()]);
+
                 return null;
             }
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('CV Generator: Gemini API error', [
                     'status' => $response->status(),
                     'body' => Str::limit($response->body(), 1000),
                 ]);
+
                 return null;
             }
 
@@ -720,8 +814,9 @@ PROMPT;
             $aiText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
             $tokensUsed = $data['usageMetadata']['totalTokenCount'] ?? 0;
 
-            if (!$aiText) {
+            if (! $aiText) {
                 Log::error('CV Generator: Gemini returned empty text');
+
                 return null;
             }
 
@@ -734,6 +829,7 @@ PROMPT;
             ];
         } catch (\Exception $e) {
             Log::error('CV Generator: Gemini exception', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -774,14 +870,16 @@ PROMPT;
 
             if ($response->status() === 429 || $response->status() === 403) {
                 Log::warning('CV Generator: Qwen quota exhausted', ['status' => $response->status()]);
+
                 return null;
             }
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('CV Generator: Qwen API error', [
                     'status' => $response->status(),
                     'body' => Str::limit($response->body(), 1000),
                 ]);
+
                 return null;
             }
 
@@ -789,8 +887,9 @@ PROMPT;
             $aiText = $data['choices'][0]['message']['content'] ?? null;
             $tokensUsed = $data['usage']['total_tokens'] ?? 0;
 
-            if (!$aiText) {
+            if (! $aiText) {
                 Log::error('CV Generator: Qwen returned empty text');
+
                 return null;
             }
 
@@ -803,6 +902,7 @@ PROMPT;
             ];
         } catch (\Exception $e) {
             Log::error('CV Generator: Qwen exception', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -828,12 +928,19 @@ PROMPT;
                 'error' => json_last_error_msg(),
                 'response' => Str::limit($responseText, 500),
             ]);
+
             return null;
         }
 
+        // Allow clarification structure
+        if (isset($parsed['need_clarification']) && $parsed['need_clarification'] === true) {
+            return $parsed;
+        }
+
         // Validate minimum required fields
-        if (!isset($parsed['sections']) || !is_array($parsed['sections'])) {
+        if (! isset($parsed['sections']) || ! is_array($parsed['sections'])) {
             Log::error('CV Generator: Missing sections in AI response');
+
             return null;
         }
 
@@ -854,6 +961,17 @@ PROMPT;
         int $tokensUsed,
         ?array $rawResponse,
     ): CvGeneration {
+        // Get default profile details to store as local copy in this CV
+        $profile = $this->getProfileData();
+        $parsedCv['contact_name'] = $profile['name'] ?? null;
+        $parsedCv['contact_title'] = $profile['title'] ?? null;
+        $parsedCv['contact_email'] = $profile['email'] ?? null;
+        $parsedCv['contact_phone'] = $profile['phone'] ?? null;
+        $parsedCv['contact_location'] = $profile['location'] ?? null;
+        $parsedCv['contact_linkedin'] = $profile['linkedin'] ?? null;
+        $parsedCv['contact_github'] = $profile['github'] ?? null;
+        $parsedCv['contact_website'] = $profile['website'] ?? null;
+
         // Create the generation record
         $cvGeneration = CvGeneration::create([
             'job_title' => $jobTitle,
@@ -899,10 +1017,22 @@ PROMPT;
     /**
      * Generate a single CV item from custom user input.
      */
-    public function generateCustomItem(CvGeneration $cv, string $sectionType, ?string $title, ?string $subtitle, string $rawInput): array
+    public function generateCustomItem(CvGeneration $cv, string $sectionType, ?string $title, ?string $subtitle, string $rawInput, ?array $clarificationAnswers = null): array
     {
         $lang = $cv->language;
-        
+
+        $clarificationPrompt = '';
+        if (! empty($clarificationAnswers)) {
+            $clarificationPrompt = "\n# PREVIOUS CLARIFICATION Q&A HISTORY\n";
+            $clarificationPrompt .= "The user has provided the following answers to your previous validation questions. You MUST use these answers to resolve ambiguities, and DO NOT ask these same questions again:\n";
+            foreach ($clarificationAnswers as $item) {
+                if (isset($item['question'], $item['answer'])) {
+                    $clarificationPrompt .= "- Question: {$item['question']}\n  Answer: {$item['answer']}\n";
+                }
+            }
+            $clarificationPrompt .= "\n";
+        }
+
         $systemPrompt = <<<PROMPT
 You are an elite ATS CV writer. The user wants to add a new custom item to their CV under the section type "{$sectionType}".
 They provided the following draft details or brief description of what they did:
@@ -918,13 +1048,29 @@ Company: {$cv->company_name}
 JD: {$cv->job_description}
 
 LANGUAGE: {$lang}
-
+{$clarificationPrompt}
 INSTRUCTIONS:
 1. Write 2-4 highly impactful bullet points using a diverse set of professional CV writing frameworks: STAR, XYZ (Accomplished [X] as measured by [Y], by doing [Z]), CAR/PAR, SOAR, or WHO.
 2. Naturally integrate ATS keywords from the job description context if relevant.
 3. If no quantitative metrics exist in raw data, use reasonable conservative estimates prefixed with "~".
 4. Ensure extreme professionalism.
 5. You must return ONLY valid JSON matching exactly this schema, and nothing else. No markdown wrapping.
+6. CLARIFICATION & VALIDATION PROTOCOL:
+   - Before generating the custom item, evaluate if the user's description is too vague or lacks key results/metrics/tools.
+   - If key details are missing or highly ambiguous, and you need to ask questions to clarify or validate the data, you MUST halt generation and ask the user for clarification.
+   - To ask for clarification, return a JSON response matching exactly this schema (and nothing else):
+     {
+       "need_clarification": true,
+       "questions": [
+         "Short question 1 to validate or fill in missing info...",
+         "Short question 2..."
+       ]
+     }
+   - Limit to a maximum of 3 highly relevant, specific, and clear questions.
+   - Write all clarification questions based on the target language constraints:
+     * If CV language is 'id' (Bahasa Indonesia): Write questions strictly in Bahasa Indonesia.
+     * If CV language is 'en' (English): Write questions in professional English, followed by their Indonesian translation in parentheses (e.g., "What was the budget for the project? (Berapa anggaran untuk proyek tersebut?)").
+   - If previous Q&A history is present under "PREVIOUS CLARIFICATION Q&A HISTORY" and all your questions have been resolved, proceed with generating the custom item JSON. If you STILL have new critical questions, you may ask them, but DO NOT repeat any questions already present in the history.
 
 {
   "source_type": "custom",
@@ -942,19 +1088,27 @@ PROMPT;
 
         $aiResult = $this->callAiWithFallback($systemPrompt, $lang);
 
-        if (!$aiResult['success']) {
-            return ['success' => false, 'error' => 'AI Provider Error: ' . ($aiResult['error'] ?? 'Unknown error')];
+        if (! $aiResult['success']) {
+            return ['success' => false, 'error' => 'AI Provider Error: '.($aiResult['error'] ?? 'Unknown error')];
         }
 
         $parsed = json_decode(trim($aiResult['response'], " \t\n\r\0\x0B`"), true);
-        
+
         // Handle markdown block stripping if needed
-        if (!$parsed && preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $aiResult['response'], $matches)) {
+        if (! $parsed && preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $aiResult['response'], $matches)) {
             $parsed = json_decode($matches[1], true);
         }
 
-        if (!$parsed) {
+        if (! $parsed) {
             return ['success' => false, 'error' => 'AI returned invalid JSON.'];
+        }
+
+        if (isset($parsed['need_clarification']) && $parsed['need_clarification'] === true) {
+            return [
+                'success' => true,
+                'need_clarification' => true,
+                'questions' => $parsed['questions'] ?? [],
+            ];
         }
 
         return ['success' => true, 'item' => $parsed];
@@ -969,43 +1123,55 @@ PROMPT;
         $score = 0;
         $isId = $language === 'id';
 
+        $contactVal = function (string $field, string $fallbackKey) use ($cvData, $profileData) {
+            return array_key_exists($field, $cvData) && $cvData[$field] !== null
+                ? $cvData[$field]
+                : ($profileData[$fallbackKey] ?? '');
+        };
+
+        $email = $contactVal('contact_email', 'email');
+        $phone = $contactVal('contact_phone', 'phone');
+        $linkedin = $contactVal('contact_linkedin', 'linkedin');
+        $github = $contactVal('contact_github', 'github');
+        $website = $contactVal('contact_website', 'website');
+
         // 1. Contact line check (Weight: 10)
         $contactScore = 0;
-        if (!empty($profileData['email'])) {
+        if (! empty($email)) {
             $contactScore += 2;
         } else {
-            $suggestions[] = $isId ? "Tambahkan alamat email profesional di bagian kontak." : "Add a professional email address in the contact section.";
+            $suggestions[] = $isId ? 'Tambahkan alamat email profesional di bagian kontak.' : 'Add a professional email address in the contact section.';
         }
-        
-        if (!empty($profileData['phone'])) {
+
+        if (! empty($phone)) {
             $contactScore += 2;
         } else {
-            $suggestions[] = $isId ? "Tambahkan nomor telepon aktif di bagian kontak." : "Add an active phone number in the contact section.";
+            $suggestions[] = $isId ? 'Tambahkan nomor telepon aktif di bagian kontak.' : 'Add an active phone number in the contact section.';
         }
-        
-        if (!empty($profileData['linkedin'])) {
+
+        if (! empty($linkedin)) {
             $contactScore += 2;
         } else {
-            $suggestions[] = $isId ? "Tambahkan tautan profil LinkedIn." : "Add a LinkedIn profile link.";
+            $suggestions[] = $isId ? 'Tambahkan tautan profil LinkedIn.' : 'Add a LinkedIn profile link.';
         }
-        
-        if (!empty($profileData['github'])) {
+
+        if (! empty($github)) {
             $contactScore += 2;
         } else {
-            $suggestions[] = $isId ? "Tambahkan tautan repositori GitHub." : "Add a GitHub repository link.";
+            $suggestions[] = $isId ? 'Tambahkan tautan repositori GitHub.' : 'Add a GitHub repository link.';
         }
-        
-        $hasPortfolio = !empty($profileData['website']) && str_contains($profileData['website'], 'rezaedisaputra.com');
+
+        $hasPortfolio = ! empty($website) && str_contains($website, 'rezaedisaputra.com');
         if ($hasPortfolio) {
             $contactScore += 2;
         } else {
-            $suggestions[] = $isId ? "Pastikan website portofolio resmi https://www.rezaedisaputra.com/ tercantum di bagian kontak." : "Ensure your official portfolio website https://www.rezaedisaputra.com/ is listed in the contact section.";
+            $suggestions[] = $isId ? 'Pastikan website portofolio resmi https://www.rezaedisaputra.com/ tercantum di bagian kontak.' : 'Ensure your official portfolio website https://www.rezaedisaputra.com/ is listed in the contact section.';
         }
         $score += $contactScore;
 
         // Gather all text from CV to check keywords
         $allText = strtolower($cvData['professional_summary'] ?? '');
-        
+
         $totalBullets = 0;
         $quantifiedBullets = 0;
         $actionVerbBullets = 0;
@@ -1016,69 +1182,75 @@ PROMPT;
         // Strong action verbs list
         $actionVerbs = [
             // Indonesian
-            'memimpin', 'mengembangkan', 'mengoptimalkan', 'merancang', 'mengintegrasikan', 
-            'mengelola', 'meningkatkan', 'membangun', 'membuat', 'mengimplementasikan', 
-            'mempercepat', 'menghemat', 'meminimalkan', 'menyelesaikan', 'mempelopori', 
+            'memimpin', 'mengembangkan', 'mengoptimalkan', 'merancang', 'mengintegrasikan',
+            'mengelola', 'meningkatkan', 'membangun', 'membuat', 'mengimplementasikan',
+            'mempercepat', 'menghemat', 'meminimalkan', 'menyelesaikan', 'mempelopori',
             'merekayasa', 'menyederhanakan', 'mengotomatiskan', 'mengarahkan',
             // English
-            'spearheaded', 'engineered', 'architected', 'optimized', 'overhauled', 
-            'accelerated', 'streamlined', 'decentralized', 'pioneered', 'led', 
-            'developed', 'managed', 'created', 'implemented', 'designed', 'resolved', 
-            'boosted', 'reduced', 'saved', 'automated', 'delivered', 'integrated'
+            'spearheaded', 'engineered', 'architected', 'optimized', 'overhauled',
+            'accelerated', 'streamlined', 'decentralized', 'pioneered', 'led',
+            'developed', 'managed', 'created', 'implemented', 'designed', 'resolved',
+            'boosted', 'reduced', 'saved', 'automated', 'delivered', 'integrated',
         ];
         $actionVerbsSet = array_flip($actionVerbs);
 
         $sections = $cvData['sections'] ?? [];
         foreach ($sections as $section) {
             $sectionVisible = $section['is_visible'] ?? true;
-            if (!$sectionVisible) continue;
-            
-            $allText .= ' ' . strtolower($section['title'] ?? '');
-            
+            if (! $sectionVisible) {
+                continue;
+            }
+
+            $allText .= ' '.strtolower($section['title'] ?? '');
+
             $items = $section['items'] ?? [];
             foreach ($items as $item) {
                 $itemVisible = $item['is_visible'] ?? true;
-                if (!$itemVisible) continue;
-                
-                $allText .= ' ' . strtolower($item['title'] ?? '');
-                $allText .= ' ' . strtolower($item['subtitle'] ?? '');
-                $allText .= ' ' . strtolower($item['location'] ?? '');
-                
+                if (! $itemVisible) {
+                    continue;
+                }
+
+                $allText .= ' '.strtolower($item['title'] ?? '');
+                $allText .= ' '.strtolower($item['subtitle'] ?? '');
+                $allText .= ' '.strtolower($item['location'] ?? '');
+
                 $bullets = $item['bullets'] ?? [];
-                
+
                 $sectionType = $section['type'] ?? '';
                 $sectionTitle = strtolower($section['title'] ?? '');
                 $isExperience = $sectionType === 'experience' || str_contains($sectionTitle, 'experience') || str_contains($sectionTitle, 'pengalaman');
                 $isProject = $sectionType === 'projects' || str_contains($sectionTitle, 'project') || str_contains($sectionTitle, 'proyek');
-                
+
                 if ($isExperience && count($bullets) > 3) {
                     $experienceBulletViolations++;
                 }
                 if ($isProject && count($bullets) > 2) {
                     $projectBulletViolations++;
                 }
-                
+
                 foreach ($bullets as $bullet) {
                     $bulletTrimmed = trim($bullet);
-                    if (empty($bulletTrimmed)) continue;
+                    if (empty($bulletTrimmed)) {
+                        continue;
+                    }
                     $totalBullets++;
-                    $allText .= ' ' . strtolower($bulletTrimmed);
-                    
+                    $allText .= ' '.strtolower($bulletTrimmed);
+
                     // Quantification check
-                    $hasMetric = preg_match('/\b\d+(?:%|\s*percent|\s*juta|\s*miliar|\s*ribu|\s*jt|\s*rb|\s*k|\b)/i', $bulletTrimmed) || 
+                    $hasMetric = preg_match('/\b\d+(?:%|\s*percent|\s*juta|\s*miliar|\s*ribu|\s*jt|\s*rb|\s*k|\b)/i', $bulletTrimmed) ||
                                  preg_match('/\b(?:Rp|USD|\$)\s*\d+/i', $bulletTrimmed) ||
                                  preg_match('/\b(?:~)?\d+\b/', $bulletTrimmed);
                     if ($hasMetric) {
                         $quantifiedBullets++;
                     }
-                    
+
                     // Action verb check
                     $words = preg_split('/\s+/', $bulletTrimmed);
-                    $firstWord = !empty($words[0]) ? strtolower(preg_replace('/[.,;:()]/', '', $words[0])) : '';
+                    $firstWord = ! empty($words[0]) ? strtolower(preg_replace('/[.,;:()]/', '', $words[0])) : '';
                     if ($firstWord) {
                         $isExplicit = isset($actionVerbsSet[$firstWord]);
-                        $isIndonesianVerb = $isId && str_starts_with($firstWord, 'me') && strlen($firstWord) >= 5 && !in_array($firstWord, ['media', 'metode', 'meja', 'menit', 'merek', 'mesin', 'mewah', 'merah', 'mental', 'menu', 'mereka', 'merdeka', 'melalui', 'menurut', 'menuju', 'mengapa', 'melainkan', 'meskipun']);
-                        $isEnglishVerb = !$isId && ((str_ends_with($firstWord, 'ed') && strlen($firstWord) > 4 && !in_array($firstWord, ['speed', 'bleed', 'indeed', 'breed'])) || in_array($firstWord, ['led', 'built', 'wrote', 'ran', 'held', 'made', 'kept', 'won', 'drew', 'cut', 'set', 'sent', 'spent']));
+                        $isIndonesianVerb = $isId && str_starts_with($firstWord, 'me') && strlen($firstWord) >= 5 && ! in_array($firstWord, ['media', 'metode', 'meja', 'menit', 'merek', 'mesin', 'mewah', 'merah', 'mental', 'menu', 'mereka', 'merdeka', 'melalui', 'menurut', 'menuju', 'mengapa', 'melainkan', 'meskipun']);
+                        $isEnglishVerb = ! $isId && ((str_ends_with($firstWord, 'ed') && strlen($firstWord) > 4 && ! in_array($firstWord, ['speed', 'bleed', 'indeed', 'breed'])) || in_array($firstWord, ['led', 'built', 'wrote', 'ran', 'held', 'made', 'kept', 'won', 'drew', 'cut', 'set', 'sent', 'spent']));
                         if ($isExplicit || $isIndonesianVerb || $isEnglishVerb) {
                             $actionVerbBullets++;
                         }
@@ -1097,7 +1269,7 @@ PROMPT;
         $keywords = $cvData['ats_keywords'] ?? [];
         $matchedKeywords = [];
         $missingKeywords = [];
-        
+
         if (count($keywords) > 0) {
             foreach ($keywords as $kw) {
                 $kwClean = strtolower(trim($kw));
@@ -1107,7 +1279,7 @@ PROMPT;
                     $missingKeywords[] = $kw;
                 }
             }
-            
+
             $matchRatio = count($matchedKeywords) / count($keywords);
             if ($matchRatio >= 0.8) {
                 $score += 40;
@@ -1115,7 +1287,7 @@ PROMPT;
                 $score += round(($matchRatio / 0.8) * 40);
                 if (count($missingKeywords) > 0) {
                     $displayKws = implode(', ', array_slice($missingKeywords, 0, 5));
-                    $suggestions[] = $isId 
+                    $suggestions[] = $isId
                         ? "Integrasikan keyword penting berikut ke dalam deskripsi Anda: [{$displayKws}]."
                         : "Integrate the following key keywords into your descriptions: [{$displayKws}].";
                 }
@@ -1134,8 +1306,8 @@ PROMPT;
                 $score += round(($metricRatio / $targetMetricRatio) * 20);
                 if ($metricRatio < $targetMetricRatio) {
                     $suggestions[] = $isId
-                        ? "Tambahkan metrik kuantitatif (seperti % kenaikan, jumlah user, atau waktu yang dihemat) pada bullet points Anda."
-                        : "Add quantitative metrics (such as % increase, number of users, or time saved) to your bullet points.";
+                        ? 'Tambahkan metrik kuantitatif (seperti % kenaikan, jumlah user, atau waktu yang dihemat) pada bullet points Anda.'
+                        : 'Add quantitative metrics (such as % increase, number of users, or time saved) to your bullet points.';
                 }
             }
         } else {
@@ -1152,8 +1324,8 @@ PROMPT;
                 $score += round(($verbRatio / $targetVerbRatio) * 15);
                 if ($verbRatio < $targetVerbRatio) {
                     $suggestions[] = $isId
-                        ? "Gunakan kata kerja aksi yang kuat (e.g. Spearheaded, Mengoptimalkan, Merancang) di awal setiap baris."
-                        : "Use strong action verbs (e.g., Spearheaded, Optimize, Design) at the start of each line.";
+                        ? 'Gunakan kata kerja aksi yang kuat (e.g. Spearheaded, Mengoptimalkan, Merancang) di awal setiap baris.'
+                        : 'Use strong action verbs (e.g., Spearheaded, Optimize, Design) at the start of each line.';
                 }
             }
         } else {
@@ -1165,20 +1337,20 @@ PROMPT;
         if ($experienceBulletViolations > 0) {
             $layoutPoints -= 5;
             $suggestions[] = $isId
-                ? "Batasi setiap pekerjaan maksimal 3 bullet point penting agar CV padat dan muat 1 halaman."
-                : "Limit each job experience to a maximum of 3 key bullet points to keep the CV concise and on 1 page.";
+                ? 'Batasi setiap pekerjaan maksimal 3 bullet point penting agar CV padat dan muat 1 halaman.'
+                : 'Limit each job experience to a maximum of 3 key bullet points to keep the CV concise and on 1 page.';
         }
         if ($projectBulletViolations > 0) {
             $layoutPoints -= 5;
             $suggestions[] = $isId
-                ? "Batasi setiap proyek maksimal 2 bullet point penting."
-                : "Limit each project to a maximum of 2 key bullet points.";
+                ? 'Batasi setiap proyek maksimal 2 bullet point penting.'
+                : 'Limit each project to a maximum of 2 key bullet points.';
         }
         if ($bulletLengthViolations > 0) {
             $layoutPoints -= 5;
             $suggestions[] = $isId
-                ? "Persingkat bullet point yang terlalu panjang (> 25 kata) agar mudah dibaca oleh HRD."
-                : "Shorten bullet points that are too long (> 25 words) for better readability.";
+                ? 'Persingkat bullet point yang terlalu panjang (> 25 kata) agar mudah dibaca oleh HRD.'
+                : 'Shorten bullet points that are too long (> 25 words) for better readability.';
         }
         $score += max(0, $layoutPoints);
 
@@ -1204,11 +1376,10 @@ PROMPT;
     /**
      * Solve a list of ATS suggestions.
      *
-     * @param CvGeneration $cvGeneration
-     * @param array<string> $suggestions
+     * @param  array<string>  $suggestions
      * @return array{success: bool, cv_data?: array, error?: string}
      */
-    public function solveSuggestions(CvGeneration $cvGeneration, array $suggestions): array
+    public function solveSuggestions(CvGeneration $cvGeneration, array $suggestions, ?array $clarificationAnswers = null): array
     {
         $language = $cvGeneration->language;
         $profileData = $this->getProfileData();
@@ -1222,6 +1393,7 @@ PROMPT;
 
         $aiSuggestions = [];
         $profileUpdated = false;
+        $cvData = $cvGeneration->cv_data;
 
         foreach ($suggestions as $suggestion) {
             $suggestionLower = strtolower($suggestion);
@@ -1263,6 +1435,18 @@ PROMPT;
                     ]);
                 }
                 $profileUpdated = true;
+
+                // Sync to CV overrides as well
+                $cvKeyMap = [
+                    'phone' => 'contact_phone',
+                    'website_url' => 'contact_website',
+                    'linkedin_url' => 'contact_linkedin',
+                    'github_url' => 'contact_github',
+                    'email' => 'contact_email',
+                ];
+                if (isset($cvKeyMap[$matchedKey])) {
+                    $cvData[$cvKeyMap[$matchedKey]] = $newValue;
+                }
             } else {
                 $aiSuggestions[] = $suggestion;
             }
@@ -1273,13 +1457,23 @@ PROMPT;
             $profileData = $this->getProfileData();
         }
 
-        $cvData = $cvGeneration->cv_data;
-
         // If there are AI suggestions, run them through the AI in a single call
-        if (!empty($aiSuggestions)) {
-            $suggestionsList = "";
+        if (! empty($aiSuggestions)) {
+            $suggestionsList = '';
             foreach ($aiSuggestions as $idx => $aiSug) {
-                $suggestionsList .= ($idx + 1) . ". \"" . $aiSug . "\"\n";
+                $suggestionsList .= ($idx + 1).'. "'.$aiSug."\"\n";
+            }
+
+            $clarificationPrompt = '';
+            if (! empty($clarificationAnswers)) {
+                $clarificationPrompt = "\n# PREVIOUS CLARIFICATION Q&A HISTORY\n";
+                $clarificationPrompt .= "The user has provided the following answers to your previous validation questions. You MUST use these answers to resolve ambiguities, and DO NOT ask these same questions again:\n";
+                foreach ($clarificationAnswers as $item) {
+                    if (isset($item['question'], $item['answer'])) {
+                        $clarificationPrompt .= "- Question: {$item['question']}\n  Answer: {$item['answer']}\n";
+                    }
+                }
+                $clarificationPrompt .= "\n";
             }
 
             $systemPrompt = <<<PROMPT
@@ -1301,7 +1495,7 @@ PROMPT;
 IMPROVEMENT SUGGESTIONS TO SOLVE:
 {$suggestionsList}
 LANGUAGE: {$language}
-
+{$clarificationPrompt}
 INSTRUCTIONS:
 1. Revise the CURRENT CV DATA (specifically summary, sections, or item bullets) to completely solve the IMPROVEMENT SUGGESTIONS listed above.
 2. If suggestions say "Gunakan kata kerja aksi yang kuat" (Use strong action verbs) or "Tambahkan metrik kuantitatif" (Add quantitative metrics), inspect the experience or projects bullets and rewrite them.
@@ -1310,22 +1504,46 @@ INSTRUCTIONS:
 5. If suggestions say "Persingkat bullet point...", rewrite longer bullets to be shorter (< 25 words).
 6. Return the updated CV JSON following the exact same schema. Keep all other sections/items identical, only modify what is necessary to solve the suggestions.
 7. Return ONLY valid JSON matching the schema. No explanations, no markdown wrapping.
+8. CLARIFICATION & VALIDATION PROTOCOL:
+   - Before editing the CV data, evaluate if you cannot solve the suggestions without more information (e.g. you don't know key metrics to add, or the technologies to add to solve the suggestions).
+   - If key details are missing or highly ambiguous, and you need to ask questions to clarify or validate the data, you MUST halt generation and ask the user for clarification.
+   - To ask for clarification, return a JSON response matching exactly this schema (and nothing else):
+     {
+       "need_clarification": true,
+       "questions": [
+         "Short question 1 to validate or fill in missing info...",
+         "Short question 2..."
+       ]
+     }
+   - Limit to a maximum of 3 highly relevant, specific, and clear questions.
+   - Write all clarification questions based on the target language constraints:
+     * If CV language is 'id' (Bahasa Indonesia): Write questions strictly in Bahasa Indonesia.
+     * If CV language is 'en' (English): Write questions in professional English, followed by their Indonesian translation in parentheses (e.g., "What was the budget for the project? (Berapa anggaran untuk proyek tersebut?)").
+   - If previous Q&A history is present under "PREVIOUS CLARIFICATION Q&A HISTORY" and all your questions have been resolved, proceed with generating the updated CV JSON. If you STILL have new critical questions, you may ask them, but DO NOT repeat any questions already present in the history.
 PROMPT;
 
             $aiResult = $this->callAiWithFallback($systemPrompt, $language);
 
-            if (!$aiResult['success']) {
+            if (! $aiResult['success']) {
                 return [
                     'success' => false,
-                    'error' => 'AI Provider Error: ' . ($aiResult['error'] ?? 'Unknown error')
+                    'error' => 'AI Provider Error: '.($aiResult['error'] ?? 'Unknown error'),
                 ];
             }
 
             $parsedCv = $this->parseAiResponse($aiResult['response']);
-            if (!$parsedCv) {
+            if (! $parsedCv) {
                 return [
                     'success' => false,
-                    'error' => 'AI returned an invalid response format.'
+                    'error' => 'AI returned an invalid response format.',
+                ];
+            }
+
+            if (isset($parsedCv['need_clarification']) && $parsedCv['need_clarification'] === true) {
+                return [
+                    'success' => true,
+                    'need_clarification' => true,
+                    'questions' => $parsedCv['questions'] ?? [],
                 ];
             }
 
@@ -1371,7 +1589,7 @@ PROMPT;
 
         return [
             'success' => true,
-            'cv_data' => $cvData
+            'cv_data' => $cvData,
         ];
     }
 
@@ -1382,6 +1600,7 @@ PROMPT;
                 return true;
             }
         }
+
         return false;
     }
 }

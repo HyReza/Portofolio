@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,7 +19,7 @@ return new class extends Migration
             // Both columns exist — drop the old reply_to_id (parent_id was already added by a previous migration)
 
             // Check if foreign key exists before dropping it
-            $fkExists = \Illuminate\Support\Facades\DB::select(
+            $fkExists = DB::select(
                 "SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
                  WHERE TABLE_SCHEMA = DATABASE()
                  AND TABLE_NAME = 'chat_messages'
@@ -26,7 +27,7 @@ return new class extends Migration
                  AND CONSTRAINT_TYPE = 'FOREIGN KEY'"
             );
 
-            if (!empty($fkExists)) {
+            if (! empty($fkExists)) {
                 Schema::table('chat_messages', function (Blueprint $table) {
                     $table->dropForeign(['reply_to_id']);
                 });
@@ -35,12 +36,12 @@ return new class extends Migration
             Schema::table('chat_messages', function (Blueprint $table) {
                 $table->dropColumn('reply_to_id');
             });
-        } elseif ($hasReplyToId && !$hasParentId) {
+        } elseif ($hasReplyToId && ! $hasParentId) {
             // Only reply_to_id exists — rename it to parent_id
             Schema::table('chat_messages', function (Blueprint $table) {
                 $table->renameColumn('reply_to_id', 'parent_id');
             });
-        } elseif (!$hasReplyToId && !$hasParentId) {
+        } elseif (! $hasReplyToId && ! $hasParentId) {
             // Neither exists — create parent_id fresh
             Schema::table('chat_messages', function (Blueprint $table) {
                 $table->uuid('parent_id')->nullable();

@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\DTOs\ProjectDTO;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProjectRequest;
 use App\Http\Requests\Admin\UpdateProjectRequest;
 use App\Models\Project;
+use App\Models\ProjectCategory;
 use App\Models\ProjectTechnology;
 use App\Models\ProjectType;
-use App\Models\ProjectCategory;
 use App\Services\MediaService;
 use App\Services\ProjectService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -68,17 +70,17 @@ class ProjectController extends Controller
         $project = $this->projectService->create($dto);
 
         // Sync technologies
-        if (!empty($validated['tech_stack'])) {
+        if (! empty($validated['tech_stack'])) {
             $techIds = $this->syncTechStack($validated['tech_stack']);
             $project->technologies()->sync($techIds);
         }
 
-        if (!empty($projectTypeNames)) {
+        if (! empty($projectTypeNames)) {
             $typeIds = $this->syncProjectTypes($projectTypeNames);
             $project->types()->sync($typeIds);
         }
 
-        if (!empty($projectCategoryNames)) {
+        if (! empty($projectCategoryNames)) {
             $catIds = $this->syncProjectCategories($projectCategoryNames);
             $project->categories()->sync($catIds);
         }
@@ -130,13 +132,13 @@ class ProjectController extends Controller
         $this->projectService->update($project, $dto);
 
         // Sync technologies
-        $techIds = !empty($validated['tech_stack']) ? $this->syncTechStack($validated['tech_stack']) : [];
+        $techIds = ! empty($validated['tech_stack']) ? $this->syncTechStack($validated['tech_stack']) : [];
         $project->technologies()->sync($techIds);
 
-        $typeIds = !empty($projectTypeNames) ? $this->syncProjectTypes($projectTypeNames) : [];
+        $typeIds = ! empty($projectTypeNames) ? $this->syncProjectTypes($projectTypeNames) : [];
         $project->types()->sync($typeIds);
 
-        $categoryIds = !empty($projectCategoryNames) ? $this->syncProjectCategories($projectCategoryNames) : [];
+        $categoryIds = ! empty($projectCategoryNames) ? $this->syncProjectCategories($projectCategoryNames) : [];
         $project->categories()->sync($categoryIds);
 
         return redirect()->route('admin.projects.index')
@@ -164,7 +166,7 @@ class ProjectController extends Controller
     /**
      * Inline create a new technology from the project form.
      */
-    public function storeTechnology(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    public function storeTechnology(Request $request): JsonResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -192,7 +194,7 @@ class ProjectController extends Controller
     /**
      * Inline create a new type from the project form.
      */
-    public function storeType(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    public function storeType(Request $request): JsonResponse
     {
         $request->validate([
             'name_id' => 'required|string|max:255',
@@ -214,7 +216,7 @@ class ProjectController extends Controller
     /**
      * Inline create a new category from the project form.
      */
-    public function storeCategory(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    public function storeCategory(Request $request): JsonResponse
     {
         $request->validate([
             'name_id' => 'required|string|max:255',
@@ -241,7 +243,9 @@ class ProjectController extends Controller
         $ids = [];
         foreach ($techStack as $techName) {
             $trimmed = trim($techName);
-            if (empty($trimmed)) continue;
+            if (empty($trimmed)) {
+                continue;
+            }
 
             $tech = ProjectTechnology::firstOrCreate(
                 ['name' => $trimmed],
@@ -249,6 +253,7 @@ class ProjectController extends Controller
             );
             $ids[] = $tech->id;
         }
+
         return $ids;
     }
 
@@ -260,7 +265,9 @@ class ProjectController extends Controller
         $ids = [];
         foreach ($names as $name) {
             $trimmed = trim($name);
-            if (empty($trimmed)) continue;
+            if (empty($trimmed)) {
+                continue;
+            }
 
             $type = ProjectType::firstOrCreate(
                 ['name_id' => $trimmed],
@@ -268,6 +275,7 @@ class ProjectController extends Controller
             );
             $ids[] = $type->id;
         }
+
         return $ids;
     }
 
@@ -279,7 +287,9 @@ class ProjectController extends Controller
         $ids = [];
         foreach ($names as $name) {
             $trimmed = trim($name);
-            if (empty($trimmed)) continue;
+            if (empty($trimmed)) {
+                continue;
+            }
 
             $category = ProjectCategory::firstOrCreate(
                 ['name_id' => $trimmed],
@@ -287,6 +297,7 @@ class ProjectController extends Controller
             );
             $ids[] = $category->id;
         }
+
         return $ids;
     }
 }

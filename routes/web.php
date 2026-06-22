@@ -1,14 +1,17 @@
 <?php
 
 use App\Http\Controllers\Admin;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\PublicController;
-use App\Http\Controllers\ChatController;
 use App\Http\Controllers\AiChatController;
-use App\Http\Controllers\LinkedinController;
-use App\Http\Controllers\InstagramController;
-use App\Http\Controllers\CvController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\CvController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InstagramController;
+use App\Http\Controllers\LinkedinController;
+use App\Http\Controllers\PublicController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // ── Public Pages ──
@@ -40,10 +43,11 @@ Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.go
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
 
 // Logout (for chat room users signed in via Google)
-Route::post('/logout', function (\Illuminate\Http\Request $request) {
-    \Illuminate\Support\Facades\Auth::logout();
+Route::post('/logout', function (Request $request) {
+    Auth::logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
+
     return redirect('/chat');
 })->middleware('auth')->name('logout');
 
@@ -55,7 +59,7 @@ Route::get('/instagram', [InstagramController::class, 'index'])->name('instagram
 Route::get('/cv/{lang}', [CvController::class, 'download'])->name('cv.download')->where('lang', 'id|en');
 
 // Public API
-Route::post('/api/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
+Route::post('/api/contact', [ContactController::class, 'store'])->name('contact.store');
 
 // AI Assistant (public, rate limited)
 Route::post('/api/ai-chat', [AiChatController::class, 'chat'])->middleware('throttle:10,1')->name('ai.chat');

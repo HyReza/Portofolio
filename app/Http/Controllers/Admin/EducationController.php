@@ -14,8 +14,7 @@ class EducationController extends Controller
 {
     public function __construct(
         private readonly MediaService $mediaService,
-    ) {
-    }
+    ) {}
 
     public function index(): Response
     {

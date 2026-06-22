@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Achievement;
 use App\Models\Blog;
 use App\Models\Certificate;
 use App\Models\Contact;
 use App\Models\Project;
-use App\Models\Achievement;
 use App\Models\Skill;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,16 +17,16 @@ class DashboardController extends Controller
     public function index(): Response
     {
         $stats = [
-            'projects'     => Project::count(),
-            'blogs'        => Blog::count(),
+            'projects' => Project::count(),
+            'blogs' => Blog::count(),
             'certificates' => Certificate::count(),
-            'contacts'     => Contact::count(),
+            'contacts' => Contact::count(),
             'achievements' => Achievement::count(),
-            'skills'       => Skill::count(),
+            'skills' => Skill::count(),
             'published_blogs' => Blog::published()->count(),
             'featured_projects' => Project::where('is_featured', true)->count(),
             'total_blog_views' => Blog::sum('view_count'),
-            'unread_contacts'  => Contact::where('is_read', false)->count(),
+            'unread_contacts' => Contact::where('is_read', false)->count(),
         ];
 
         $recentActivity = collect()
@@ -53,7 +53,7 @@ class DashboardController extends Controller
             ->values();
 
         return Inertia::render('dashboard', [
-            'stats'          => $stats,
+            'stats' => $stats,
             'recentActivity' => $recentActivity,
         ]);
     }

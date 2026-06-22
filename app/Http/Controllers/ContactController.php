@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ContactMessageNotification;
 use App\Models\Contact;
 use App\Models\Profile;
-use App\Mail\ContactMessageNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -14,7 +15,7 @@ class ContactController extends Controller
     public function store(Request $request)
     {
         $executed = RateLimiter::attempt(
-            'contact-form-v3:' . $request->ip(),
+            'contact-form-v3:'.$request->ip(),
             $maxAttempts = 3,
             function () use ($request) {
                 $validated = $request->validate([
@@ -41,16 +42,16 @@ class ContactController extends Controller
                         Mail::to($toEmail)->send(new ContactMessageNotification($newContact));
                     } catch (\Exception $e) {
                         // Log error but don't fail the request
-                        \Illuminate\Support\Facades\Log::error('Failed to send contact notification email: ' . $e->getMessage());
+                        Log::error('Failed to send contact notification email: '.$e->getMessage());
                     }
                 }
             },
             $decaySeconds = 3600 // 1 hour per 3 messages
         );
 
-        if (!$executed) {
+        if (! $executed) {
             return response()->json([
-                'message' => 'Too many messages sent. Please try again later.'
+                'message' => 'Too many messages sent. Please try again later.',
             ], 429);
         }
 

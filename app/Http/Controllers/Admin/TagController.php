@@ -12,8 +12,9 @@ class TagController extends Controller
     public function index()
     {
         $tags = BlogTag::withCount('blogs')->latest()->get();
+
         return Inertia::render('admin/tags/index', [
-            'tags' => $tags
+            'tags' => $tags,
         ]);
     }
 

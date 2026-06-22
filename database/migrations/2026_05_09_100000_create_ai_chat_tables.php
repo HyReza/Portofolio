@@ -26,9 +26,9 @@ return new class extends Migration
             $table->timestamp('created_at')->useCurrent();
 
             $table->foreign('conversation_id')
-                  ->references('id')
-                  ->on('ai_conversations')
-                  ->cascadeOnDelete();
+                ->references('id')
+                ->on('ai_conversations')
+                ->cascadeOnDelete();
         });
     }
 

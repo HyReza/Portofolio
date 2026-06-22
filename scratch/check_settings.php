@@ -1,9 +1,11 @@
 <?php
+
 require 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 use App\Models\SiteSetting;
+use Illuminate\Contracts\Console\Kernel;
 
 $settings = SiteSetting::where('key', 'like', 'qwen%')
     ->orWhere('key', 'like', 'gemini%')

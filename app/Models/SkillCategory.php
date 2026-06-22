@@ -41,6 +41,6 @@ class SkillCategory extends Model
 
     public function scopeWithOrderedSkills($query)
     {
-        return $query->with(['skills' => fn($q) => $q->orderBy('sort_order')]);
+        return $query->with(['skills' => fn ($q) => $q->orderBy('sort_order')]);
     }
 }
