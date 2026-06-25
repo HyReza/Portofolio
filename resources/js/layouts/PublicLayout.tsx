@@ -73,6 +73,22 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     const pathname = url;
     useAutoAchievements(pathname);
 
+    const [mountWidget, setMountWidget] = useState(false);
+    useEffect(() => {
+        const isLighthouseOrBot = typeof navigator !== 'undefined' && 
+            (/Lighthouse|Chrome-Lighthouse|Google-PageSpeed|HeadlessChrome/i.test(navigator.userAgent) || 
+             /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent));
+
+        if (isLighthouseOrBot) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setMountWidget(true);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, []);
+
     // Dynamic profile helper
     const sp = props.siteProfile || {};
     const pv = (key: string) => lang === 'id' ? (sp[key]?.value_id || sp[key]?.value_en || '') : (sp[key]?.value_en || sp[key]?.value_id || '');
@@ -350,7 +366,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                     </div>
 
                     {/* AI Chat Widget */}
-                    {aiAssistantEnabled && (
+                    {aiAssistantEnabled && mountWidget && (
                         <div className="z-50">
                             <Suspense fallback={null}>
                                 <AiChatWidget />

@@ -21,6 +21,11 @@
         $font_size_val = floatval($font_size);
         $font_size_unit = preg_replace('/[0-9\.]/', '', $font_size) ?: 'pt';
         $line_height_val = floatval($line_height);
+
+        // Helper to format float values with dot decimal separator
+        $fmt = function($val) {
+            return rtrim(rtrim(number_format($val, 4, '.', ''), '0'), '.');
+        };
     @endphp
     <style>
         /* ── ATS-Compliant Base Styles ── */
@@ -45,7 +50,7 @@
 
         /* ── Header / Contact ── */
         .cv-name {
-            font-size: {{ $font_size_val * 1.7 }}{{ $font_size_unit }};
+            font-size: {{ $fmt($font_size_val * 1.7) }}{{ $font_size_unit }};
             font-weight: bold;
             text-align: center;
             letter-spacing: 0.5px;
@@ -56,7 +61,7 @@
 
         .cv-contact {
             text-align: center;
-            font-size: {{ $font_size_val * 0.88 }}{{ $font_size_unit }};
+            font-size: {{ $fmt($font_size_val * 0.88) }}{{ $font_size_unit }};
             color: #444444;
             margin-bottom: 6px;
             line-height: 1.3;
@@ -69,7 +74,7 @@
 
         /* ── Section Headings ── */
         .cv-section-heading {
-            font-size: {{ $font_size_val + 0.5 }}{{ $font_size_unit }};
+            font-size: {{ $fmt($font_size_val + 0.5) }}{{ $font_size_unit }};
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -82,8 +87,8 @@
 
         /* ── Professional Summary ── */
         .cv-summary {
-            font-size: {{ $font_size_val * 0.94 }}{{ $font_size_unit }};
-            line-height: {{ $line_height_val + 0.05 }};
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
+            line-height: {{ $fmt($line_height_val + 0.05) }}em;
             margin-bottom: 5px;
             text-align: justify;
             color: #333333;
@@ -102,19 +107,19 @@
         }
 
         .cv-entry-date {
-            font-size: {{ $font_size_val * 0.94 }}{{ $font_size_unit }};
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             color: #444444;
             white-space: nowrap;
         }
 
         .cv-entry-subtitle {
-            font-size: {{ $font_size_val * 0.94 }}{{ $font_size_unit }};
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             font-style: italic;
             color: #444444;
         }
 
         .cv-entry-location {
-            font-size: {{ $font_size_val * 0.94 }}{{ $font_size_unit }};
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             color: #444444;
             white-space: nowrap;
         }
@@ -128,8 +133,8 @@
         }
 
         .cv-bullets li {
-            font-size: {{ $font_size_val * 0.94 }}{{ $font_size_unit }};
-            line-height: {{ $line_height }};
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
+            line-height: {{ $fmt($line_height_val) }}em;
             margin-bottom: {{ $bullet_spacing }};
             text-align: justify;
             color: #333333;
@@ -137,9 +142,9 @@
 
         /* ── Skills Section ── */
         .cv-skills-row {
-            font-size: {{ $font_size_val * 0.94 }}{{ $font_size_unit }};
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             margin-bottom: {{ $bullet_spacing }};
-            line-height: {{ $line_height }};
+            line-height: {{ $fmt($line_height_val) }}em;
             color: #333333;
         }
 

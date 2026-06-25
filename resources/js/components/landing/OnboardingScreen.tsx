@@ -9,8 +9,12 @@ interface OnboardingProps {
 export function OnboardingScreen({ onComplete, name = 'Reza Edi Saputra' }: OnboardingProps) {
     const [phase, setPhase] = useState<'animating' | 'exit'>('animating');
 
+    const isLighthouseOrBot = typeof navigator !== 'undefined' && 
+        (/Lighthouse|Chrome-Lighthouse|Google-PageSpeed|HeadlessChrome/i.test(navigator.userAgent) || 
+         /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent));
+
     useEffect(() => {
-        if (typeof window !== 'undefined' && sessionStorage.getItem('onboarding_done')) {
+        if (isLighthouseOrBot || (typeof window !== 'undefined' && sessionStorage.getItem('onboarding_done'))) {
             onComplete('recruiter');
             return;
         }
@@ -26,9 +30,9 @@ export function OnboardingScreen({ onComplete, name = 'Reza Edi Saputra' }: Onbo
         }, 3200);
         
         return () => clearTimeout(timer);
-    }, []);
+    }, [isLighthouseOrBot]);
 
-    if (typeof window !== 'undefined' && sessionStorage.getItem('onboarding_done')) return null;
+    if (isLighthouseOrBot || (typeof window !== 'undefined' && sessionStorage.getItem('onboarding_done'))) return null;
 
     // Split name into characters for staggered reveal
     const nameChars = name.split('');

@@ -25,6 +25,14 @@
         $margin_bottom = $style_settings['margin_bottom'] ?? '0.4in';
         $margin_left = $style_settings['margin_left'] ?? '0.5in';
         $margin_right = $style_settings['margin_right'] ?? '0.5in';
+
+        $font_size_val = floatval($font_size);
+        $font_size_unit = preg_replace('/[0-9\.]/', '', $font_size) ?: 'pt';
+        $line_height_val = floatval($line_height);
+
+        $fmt = function($val) {
+            return rtrim(rtrim(number_format($val, 4, '.', ''), '0'), '.');
+        };
     @endphp
     <style>
         /* ── MS Word Page & Margin Setup ── */
@@ -65,7 +73,7 @@
 
         /* ── Header / Contact ── */
         .cv-name {
-            font-size: calc({{ $font_size }} * 1.7);
+            font-size: {{ $fmt($font_size_val * 1.7) }}{{ $font_size_unit }};
             font-weight: bold;
             text-align: center;
             letter-spacing: 0.5px;
@@ -79,7 +87,7 @@
 
         .cv-contact {
             text-align: center;
-            font-size: calc({{ $font_size }} * 0.88);
+            font-size: {{ $fmt($font_size_val * 0.88) }}{{ $font_size_unit }};
             color: #444444;
             margin: 0;
             margin-bottom: 6px;
@@ -95,7 +103,7 @@
 
         /* ── Section Headings ── */
         .cv-section-heading {
-            font-size: calc({{ $font_size }} + 0.5pt);
+            font-size: {{ $fmt($font_size_val + 0.5) }}{{ $font_size_unit }};
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -111,8 +119,8 @@
 
         /* ── Professional Summary ── */
         .cv-summary {
-            font-size: calc({{ $font_size }} * 0.94);
-            line-height: calc({{ $line_height }} + 0.05);
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
+            line-height: {{ $fmt($line_height_val + 0.05) }};
             margin: 0;
             margin-bottom: 6px;
             mso-margin-top-alt: 0pt;
@@ -129,20 +137,20 @@
         }
 
         .cv-entry-date {
-            font-size: calc({{ $font_size }} * 0.94);
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             color: #444444;
             white-space: nowrap;
             font-weight: bold;
         }
 
         .cv-entry-subtitle {
-            font-size: calc({{ $font_size }} * 0.94);
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             font-style: italic;
             color: #444444;
         }
 
         .cv-entry-location {
-            font-size: calc({{ $font_size }} * 0.94);
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             color: #444444;
             white-space: nowrap;
             font-style: italic;
@@ -150,7 +158,7 @@
 
         /* ── Skills Section ── */
         .cv-skills-row {
-            font-size: calc({{ $font_size }} * 0.94);
+            font-size: {{ $fmt($font_size_val * 0.94) }}{{ $font_size_unit }};
             margin: 0;
             margin-bottom: {{ $bullet_spacing }};
             mso-margin-top-alt: 0pt;
@@ -249,7 +257,11 @@
             <h2 class="cv-section-heading">
                 {{ $language === 'id' ? 'RINGKASAN PROFESIONAL' : 'PROFESSIONAL SUMMARY' }}
             </h2>
-            <p class="cv-summary">{!! nl2br(e($summary)) !!}</p>
+            @foreach(explode("\n", $summary) as $paragraph)
+                @if(trim($paragraph))
+                    <p class="cv-summary">{{ trim($paragraph) }}</p>
+                @endif
+            @endforeach
         @endif
 
         {{-- ── Dynamic Sections ── --}}
