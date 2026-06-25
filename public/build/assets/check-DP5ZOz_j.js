@@ -1,0 +1,2 @@
+import{t as e}from"./createLucideIcon-Sc0HmOf5.js";var t=e(`Check`,[[`path`,{d:`M20 6 9 17l-5-5`,key:`1gmf2c`}]]);export{t};
+//# sourceMappingURL=check-DP5ZOz_j.js.map
