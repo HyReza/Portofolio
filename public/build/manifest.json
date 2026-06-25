@@ -1240,7 +1240,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Bxz7N8v4.css",
+    "file": "assets/app-AqGut5sp.css",
     "name": "app",
     "names": [
       "app.css"
@@ -1249,7 +1249,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DuVXsGeP.js",
+    "file": "assets/app-CwdKN3ca.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1606,7 +1606,7 @@
     ]
   },
   "resources/js/pages/admin/cv-generator/editor.tsx": {
-    "file": "assets/editor-vI5-7JfD.js",
+    "file": "assets/editor-DgvbTeMT.js",
     "name": "editor",
     "src": "resources/js/pages/admin/cv-generator/editor.tsx",
     "isDynamicEntry": true,

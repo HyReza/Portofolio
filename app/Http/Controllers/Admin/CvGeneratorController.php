@@ -223,7 +223,7 @@ class CvGeneratorController extends Controller
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $cvData = $validated['cv_data'];
+        $cvData = $request->input('cv_data');
         $rawCvData = json_decode($request->getContent(), true)['cv_data'] ?? [];
         $contactFields = [
             'contact_name',
@@ -373,6 +373,7 @@ class CvGeneratorController extends Controller
             'summary' => $cvData['professional_summary'] ?? '',
             'sections' => $sections,
             'language' => $cvGeneration->language,
+            'style_settings' => $cvData['style_settings'] ?? null,
         ];
 
         $displayName = $cvData['contact_name'] ?? $profileData['name'];
@@ -504,6 +505,7 @@ class CvGeneratorController extends Controller
                     'summary' => $cvData['professional_summary'] ?? '',
                     'sections' => $sections,
                     'language' => $cvGeneration->language,
+                    'style_settings' => $cvData['style_settings'] ?? null,
                 ];
 
                 $displayName = $contactVal('contact_name', 'name');
@@ -785,8 +787,8 @@ class CvGeneratorController extends Controller
             'clarification_answers' => ['nullable', 'array'],
         ]);
 
-        if (! empty($validated['cv_data'])) {
-            $cvData = $validated['cv_data'];
+        if ($request->has('cv_data')) {
+            $cvData = $request->input('cv_data');
             $rawCvData = json_decode($request->getContent(), true)['cv_data'] ?? [];
             $contactFields = [
                 'contact_name',
@@ -843,6 +845,42 @@ class CvGeneratorController extends Controller
         ]);
     }
 
+    /**
+     * Perform granular AI Rewrite on a bullet, item, or section.
+     */
+    public function aiAction(Request $request, CvGeneration $cvGeneration): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'string', 'in:bullet,item,section'],
+            'section_index' => ['required', 'integer'],
+            'item_index' => ['nullable', 'integer'],
+            'bullet_index' => ['nullable', 'integer'],
+            'instruction' => ['nullable', 'string', 'max:2000'],
+            'cv_data' => ['required', 'array'],
+        ]);
+
+        $result = $this->cvGeneratorService->executeAiAction(
+            $cvGeneration,
+            $validated['type'],
+            [
+                'section_index' => $validated['section_index'],
+                'item_index' => $validated['item_index'] ?? null,
+                'bullet_index' => $validated['bullet_index'] ?? null,
+                'cv_data' => $validated['cv_data'],
+            ],
+            $validated['instruction'] ?? null
+        );
+
+        if (! $result['success']) {
+            return response()->json(['error' => $result['error']], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result['data'],
+        ]);
+    }
+
     // ── Private Helpers ──
 
     /**
@@ -854,21 +892,33 @@ class CvGeneratorController extends Controller
         $cvGeneration->sections()->delete();
 
         foreach ($sections as $sIndex => $sectionData) {
+            $sType = $sectionData['type'] ?? 'custom';
             $section = $cvGeneration->sections()->create([
-                'type' => $sectionData['type'] ?? 'custom',
+                'type' => $sType,
                 'title' => $sectionData['title'] ?? 'Untitled',
                 'sort_order' => $sIndex,
                 'is_visible' => $sectionData['is_visible'] ?? true,
             ]);
 
             foreach (($sectionData['items'] ?? []) as $iIndex => $itemData) {
+                $bullets = $itemData['bullets'] ?? [];
+                $subtitle = $itemData['subtitle'] ?? null;
+                
+                // Normalization for skills / soft_skills in backend to ensure consistency
+                if (in_array($sType, ['skills', 'soft_skills'])) {
+                    if (empty($subtitle) && !empty($bullets)) {
+                        $subtitle = is_array($bullets) ? implode(', ', $bullets) : $bullets;
+                    }
+                    $bullets = [];
+                }
+
                 $section->items()->create([
                     'source_type' => $itemData['source_type'] ?? null,
                     'source_id' => $itemData['source_id'] ?? null,
                     'title' => $itemData['title'] ?? null,
-                    'subtitle' => $itemData['subtitle'] ?? null,
+                    'subtitle' => $subtitle,
                     'location' => $itemData['location'] ?? null,
-                    'bullets' => $itemData['bullets'] ?? [],
+                    'bullets' => $bullets,
                     'metadata' => $itemData['metadata'] ?? [],
                     'sort_order' => $iIndex,
                     'is_visible' => $itemData['is_visible'] ?? true,

@@ -13,11 +13,24 @@
         </w:WordDocument>
     </xml>
     <![endif]-->
+    @php
+        $font_family = $style_settings['font_family'] ?? 'Arial';
+        $font_size = $style_settings['font_size'] ?? '9pt';
+        $line_height = $style_settings['line_height'] ?? '1.3';
+        $theme_color = $style_settings['theme_color'] ?? '#222222';
+        $section_spacing = $style_settings['section_spacing'] ?? '10pt';
+        $entry_spacing = $style_settings['entry_spacing'] ?? '5px';
+        $bullet_spacing = $style_settings['bullet_spacing'] ?? '2px';
+        $margin_top = $style_settings['margin_top'] ?? '0.4in';
+        $margin_bottom = $style_settings['margin_bottom'] ?? '0.4in';
+        $margin_left = $style_settings['margin_left'] ?? '0.5in';
+        $margin_right = $style_settings['margin_right'] ?? '0.5in';
+    @endphp
     <style>
         /* ── MS Word Page & Margin Setup ── */
         @page Section1 {
             size: 595.3pt 841.9pt; /* A4 dimensions */
-            margin: 0.4in 0.5in 0.4in 0.5in;
+            margin: {{ $margin_top }} {{ $margin_right }} {{ $margin_bottom }} {{ $margin_left }};
             mso-header-margin: 0in;
             mso-footer-margin: 0in;
             mso-paper-source: 0;
@@ -29,9 +42,9 @@
 
         /* ── Base Styling ── */
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 9pt;
-            line-height: 1.35;
+            font-family: "{{ $font_family }}", Arial, Helvetica, sans-serif;
+            font-size: {{ $font_size }};
+            line-height: {{ $line_height }};
             color: #222222;
         }
 
@@ -47,12 +60,12 @@
             margin-bottom: 2pt;
             mso-margin-top-alt: 0pt;
             mso-margin-bottom-alt: 2pt;
-            line-height: 1.35;
+            line-height: {{ $line_height }};
         }
 
         /* ── Header / Contact ── */
         .cv-name {
-            font-size: 16pt;
+            font-size: calc({{ $font_size }} * 1.7);
             font-weight: bold;
             text-align: center;
             letter-spacing: 0.5px;
@@ -66,7 +79,7 @@
 
         .cv-contact {
             text-align: center;
-            font-size: 8pt;
+            font-size: calc({{ $font_size }} * 0.88);
             color: #444444;
             margin: 0;
             margin-bottom: 6px;
@@ -82,24 +95,24 @@
 
         /* ── Section Headings ── */
         .cv-section-heading {
-            font-size: 9.5pt;
+            font-size: calc({{ $font_size }} + 0.5pt);
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 1.5px solid #222222;
+            border-bottom: 1.5px solid {{ $theme_color }};
             padding-bottom: 1px;
             margin: 0;
-            margin-top: 10pt;
+            margin-top: {{ $section_spacing }};
             margin-bottom: 4pt;
-            mso-margin-top-alt: 10pt;
+            mso-margin-top-alt: {{ $section_spacing }};
             mso-margin-bottom-alt: 4pt;
-            color: #111111;
+            color: {{ $theme_color }};
         }
 
         /* ── Professional Summary ── */
         .cv-summary {
-            font-size: 8.5pt;
-            line-height: 1.35;
+            font-size: calc({{ $font_size }} * 0.94);
+            line-height: calc({{ $line_height }} + 0.05);
             margin: 0;
             margin-bottom: 6px;
             mso-margin-top-alt: 0pt;
@@ -110,26 +123,26 @@
 
         /* ── Entry (Experience, Education, etc.) ── */
         .cv-entry-title {
-            font-size: 9pt;
+            font-size: {{ $font_size }};
             font-weight: bold;
             color: #111111;
         }
 
         .cv-entry-date {
-            font-size: 8.5pt;
+            font-size: calc({{ $font_size }} * 0.94);
             color: #444444;
             white-space: nowrap;
             font-weight: bold;
         }
 
         .cv-entry-subtitle {
-            font-size: 8.5pt;
+            font-size: calc({{ $font_size }} * 0.94);
             font-style: italic;
             color: #444444;
         }
 
         .cv-entry-location {
-            font-size: 8.5pt;
+            font-size: calc({{ $font_size }} * 0.94);
             color: #444444;
             white-space: nowrap;
             font-style: italic;
@@ -137,12 +150,12 @@
 
         /* ── Skills Section ── */
         .cv-skills-row {
-            font-size: 8.5pt;
+            font-size: calc({{ $font_size }} * 0.94);
             margin: 0;
-            margin-bottom: 2px;
+            margin-bottom: {{ $bullet_spacing }};
             mso-margin-top-alt: 0pt;
-            mso-margin-bottom-alt: 2pt;
-            line-height: 1.3;
+            mso-margin-bottom-alt: {{ $bullet_spacing }};
+            line-height: {{ $line_height }};
             color: #333333;
         }
 
@@ -231,15 +244,12 @@
                     $parts[] = "<a href='" . e($webUrl) . "'>" . e($cleanWeb) . "</a>";
                 }
             @endphp
-            {!! implode(' <span class="cv-contact-separator"> &bull; </span> ', $parts) !!}
-        </p>
-
-        {{-- ── Professional Summary ── --}}
+                {{-- ── Professional Summary ── --}}
         @if(!empty($summary))
             <h2 class="cv-section-heading">
                 {{ $language === 'id' ? 'RINGKASAN PROFESIONAL' : 'PROFESSIONAL SUMMARY' }}
             </h2>
-            <p class="cv-summary">{{ $summary }}</p>
+            <p class="cv-summary">{!! nl2br(e($summary)) !!}</p>
         @endif
 
         {{-- ── Dynamic Sections ── --}}
@@ -249,98 +259,34 @@
 
                 @if(in_array($section['type'], ['skills', 'soft_skills']))
                     @foreach($section['items'] as $item)
-                        @php
-                            $isSkillsRow = empty($item['bullets']) || (count($item['bullets']) <= 1 && strlen($item['bullets'][0] ?? '') < 50);
-                        @endphp
-                        
-                        @if($isSkillsRow)
+                        <p class="cv-skills-row">
                             @if(!empty($item['title']))
-                                <p class="cv-skills-row">
-                                    @if(!empty($item['subtitle']))
-                                        <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ $item['subtitle'] }}
-                                    @elseif(!empty($item['bullets']))
-                                        <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $item['bullets']) }}
-                                    @elseif(!empty($item['metadata']['tech_stack']) && is_array($item['metadata']['tech_stack']))
-                                        @php
-                                            $techStackList = array_map(function($s) {
-                                                return is_array($s) ? ($s['name'] ?? '') : (is_object($s) ? ($s->name ?? '') : (string)$s);
-                                            }, $item['metadata']['tech_stack']);
-                                            $techStackList = array_filter(array_map('trim', $techStackList));
-                                        @endphp
-                                        <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $techStackList) }}
-                                    @elseif(!empty($item['metadata']['skills']) && is_array($item['metadata']['skills']))
-                                        @php
-                                            $skillsList = array_map(function($s) {
-                                                return is_array($s) ? ($s['name'] ?? '') : (is_object($s) ? ($s->name ?? '') : (string)$s);
-                                            }, $item['metadata']['skills']);
-                                            $skillsList = array_filter(array_map('trim', $skillsList));
-                                        @endphp
-                                        <span class="cv-skills-category">{{ $item['title'] }}:</span> {{ implode(', ', $skillsList) }}
-                                    @else
-                                        {{ $item['title'] }}
-                                    @endif
-                                </p>
-                            @elseif(!empty($item['bullets']))
-                                <p class="cv-skills-row">
-                                    {{ implode(', ', $item['bullets']) }}
-                                </p>
+                                <span class="cv-skills-category">{{ $item['title'] }}:</span>
                             @endif
-                        @else
-                            {{-- Skills section fallback item --}}
-                            <table width="100%" class="cv-flex-row" cellspacing="0" cellpadding="0">
+                            @if(!empty($item['subtitle']))
+                                {{ $item['subtitle'] }}
+                            @elseif(!empty($item['bullets']))
+                                {{ implode(', ', $item['bullets']) }}
+                            @elseif(!empty($item['metadata']['tech_stack']) && is_array($item['metadata']['tech_stack']))
                                 @php
-                                    $dateFromSubtitle = '';
-                                    $subtitleClean = $item['subtitle'] ?? '';
-                                    if (preg_match('/(?:—|–|-)\s*(.+)$/', $subtitleClean, $dateMatch)) {
-                                        $dateFromSubtitle = trim($dateMatch[1]);
-                                        $subtitleClean = trim(preg_replace('/\s*(?:—|–|-)\s*.+$/', '', $subtitleClean));
-                                    }
-                                    $parsedTitle = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2">$1</a>', e($item['title']));
-                                    $parsedSubtitle = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2">$1</a>', e($subtitleClean));
+                                    $techStackList = array_map(function($s) {
+                                        return is_array($s) ? ($s['name'] ?? '') : (is_object($s) ? ($s->name ?? '') : (string)$s);
+                                    }, $item['metadata']['tech_stack']);
+                                    $techStackList = array_filter(array_map('trim', $techStackList));
                                 @endphp
-                                <tr>
-                                    <td class="cv-left" width="70%" style="width: 70%; padding-top: 4px;">
-                                        <span class="cv-entry-title">{!! $parsedTitle !!}</span>
-                                        @if(empty($subtitleClean) && !empty($item['metadata']['gpa']))
-                                            <span style="font-weight: normal; color: #444444;"> &bull; GPA: {{ $item['metadata']['gpa'] }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="cv-right" width="30%" style="width: 30%; text-align: right; padding-top: 4px;">
-                                        @if($dateFromSubtitle)
-                                            <span class="cv-entry-date">{{ $dateFromSubtitle }}</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @if(!empty($subtitleClean) || !empty($item['location']))
-                                    <tr>
-                                        <td class="cv-left" width="70%" style="width: 70%; font-size: 8.5pt;">
-                                            @if(!empty($subtitleClean))
-                                                <span class="cv-entry-subtitle">{!! $parsedSubtitle !!}</span>
-                                                @if(!empty($item['metadata']['gpa']))
-                                                    <span style="font-weight: normal; color: #444444;"> &bull; GPA: {{ $item['metadata']['gpa'] }}</span>
-                                                @endif
-                                            @endif
-                                        </td>
-                                        <td class="cv-right" width="30%" style="width: 30%; text-align: right; font-size: 8.5pt;">
-                                            @if(!empty($item['location']))
-                                                <span class="cv-entry-location">{{ $item['location'] }}</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endif
-                                @if(!empty($item['bullets']))
-                                    <tr>
-                                        <td colspan="2" style="padding-top: 2px; padding-bottom: 4px;">
-                                            @foreach($item['bullets'] as $bullet)
-                                                @if(trim($bullet))
-                                                    <p class="cv-bullet-p" style="margin: 0; margin-left: 11pt; text-indent: -11pt; padding: 0; margin-bottom: 2pt; text-align: justify; font-size: 8.5pt; line-height: 1.35; color: #333333; font-family: Arial, sans-serif; mso-margin-top-alt: 0pt; mso-margin-bottom-alt: 2pt;">
-                                                        <span style="font-family: Arial, sans-serif; font-size: 8.5pt; color: #222222; margin-right: 4pt;">&#8226;</span>{!! preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2">$1</a>', e($bullet)) !!}
-                                                    </p>
-                                                @endif
-                                            @endforeach
-                                        </td>
-                                    </tr>
-                                @endif
+                                {{ implode(', ', $techStackList) }}
+                            @elseif(!empty($item['metadata']['skills']) && is_array($item['metadata']['skills']))
+                                @php
+                                    $skillsList = array_map(function($s) {
+                                        return is_array($s) ? ($s['name'] ?? '') : (is_object($s) ? ($s->name ?? '') : (string)$s);
+                                    }, $item['metadata']['skills']);
+                                    $skillsList = array_filter(array_map('trim', $skillsList));
+                                @endphp
+                                {{ implode(', ', $skillsList) }}
+                            @endif
+                        </p>
+                    @endforeach
+                @else
                             </table>
                         @endif
                     @endforeach

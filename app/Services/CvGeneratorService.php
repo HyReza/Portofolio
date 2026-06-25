@@ -41,11 +41,11 @@ class CvGeneratorService
         {
           "source_type": "career|project|education|certificate|organization|achievement|skill|soft_skill",
           "source_id": 1,
-          "title": "Main title (e.g. Senior Developer)",
-          "subtitle": "Context line (e.g. Company — Jan 2024 – Present)",
+          "title": "Main title (e.g. Senior Developer, or Skills Category like 'Programming Languages')",
+          "subtitle": "Context line (e.g. Company name, or comma-separated list of skills like 'PHP, Python, JavaScript' for skills sections. Note: for skills/soft_skills sections, always list the skills here and leave bullets as an empty array [])",
           "location": "City, Country (optional)",
           "bullets": [
-            "XYZ bullet: Accomplished [X] as measured by [Y], by doing [Z]"
+            "XYZ bullet (leave empty [] for skills and soft_skills sections)"
           ],
           "metadata": {
             "gpa": "3.85",
@@ -660,6 +660,7 @@ Example 4 (SOAR): "Led development of emergency feature release under a tight 2-
 - Group into categories: "Languages & Frameworks", "Tools & Platforms", "Databases", "Methodologies", etc.
 - JD-matching skills appear first in each category
 - Include proficiency context where available
+- For each skills/soft_skills category, put the category name in 'title', the list of skills as a comma-separated string in 'subtitle', and keep the 'bullets' array completely empty []. Do NOT output any bullet points for skills sections.
 
 ## 9. DYNAMIC ATS SCORING & IMPROVEMENT SUGGESTIONS
 - **ats_match_score**: You MUST calculate a realistic match score from 0 to 100 based on the percentage of JD keywords covered in the CV, matching technical stack, and required experience. Do NOT default to 85. The score must reflect the actual candidate fit (e.g., lower if missing critical components, higher only if matching almost all criteria).
@@ -972,6 +973,24 @@ PROMPT;
         $parsedCv['contact_github'] = $profile['github'] ?? null;
         $parsedCv['contact_website'] = $profile['website'] ?? null;
 
+        // Normalize skills/soft_skills sections in parsed CV data to prevent database corruption
+        if (isset($parsedCv['sections']) && is_array($parsedCv['sections'])) {
+            foreach ($parsedCv['sections'] as $sIndex => &$sectionData) {
+                $sType = $sectionData['type'] ?? 'custom';
+                if (in_array($sType, ['skills', 'soft_skills']) && isset($sectionData['items']) && is_array($sectionData['items'])) {
+                    foreach ($sectionData['items'] as $iIndex => &$itemData) {
+                        $bullets = $itemData['bullets'] ?? [];
+                        $subtitle = $itemData['subtitle'] ?? null;
+                        if (empty($subtitle) && !empty($bullets)) {
+                            $itemData['subtitle'] = is_array($bullets) ? implode(', ', $bullets) : $bullets;
+                        }
+                        $itemData['bullets'] = [];
+                    }
+                }
+            }
+            unset($sectionData);
+        }
+
         // Create the generation record
         $cvGeneration = CvGeneration::create([
             'job_title' => $jobTitle,
@@ -989,8 +1008,9 @@ PROMPT;
 
         // Create sections and items
         foreach ($parsedCv['sections'] as $sIndex => $sectionData) {
+            $sType = $sectionData['type'] ?? 'custom';
             $section = $cvGeneration->sections()->create([
-                'type' => $sectionData['type'] ?? 'custom',
+                'type' => $sType,
                 'title' => $sectionData['title'] ?? 'Untitled Section',
                 'sort_order' => $sIndex,
                 'is_visible' => true,
@@ -1054,8 +1074,9 @@ INSTRUCTIONS:
 2. Naturally integrate ATS keywords from the job description context if relevant.
 3. If no quantitative metrics exist in raw data, use reasonable conservative estimates prefixed with "~".
 4. Ensure extreme professionalism.
-5. You must return ONLY valid JSON matching exactly this schema, and nothing else. No markdown wrapping.
-6. CLARIFICATION & VALIDATION PROTOCOL:
+5. If the section type is 'skills' or 'soft_skills', put the skills category name in 'title', the comma-separated list of skills in 'subtitle', and make 'bullets' completely empty []. Do NOT generate bullet points.
+6. You must return ONLY valid JSON matching exactly this schema, and nothing else. No markdown wrapping.
+7. CLARIFICATION & VALIDATION PROTOCOL:
    - Before generating the custom item, evaluate if the user's description is too vague or lacks key results/metrics/tools.
    - If key details are missing or highly ambiguous, and you need to ask questions to clarify or validate the data, you MUST halt generation and ask the user for clarification.
    - To ask for clarification, return a JSON response matching exactly this schema (and nothing else):
@@ -1591,6 +1612,218 @@ PROMPT;
             'success' => true,
             'cv_data' => $cvData,
         ];
+    }
+
+    /**
+     * Execute granular AI action (rewrite bullet, item, or section).
+     */
+    public function executeAiAction(\App\Models\CvGeneration $cv, string $type, array $params, ?string $instruction = null): array
+    {
+        $cvData = $params['cv_data'];
+        $sectionIndex = $params['section_index'];
+        $itemIndex = $params['item_index'] ?? null;
+        $bulletIndex = $params['bullet_index'] ?? null;
+        $language = $cv->language;
+
+        $section = $cvData['sections'][$sectionIndex] ?? null;
+        if (!$section) {
+            return ['success' => false, 'error' => 'Section not found'];
+        }
+
+        $skillsInstruction = "";
+        if (in_array($section['type'] ?? '', ['skills', 'soft_skills'])) {
+            $skillsInstruction = "\nCRITICAL NOTE FOR SKILLS/SOFT_SKILLS SECTION ITEMS:\n" .
+                "- Since this item belongs to a skills or soft_skills section, you MUST format it as a skills category: put the category name in 'title', the comma-separated list of skills in 'subtitle', and keep the 'bullets' array completely empty []. Do NOT generate bullet points.\n";
+        }
+
+        $item = null;
+        if ($itemIndex !== null) {
+            $item = $section['items'][$itemIndex] ?? null;
+            if (!$item) {
+                return ['success' => false, 'error' => 'Item not found'];
+            }
+        }
+
+        $bullet = null;
+        if ($bulletIndex !== null && $item) {
+            $bullet = $item['bullets'][$bulletIndex] ?? null;
+            if ($bullet === null) {
+                return ['success' => false, 'error' => 'Bullet not found'];
+            }
+        }
+
+        $systemPrompt = "";
+        $langInstruction = $language === 'id'
+            ? 'Generate output strictly in professional Indonesian (Bahasa Indonesia).'
+            : 'Generate output strictly in professional English.';
+
+        if ($type === 'bullet') {
+            $escapedBullet = addslashes($bullet);
+            $itemTitle = $item['title'] ?? '';
+            $itemSubtitle = $item['subtitle'] ?? '';
+            $systemPrompt = <<<PROMPT
+You are an elite ATS CV writer. The user wants to rewrite a single bullet point in their CV.
+
+CONTEXT:
+Job Title: {$cv->job_title}
+Company: {$cv->company_name}
+JD: {$cv->job_description}
+
+CURRENT ITEM CONTEXT:
+Item Title: {$itemTitle}
+Item Subtitle: {$itemSubtitle}
+
+CURRENT BULLET POINT:
+"{$escapedBullet}"
+
+USER INSTRUCTION / CHANGE NOTE (Optional):
+"{$instruction}"
+
+LANGUAGE INSTRUCTION:
+{$langInstruction}
+
+INSTRUCTIONS:
+1. Rewrite the bullet point to be highly professional, impactful, and ATS-optimized for the target JD.
+2. Use professional CV writing frameworks (STAR, XYZ, CAR, SOAR, or WHO). Make sure it starts with a strong action verb and includes a quantitative metric (use a conservative estimate prefixed with "~" if none is present).
+3. If the user provided a custom instruction, prioritize and follow that instruction exactly.
+4. Keep the bullet point strictly between 10 to 25 words.
+5. Return ONLY a valid JSON object matching exactly this schema, and nothing else. No markdown wrapping.
+{
+  "bullet": "The rewritten bullet point text"
+}
+PROMPT;
+        } elseif ($type === 'item') {
+            $currentBullets = implode("\n", array_map(fn($b) => "- $b", $item['bullets'] ?? []));
+            $currentMeta = json_encode($item['metadata'] ?? []);
+            $itemTitle = $item['title'] ?? '';
+            $itemSubtitle = $item['subtitle'] ?? '';
+            $itemLocation = $item['location'] ?? '';
+            $systemPrompt = <<<PROMPT
+You are an elite ATS CV writer. The user wants to rewrite a single item (experience/project/education/certificate entry) in their CV.
+
+CONTEXT:
+Job Title: {$cv->job_title}
+Company: {$cv->company_name}
+JD: {$cv->job_description}
+
+CURRENT ITEM DETAILS:
+Title: {$itemTitle}
+Subtitle: {$itemSubtitle}
+Location: {$itemLocation}
+Bullets:
+{$currentBullets}
+Metadata: {$currentMeta}
+
+USER INSTRUCTION / CHANGE NOTE (Optional):
+"{$instruction}"
+
+LANGUAGE INSTRUCTION:
+{$langInstruction}
+{$skillsInstruction}
+
+INSTRUCTIONS:
+1. Rewrite the item (including title, subtitle, location, bullets, and metadata) to be highly optimized for the target JD.
+2. Keep the bullets count reasonable (2-3 for experience, 1-2 for projects). Use professional frameworks (STAR, XYZ, CAR, etc.) and include quantitative metrics (with "~" for estimates).
+3. If the user provided a custom instruction, prioritize and follow that instruction exactly.
+4. For metadata, preserve, update or suggest relevant keys like:
+   - "tech_stack": array of technologies (e.g. ["Laravel", "React", "Python"])
+   - "issuer": string issuer (for certificates/education, e.g. "UMPP" or "Google")
+   - "credential_url": string url
+   - "gpa": string gpa
+5. Return ONLY a valid JSON object matching exactly this schema, and nothing else. No markdown wrapping.
+{
+  "title": "Optimized main title",
+  "subtitle": "Optimized subtitle",
+  "location": "Optimized location",
+  "bullets": [
+    "Optimized bullet point 1",
+    "Optimized bullet point 2"
+  ],
+  "metadata": {
+    "tech_stack": ["React", "Laravel"],
+    "issuer": "Issuer name if applicable",
+    "credential_url": "URL if applicable",
+    "gpa": "GPA if applicable"
+  }
+}
+PROMPT;
+        } elseif ($type === 'section') {
+            $sectionItemsJson = json_encode($section['items'] ?? [], JSON_PRETTY_PRINT);
+            $sectionTitle = $section['title'] ?? '';
+            $sectionType = $section['type'] ?? '';
+            $systemPrompt = <<<PROMPT
+You are an elite ATS CV writer. The user wants to rewrite an entire section of their CV.
+
+CONTEXT:
+Job Title: {$cv->job_title}
+Company: {$cv->company_name}
+JD: {$cv->job_description}
+
+CURRENT SECTION DETAILS:
+Section Title: {$sectionTitle}
+Section Type: {$sectionType}
+Items in Section:
+---
+{$sectionItemsJson}
+---
+
+USER INSTRUCTION / CHANGE NOTE (Optional):
+"{$instruction}"
+
+LANGUAGE INSTRUCTION:
+{$langInstruction}
+{$skillsInstruction}
+
+INSTRUCTIONS:
+1. Rewrite the items in the section to align with the target JD.
+2. Apply ATS optimization (STAR/XYZ formulas, strong verbs, quantitative metrics) to all items in this section.
+3. If the user provided a custom instruction (e.g. "Translate everything in this section to English", "Reduce items to only the top 3 and combine them", "Make all experience bullets focus on cloud architecture"), prioritize and follow that instruction exactly.
+4. Preserve the structure of the section type. Ensure the items array format matches the expected schema.
+5. Return ONLY a valid JSON object matching exactly this schema, and nothing else. No markdown wrapping.
+{
+  "title": "Optimized Section Title",
+  "type": "{$sectionType}",
+  "items": [
+    {
+      "title": "Item 1 title",
+      "subtitle": "Item 1 subtitle",
+      "location": "Item 1 location",
+      "bullets": [
+        "Bullet 1",
+        "Bullet 2"
+      ],
+      "metadata": {
+        "tech_stack": [],
+        "issuer": "",
+        "gpa": ""
+      }
+    }
+  ]
+}
+PROMPT;
+        }
+
+        $aiResult = $this->callAiWithFallback($systemPrompt, $language);
+        if (!$aiResult['success']) {
+            return ['success' => false, 'error' => 'AI Provider Error: ' . ($aiResult['error'] ?? 'Unknown error')];
+        }
+
+        $parsed = json_decode(trim($aiResult['response'], " \t\n\r\0\x0B`"), true);
+
+        // Handle markdown block stripping
+        if (!$parsed && preg_match('/```(?:json)?\s*(\{.*?\})\s*-->\s*```/s', $aiResult['response'] . '-->', $matches)) {
+            $parsed = json_decode($matches[1], true);
+        }
+        if (!$parsed && preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $aiResult['response'], $matches)) {
+            $parsed = json_decode($matches[1], true);
+        }
+
+        if (!$parsed) {
+            \Log::error('aiAction: Invalid JSON returned by AI', ['response' => $aiResult['response']]);
+            return ['success' => false, 'error' => 'AI returned an invalid JSON response. Please try again.'];
+        }
+
+        return ['success' => true, 'data' => $parsed];
     }
 
     private function stringContainsAny(string $haystack, array $needles): bool

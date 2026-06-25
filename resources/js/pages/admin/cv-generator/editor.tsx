@@ -53,6 +53,7 @@ interface CvData {
     contact_linkedin?: string;
     contact_github?: string;
     contact_website?: string;
+    style_settings?: Record<string, any>;
 }
 
 interface CvGeneration {
@@ -117,7 +118,8 @@ type Action =
     | { type: 'MOVE_BULLET'; sectionIndex: number; itemIndex: number; from: number; to: number }
     | { type: 'UPDATE_NOTES'; payload: string }
     | { type: 'UPDATE_ATS_METRICS'; score: number; suggestions: string[]; matchedKeywords: string[] }
-    | { type: 'ADD_SECTION'; sectionTitle: string; sectionType: string };
+    | { type: 'ADD_SECTION'; sectionTitle: string; sectionType: string }
+    | { type: 'UPDATE_STYLE_SETTINGS'; field: string; value: any };
 
 interface EditorState {
     cvData: CvData;
@@ -196,15 +198,36 @@ function editorReducer(state: EditorState, action: Action): EditorState {
 
         case 'REPLACE_ITEM': {
             const sections = [...state.cvData.sections];
-            const items = [...sections[action.sectionIndex].items];
-            items[action.itemIndex] = { ...items[action.itemIndex], ...action.payload };
+            const section = sections[action.sectionIndex];
+            const items = [...section.items];
+            let itemPayload = { ...action.payload };
+            
+            if (['skills', 'soft_skills'].includes(section.type)) {
+                let bullets = itemPayload.bullets || items[action.itemIndex].bullets || [];
+                let subtitle = itemPayload.subtitle || items[action.itemIndex].subtitle || '';
+                if (!subtitle && bullets.length > 0) {
+                    subtitle = bullets.join(', ');
+                }
+                if (!subtitle && itemPayload.metadata && Array.isArray(itemPayload.metadata.tech_stack)) {
+                    subtitle = itemPayload.metadata.tech_stack.join(', ');
+                }
+                if (!subtitle && itemPayload.metadata && Array.isArray(itemPayload.metadata.skills)) {
+                    subtitle = itemPayload.metadata.skills.join(', ');
+                }
+                itemPayload.subtitle = subtitle;
+                itemPayload.bullets = [];
+            }
+            
+            items[action.itemIndex] = { ...items[action.itemIndex], ...itemPayload };
             sections[action.sectionIndex] = { ...sections[action.sectionIndex], items };
             return markDirty({ cvData: { ...state.cvData, sections } });
         }
 
         case 'ADD_ITEM': {
             const sections = [...state.cvData.sections];
-            const items = [...sections[action.sectionIndex].items, {
+            const section = sections[action.sectionIndex];
+            
+            let itemPayload = {
                 source_type: action.payload?.source_type || null,
                 source_id: action.payload?.source_id || null,
                 title: action.payload?.title || '',
@@ -213,7 +236,25 @@ function editorReducer(state: EditorState, action: Action): EditorState {
                 bullets: action.payload?.bullets || [],
                 metadata: action.payload?.metadata || {},
                 is_visible: true,
-            }];
+            };
+            
+            if (['skills', 'soft_skills'].includes(section.type)) {
+                let bullets = itemPayload.bullets;
+                let subtitle = itemPayload.subtitle;
+                if (!subtitle && bullets.length > 0) {
+                    subtitle = bullets.join(', ');
+                }
+                if (!subtitle && itemPayload.metadata && Array.isArray(itemPayload.metadata.tech_stack)) {
+                    subtitle = itemPayload.metadata.tech_stack.join(', ');
+                }
+                if (!subtitle && itemPayload.metadata && Array.isArray(itemPayload.metadata.skills)) {
+                    subtitle = itemPayload.metadata.skills.join(', ');
+                }
+                itemPayload.subtitle = subtitle;
+                itemPayload.bullets = [];
+            }
+            
+            const items = [...section.items, itemPayload];
             sections[action.sectionIndex] = { ...sections[action.sectionIndex], items };
             return markDirty({ cvData: { ...state.cvData, sections } });
         }
@@ -280,6 +321,26 @@ function editorReducer(state: EditorState, action: Action): EditorState {
                 is_visible: true,
             };
             return markDirty({ cvData: { ...state.cvData, sections: [...state.cvData.sections, newSection] } });
+        }
+
+        case 'UPDATE_STYLE_SETTINGS': {
+            const style_settings = {
+                ...(state.cvData.style_settings || {
+                    font_family: 'Arial',
+                    font_size: '9pt',
+                    line_height: '1.3',
+                    theme_color: '#222222',
+                    section_spacing: '8px',
+                    entry_spacing: '5px',
+                    bullet_spacing: '1.5px',
+                    margin_top: '35px',
+                    margin_bottom: '35px',
+                    margin_left: '45px',
+                    margin_right: '45px',
+                }),
+                [action.field]: action.value
+            };
+            return markDirty({ cvData: { ...state.cvData, style_settings } });
         }
 
         default:
@@ -564,6 +625,15 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         history: Array<{ question: string; answer: string }>;
     } | null>(null);
 
+    const [aiActionDialog, setAiActionDialog] = useState<{
+        isOpen: boolean;
+        type: 'bullet' | 'item' | 'section';
+        sectionIndex: number;
+        itemIndex?: number;
+        bulletIndex?: number;
+        instruction: string;
+    } | null>(null);
+
     const handleGenerateCustomItem = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!addCustomDialog || !customItemRawInput.trim()) return;
@@ -615,6 +685,83 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
             toast.error(error.message);
         } finally {
             setIsGeneratingCustomItem(false);
+        }
+    };
+
+    const handleAiAction = async () => {
+        if (!aiActionDialog) return;
+        const { type, sectionIndex, itemIndex, bulletIndex, instruction } = aiActionDialog;
+        setAiActionDialog(null);
+
+        if (type === 'bullet') {
+            setIsGeneratingItem({ sIdx: sectionIndex, iIdx: itemIndex });
+        } else if (type === 'item') {
+            setIsGeneratingItem({ sIdx: sectionIndex, iIdx: itemIndex });
+        } else if (type === 'section') {
+            setIsRegenerating(true);
+        }
+
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/ai-action`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    type,
+                    section_index: sectionIndex,
+                    item_index: itemIndex,
+                    bullet_index: bulletIndex,
+                    instruction: instruction.trim(),
+                    cv_data: state.cvData
+                })
+            });
+
+            const responseData = await res.json();
+            if (!res.ok) throw new Error(responseData.error || 'Gagal melakukan optimasi AI.');
+
+            if (type === 'bullet') {
+                dispatch({
+                    type: 'UPDATE_BULLET',
+                    sectionIndex,
+                    itemIndex: itemIndex!,
+                    bulletIndex: bulletIndex!,
+                    value: responseData.data.bullet
+                });
+                toast.success('Bullet point berhasil di-rewrite dengan AI!');
+            } else if (type === 'item') {
+                dispatch({
+                    type: 'REPLACE_ITEM',
+                    sectionIndex,
+                    itemIndex: itemIndex!,
+                    payload: responseData.data
+                });
+                toast.success('Item berhasil di-rewrite dengan AI!');
+            } else if (type === 'section') {
+                const updatedSections = [...state.cvData.sections];
+                updatedSections[sectionIndex] = {
+                    ...updatedSections[sectionIndex],
+                    title: responseData.data.title,
+                    type: responseData.data.type,
+                    items: responseData.data.items || []
+                };
+                dispatch({
+                    type: 'SET_CV_DATA',
+                    payload: { ...state.cvData, sections: updatedSections }
+                });
+                toast.success('Section berhasil di-rewrite dengan AI!');
+            }
+
+            setPreviewKey(prev => prev + 1);
+
+        } catch (err: any) {
+            toast.error(err.message || 'Gagal melakukan optimasi AI.');
+        } finally {
+            setIsGeneratingItem(null);
+            setIsRegenerating(false);
         }
     };
 
@@ -699,16 +846,49 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         contact_linkedin: cvGeneration.cv_data.contact_linkedin,
         contact_github: cvGeneration.cv_data.contact_github,
         contact_website: cvGeneration.cv_data.contact_website,
-        sections: (cvGeneration.cv_data.sections || []).map(s => ({
-            ...s,
-            is_visible: s.is_visible ?? true,
-            items: (s.items || []).map(item => ({
-                ...item,
-                is_visible: item.is_visible ?? true,
-                bullets: item.bullets || [],
-                metadata: item.metadata || {},
-            })),
-        })),
+        style_settings: cvGeneration.cv_data.style_settings || {
+            font_family: 'Arial',
+            font_size: '9pt',
+            line_height: '1.3',
+            theme_color: '#222222',
+            section_spacing: '8px',
+            entry_spacing: '5px',
+            bullet_spacing: '1.5px',
+            margin_top: '35px',
+            margin_bottom: '35px',
+            margin_left: '45px',
+            margin_right: '45px',
+        },
+        sections: (cvGeneration.cv_data.sections || []).map(s => {
+            const isSkillsSection = ['skills', 'soft_skills'].includes(s.type);
+            return {
+                ...s,
+                is_visible: s.is_visible ?? true,
+                items: (s.items || []).map(item => {
+                    let bullets = item.bullets || [];
+                    let subtitle = item.subtitle || '';
+                    if (isSkillsSection) {
+                        if (!subtitle && bullets.length > 0) {
+                            subtitle = bullets.join(', ');
+                        }
+                        if (!subtitle && item.metadata && Array.isArray(item.metadata.tech_stack)) {
+                            subtitle = item.metadata.tech_stack.join(', ');
+                        }
+                        if (!subtitle && item.metadata && Array.isArray(item.metadata.skills)) {
+                            subtitle = item.metadata.skills.join(', ');
+                        }
+                        bullets = [];
+                    }
+                    return {
+                        ...item,
+                        subtitle,
+                        is_visible: item.is_visible ?? true,
+                        bullets,
+                        metadata: item.metadata || {},
+                    };
+                }),
+            };
+        }),
     };
 
     const [state, dispatch] = useReducer(editorReducer, {
@@ -1305,6 +1485,207 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                             </CardContent>
                         </Card>
 
+                        {/* Layout & Styling Configuration Card */}
+                        <Card className="border-neutral-200 dark:border-neutral-800">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 text-violet-500" />
+                                    Tata Letak & Desain Visual
+                                </CardTitle>
+                                <CardDescription className="text-xs">
+                                    Sesuaikan font, ukuran, margin, warna tema, dan jarak spasi pada CV Anda.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0 space-y-4">
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">Jenis Font (Font Family)</Label>
+                                        <Select 
+                                            value={state.cvData.style_settings?.font_family || 'Arial'} 
+                                            onValueChange={(val) => dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'font_family', value: val })}
+                                        >
+                                            <SelectTrigger className="h-9 text-xs sm:text-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Arial" className="text-xs">Arial</SelectItem>
+                                                <SelectItem value="Helvetica" className="text-xs">Helvetica</SelectItem>
+                                                <SelectItem value="Calibri" className="text-xs">Calibri</SelectItem>
+                                                <SelectItem value="Garamond" className="text-xs">Garamond</SelectItem>
+                                                <SelectItem value="Georgia" className="text-xs">Georgia</SelectItem>
+                                                <SelectItem value="Times New Roman" className="text-xs">Times New Roman</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">Ukuran Font (Font Size)</Label>
+                                        <Select 
+                                            value={state.cvData.style_settings?.font_size || '9pt'} 
+                                            onValueChange={(val) => dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'font_size', value: val })}
+                                        >
+                                            <SelectTrigger className="h-9 text-xs sm:text-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="8pt" className="text-xs">8 pt (Sangat Padat)</SelectItem>
+                                                <SelectItem value="8.5pt" className="text-xs">8.5 pt</SelectItem>
+                                                <SelectItem value="9pt" className="text-xs">9 pt (Standar)</SelectItem>
+                                                <SelectItem value="9.5pt" className="text-xs">9.5 pt</SelectItem>
+                                                <SelectItem value="10pt" className="text-xs">10 pt</SelectItem>
+                                                <SelectItem value="10.5pt" className="text-xs">10.5 pt</SelectItem>
+                                                <SelectItem value="11pt" className="text-xs">11 pt</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">Kerapatan Baris (Line Height)</Label>
+                                        <Select 
+                                            value={state.cvData.style_settings?.line_height || '1.3'} 
+                                            onValueChange={(val) => dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'line_height', value: val })}
+                                        >
+                                            <SelectTrigger className="h-9 text-xs sm:text-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="1.1" className="text-xs">1.1 (Sangat Rapat)</SelectItem>
+                                                <SelectItem value="1.2" className="text-xs">1.2</SelectItem>
+                                                <SelectItem value="1.25" className="text-xs">1.25</SelectItem>
+                                                <SelectItem value="1.3" className="text-xs">1.3 (Standar)</SelectItem>
+                                                <SelectItem value="1.35" className="text-xs">1.35</SelectItem>
+                                                <SelectItem value="1.4" className="text-xs">1.4</SelectItem>
+                                                <SelectItem value="1.5" className="text-xs">1.5</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">Warna Aksen Tema (Theme Color)</Label>
+                                        <div className="flex gap-2 items-center">
+                                            <Select 
+                                                value={['#222222', '#1e3a8a', '#0f766e', '#7f1d1d', '#581c87', '#4b5563'].includes(state.cvData.style_settings?.theme_color) ? state.cvData.style_settings?.theme_color : 'custom'} 
+                                                onValueChange={(val) => {
+                                                    if (val !== 'custom') {
+                                                        dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'theme_color', value: val });
+                                                    }
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-9 text-xs sm:text-sm flex-1">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="#222222" className="text-xs">Default Hitam</SelectItem>
+                                                    <SelectItem value="#1e3a8a" className="text-xs">Navy Blue</SelectItem>
+                                                    <SelectItem value="#0f766e" className="text-xs">Teal / Emerald</SelectItem>
+                                                    <SelectItem value="#7f1d1d" className="text-xs">Merah Maroon</SelectItem>
+                                                    <SelectItem value="#581c87" className="text-xs">Ungu</SelectItem>
+                                                    <SelectItem value="#4b5563" className="text-xs">Slate Gray</SelectItem>
+                                                    <SelectItem value="custom" className="text-xs">Kustom...</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Input
+                                                type="color"
+                                                className="w-10 h-9 p-0 border border-neutral-200 rounded cursor-pointer"
+                                                value={state.cvData.style_settings?.theme_color || '#222222'}
+                                                onChange={(e) => dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'theme_color', value: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="border-t border-neutral-100 dark:border-neutral-900 pt-3 space-y-3">
+                                    <Label className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Batas Halaman (Margins)</Label>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-[11px] text-neutral-500">
+                                                <span>Margin Atas / Bawah</span>
+                                                <span className="font-semibold">{state.cvData.style_settings?.margin_top || '35px'}</span>
+                                            </div>
+                                            <Input
+                                                type="range"
+                                                min="15"
+                                                max="75"
+                                                value={parseInt(state.cvData.style_settings?.margin_top || '35')}
+                                                onChange={(e) => {
+                                                    const val = `${e.target.value}px`;
+                                                    dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'margin_top', value: val });
+                                                    dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'margin_bottom', value: val });
+                                                }}
+                                                className="h-6 w-full accent-violet-600"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-[11px] text-neutral-500">
+                                                <span>Margin Kiri / Kanan</span>
+                                                <span className="font-semibold">{state.cvData.style_settings?.margin_left || '45px'}</span>
+                                            </div>
+                                            <Input
+                                                type="range"
+                                                min="20"
+                                                max="80"
+                                                value={parseInt(state.cvData.style_settings?.margin_left || '45')}
+                                                onChange={(e) => {
+                                                    const val = `${e.target.value}px`;
+                                                    dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'margin_left', value: val });
+                                                    dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'margin_right', value: val });
+                                                }}
+                                                className="h-6 w-full accent-violet-600"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-neutral-100 dark:border-neutral-900 pt-3 space-y-3">
+                                    <Label className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Kerapatan Antar Elemen (Spacing)</Label>
+                                    <div className="grid gap-4 sm:grid-cols-3">
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-[10px] text-neutral-500">
+                                                <span>Jarak Section</span>
+                                                <span className="font-semibold">{state.cvData.style_settings?.section_spacing || '8px'}</span>
+                                            </div>
+                                            <Input
+                                                type="range"
+                                                min="4"
+                                                max="20"
+                                                value={parseInt(state.cvData.style_settings?.section_spacing || '8')}
+                                                onChange={(e) => dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'section_spacing', value: `${e.target.value}px` })}
+                                                className="h-5 w-full accent-violet-600"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-[10px] text-neutral-500">
+                                                <span>Jarak Entri</span>
+                                                <span className="font-semibold">{state.cvData.style_settings?.entry_spacing || '5px'}</span>
+                                            </div>
+                                            <Input
+                                                type="range"
+                                                min="2"
+                                                max="16"
+                                                value={parseInt(state.cvData.style_settings?.entry_spacing || '5')}
+                                                onChange={(e) => dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'entry_spacing', value: `${e.target.value}px` })}
+                                                className="h-5 w-full accent-violet-600"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-[10px] text-neutral-500">
+                                                <span>Jarak Bullets</span>
+                                                <span className="font-semibold">{state.cvData.style_settings?.bullet_spacing || '1.5px'}</span>
+                                            </div>
+                                            <Input
+                                                type="range"
+                                                min="0"
+                                                max="8"
+                                                step="0.5"
+                                                value={parseFloat(state.cvData.style_settings?.bullet_spacing || '1.5')}
+                                                onChange={(e) => dispatch({ type: 'UPDATE_STYLE_SETTINGS', field: 'bullet_spacing', value: `${e.target.value}px` })}
+                                                className="h-5 w-full accent-violet-600"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         {/* Professional Summary */}
                         <Card className="border-neutral-200 dark:border-neutral-800">
                             <CardHeader className="pb-3">
@@ -1399,6 +1780,15 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
 
                                         {/* Section Actions */}
                                         <div className="flex items-center gap-1">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-7 w-7 text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-500/10"
+                                                onClick={() => setAiActionDialog({ isOpen: true, type: 'section', sectionIndex: sIdx, instruction: '' })}
+                                                title="AI Rewrite Section"
+                                            >
+                                                <Sparkles className="h-3.5 w-3.5" />
+                                            </Button>
                                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingSectionTitle(sIdx)} title="Rename">
                                                 <Pencil className="h-3 w-3" />
                                             </Button>
@@ -1466,6 +1856,16 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                             AI Rewrite
                                                                         </Button>
                                                                     )}
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="h-7 px-2 text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-500/10 flex items-center gap-1 text-[11px]"
+                                                                        disabled={isGeneratingItem?.sIdx === sIdx && isGeneratingItem?.iIdx === iIdx}
+                                                                        onClick={() => setAiActionDialog({ isOpen: true, type: 'item', sectionIndex: sIdx, itemIndex: iIdx, instruction: '' })}
+                                                                    >
+                                                                        <Sparkles className="h-3 w-3 text-violet-500 animate-pulse" />
+                                                                        Optimasi AI
+                                                                    </Button>
                                                                     <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => dispatch({ type: 'TOGGLE_ITEM', sectionIndex: sIdx, itemIndex: iIdx })}>
                                                                         {item.is_visible ? <Eye className="h-3.5 w-3.5 text-emerald-600" /> : <EyeOff className="h-3.5 w-3.5 text-neutral-400" />}
                                                                     </Button>
@@ -1476,28 +1876,52 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                             </div>
 
                                                             {/* Main Inputs (takes full width on mobile, flex-1 on desktop) */}
-                                                            <div className="flex-1 min-w-0 space-y-1.5 w-full">
-                                                                <Input
-                                                                    className="h-8 text-sm font-semibold"
-                                                                    value={item.title || ''}
-                                                                    onChange={(e) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'title', value: e.target.value })}
-                                                                    placeholder="Title (e.g. Senior Developer)"
-                                                                />
-                                                                <div className="grid gap-1.5 sm:grid-cols-2">
-                                                                    <Input
-                                                                        className="h-7 text-xs"
-                                                                        value={item.subtitle || ''}
-                                                                        onChange={(e) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'subtitle', value: e.target.value })}
-                                                                        placeholder="Subtitle (e.g. Company — Jan 2024 – Present)"
-                                                                    />
-                                                                    <Input
-                                                                        className="h-7 text-xs"
-                                                                        value={item.location || ''}
-                                                                        onChange={(e) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'location', value: e.target.value })}
-                                                                        placeholder="Location (optional)"
-                                                                    />
+                                                            {['skills', 'soft_skills'].includes(section.type) ? (
+                                                                <div className="flex-1 min-w-0 space-y-1.5 w-full">
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Kategori Keahlian</Label>
+                                                                        <Input
+                                                                            className="h-8 text-sm font-semibold"
+                                                                            value={item.title || ''}
+                                                                            onChange={(e) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'title', value: e.target.value })}
+                                                                            placeholder="Nama Kategori Keahlian (e.g. Programming Languages)"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Daftar Keahlian (pisahkan dengan koma)</Label>
+                                                                        <AutoResizeTextarea
+                                                                            className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none"
+                                                                            value={item.subtitle || ''}
+                                                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'subtitle', value: e.target.value })}
+                                                                            placeholder="Daftar Keahlian (e.g. PHP, Python, JavaScript)"
+                                                                            rows={2}
+                                                                        />
+                                                                    </div>
                                                                 </div>
-                                                            </div>
+                                                            ) : (
+                                                                <div className="flex-1 min-w-0 space-y-1.5 w-full">
+                                                                    <Input
+                                                                        className="h-8 text-sm font-semibold"
+                                                                        value={item.title || ''}
+                                                                        onChange={(e) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'title', value: e.target.value })}
+                                                                        placeholder="Title (e.g. Senior Developer)"
+                                                                    />
+                                                                    <div className="grid gap-1.5 sm:grid-cols-2">
+                                                                        <Input
+                                                                            className="h-7 text-xs"
+                                                                            value={item.subtitle || ''}
+                                                                            onChange={(e) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'subtitle', value: e.target.value })}
+                                                                            placeholder="Subtitle (e.g. Company — Jan 2024 – Present)"
+                                                                        />
+                                                                        <Input
+                                                                            className="h-7 text-xs"
+                                                                            value={item.location || ''}
+                                                                            onChange={(e) => dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'location', value: e.target.value })}
+                                                                            placeholder="Location (optional)"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             {/* Desktop Actions (hidden on mobile) */}
                                                             <div className="hidden md:flex items-center gap-0.5 shrink-0 mt-0.5">
@@ -1517,6 +1941,16 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                         )}
                                                                     </Button>
                                                                 )}
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    className="h-7 w-7 text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-500/10"
+                                                                    title="Optimize Item with AI"
+                                                                    disabled={isGeneratingItem?.sIdx === sIdx && isGeneratingItem?.iIdx === iIdx}
+                                                                    onClick={() => setAiActionDialog({ isOpen: true, type: 'item', sectionIndex: sIdx, itemIndex: iIdx, instruction: '' })}
+                                                                >
+                                                                    <Sparkles className="h-3.5 w-3.5 text-violet-500 animate-pulse" />
+                                                                </Button>
                                                                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => dispatch({ type: 'TOGGLE_ITEM', sectionIndex: sIdx, itemIndex: iIdx })}>
                                                                     {item.is_visible ? <Eye className="h-3 w-3 text-emerald-600" /> : <EyeOff className="h-3 w-3 text-neutral-400" />}
                                                                 </Button>
@@ -1542,6 +1976,15 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                             />
                                                                         </div>
                                                                         <div className="flex items-center justify-end gap-1 sm:mt-1 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                                                            <Button
+                                                                                size="icon"
+                                                                                variant="ghost"
+                                                                                className="h-7 w-7 sm:h-5 sm:w-5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-500/10"
+                                                                                title="Optimize Bullet with AI"
+                                                                                onClick={() => setAiActionDialog({ isOpen: true, type: 'bullet', sectionIndex: sIdx, itemIndex: iIdx, bulletIndex: bIdx, instruction: '' })}
+                                                                            >
+                                                                                <Sparkles className="h-3.5 w-3.5 sm:h-3 sm:w-3 text-violet-500 animate-pulse" />
+                                                                            </Button>
                                                                             <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-5 sm:w-5" disabled={bIdx === 0} onClick={() => dispatch({ type: 'MOVE_BULLET', sectionIndex: sIdx, itemIndex: iIdx, from: bIdx, to: bIdx - 1 })}>
                                                                                 <ChevronUp className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                                                             </Button>
@@ -1573,6 +2016,66 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                 <Plus className="mr-1 h-3 w-3" />Add Bullet Point
                                                             </Button>
                                                         </div>
+
+                                                        {/* Metadata Editing Accordion (Only for non-skills sections) */}
+                                                        {!['skills', 'soft_skills'].includes(section.type) && (
+                                                            <details className="mt-2 text-xs border border-neutral-100 dark:border-neutral-800 rounded-lg bg-neutral-50/50 dark:bg-neutral-900/30">
+                                                                <summary className="px-3 py-1.5 font-semibold text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 cursor-pointer select-none">
+                                                                    🛠️ Metadata & Informasi Tambahan (Technologies, Issuer, GPA, dll.)
+                                                                </summary>
+                                                                <div className="px-3 pb-3 pt-2 grid gap-3 sm:grid-cols-2">
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Technologies (pisahkan dengan koma)</Label>
+                                                                        <Input
+                                                                            className="h-7 text-xs"
+                                                                            value={Array.isArray(item.metadata?.tech_stack) ? item.metadata.tech_stack.join(', ') : (item.metadata?.tech_stack || '')}
+                                                                            onChange={(e) => {
+                                                                                const techStack = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                                                                const updatedMeta = { ...item.metadata, tech_stack: techStack };
+                                                                                dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
+                                                                            }}
+                                                                            placeholder="e.g. Laravel, React, Python, Gemini API"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Penerbit / Institusi (Issued By)</Label>
+                                                                        <Input
+                                                                            className="h-7 text-xs"
+                                                                            value={item.metadata?.issuer || ''}
+                                                                            onChange={(e) => {
+                                                                                const updatedMeta = { ...item.metadata, issuer: e.target.value };
+                                                                                dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
+                                                                            }}
+                                                                            placeholder="e.g. Google, UMPP"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Tautan Sertifikat / Kredensial URL</Label>
+                                                                        <Input
+                                                                            className="h-7 text-xs"
+                                                                            value={item.metadata?.credential_url || ''}
+                                                                            onChange={(e) => {
+                                                                                const updatedMeta = { ...item.metadata, credential_url: e.target.value };
+                                                                                dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
+                                                                            }}
+                                                                            placeholder="https://..."
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">IPK / Nilai (GPA)</Label>
+                                                                        <Input
+                                                                            className="h-7 text-xs"
+                                                                            value={item.metadata?.gpa || ''}
+                                                                            onChange={(e) => {
+                                                                                const updatedMeta = { ...item.metadata, gpa: e.target.value };
+                                                                                dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
+                                                                            }}
+                                                                            placeholder="e.g. 3.85"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </details>
+                                                        )}
                                                     </div>
                                                 ))
                                             )}
@@ -2027,6 +2530,55 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                             Lanjutkan
                         </Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* AI Action Dialog */}
+            <Dialog open={aiActionDialog?.isOpen || false} onOpenChange={(open) => !open && setAiActionDialog(null)}>
+                <DialogContent className="sm:max-w-[450px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-violet-600 dark:text-violet-400 font-bold">
+                            <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" />
+                            Optimasi AI ({aiActionDialog?.type === 'bullet' ? 'Bullet Point' : aiActionDialog?.type === 'item' ? 'Item' : 'Section'})
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            {aiActionDialog?.type === 'bullet' 
+                                ? 'AI akan mereformulasi baris deskripsi ini secara profesional menggunakan metode STAR/XYZ dan mencocokkannya dengan Kata Kunci Lowongan.' 
+                                : aiActionDialog?.type === 'item' 
+                                ? 'AI akan menulis ulang seluruh entri (judul, subtitle, dan bullet points) agar terstruktur dengan sangat profesional sesuai lowongan.' 
+                                : 'AI akan menyusun ulang dan mengoptimasi seluruh isi section ini untuk meningkatkan relevansi ATS.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={(e) => { e.preventDefault(); handleAiAction(); }} className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                                Catatan Perubahan & Instruksi Khusus (Opsional)
+                            </Label>
+                            <AutoResizeTextarea
+                                className="border-input bg-background w-full rounded-md border px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                                placeholder={
+                                    aiActionDialog?.type === 'bullet' 
+                                        ? "Contoh: Ubah ke Bahasa Inggris, tonjolkan metrik performa database, atau perpendek kalimat."
+                                        : aiActionDialog?.type === 'item'
+                                        ? "Contoh: Buat deskripsi pekerjaan berfokus pada DevOps, atau gunakan istilah teknis Laravel."
+                                        : "Contoh: Urutkan berdasarkan relevansi terbesar, terjemahkan ke Bahasa Inggris."
+                                }
+                                value={aiActionDialog?.instruction || ''}
+                                onChange={(e) => setAiActionDialog(prev => prev ? { ...prev, instruction: e.target.value } : null)}
+                                rows={3}
+                            />
+                            <p className="text-[10px] text-neutral-400">
+                                Biarkan kosong jika Anda ingin AI mendeteksi penyesuaian ATS terbaik secara otomatis berdasarkan Job Description.
+                            </p>
+                        </div>
+                        <DialogFooter className="pt-2 border-t">
+                            <Button type="button" variant="outline" size="sm" onClick={() => setAiActionDialog(null)}>Batal</Button>
+                            <Button type="submit" size="sm" className="bg-violet-600 hover:bg-violet-700 text-white flex items-center gap-1.5 font-semibold">
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Optimasi Sekarang
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </AppLayout>
