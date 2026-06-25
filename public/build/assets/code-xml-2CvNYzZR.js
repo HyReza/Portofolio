@@ -1,0 +1,2 @@
+import{t as e}from"./createLucideIcon-Sc0HmOf5.js";var t=e(`CodeXml`,[[`path`,{d:`m18 16 4-4-4-4`,key:`1inbqp`}],[`path`,{d:`m6 8-4 4 4 4`,key:`15zrgr`}],[`path`,{d:`m14.5 4-5 16`,key:`e7oirm`}]]);export{t};
+//# sourceMappingURL=code-xml-2CvNYzZR.js.map

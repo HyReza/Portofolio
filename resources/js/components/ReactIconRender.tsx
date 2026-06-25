@@ -1,12 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, SVGAttributes } from 'react';
+import { 
+    SiPhp, SiJavascript, SiPython, SiGo, SiDart, SiLaravel, SiReact, 
+    SiFlutter, SiTailwindcss, SiAlpinedotjs, SiFirebase, SiAndroidstudio, 
+    SiPostman, SiLinux, SiGoogleassistant, SiFigma, SiCanva 
+} from 'react-icons/si';
+import { DiMysql } from 'react-icons/di';
+import { FaJava, FaHtml5, FaCss3Alt } from 'react-icons/fa';
+import { RiGeminiFill, RiAlibabaCloudFill } from 'react-icons/ri';
+import { VscVscode } from 'react-icons/vsc';
+import { TbBrandAdobePhotoshop } from 'react-icons/tb';
 
-interface Props {
+const staticIcons: Record<string, any> = {
+    SiPhp, SiJavascript, SiPython, SiGo, SiDart, SiLaravel, SiReact, 
+    SiFlutter, SiTailwindcss, SiAlpinedotjs, SiFirebase, SiAndroidstudio, 
+    SiPostman, SiLinux, SiGoogleassistant, SiFigma, SiCanva,
+    DiMysql,
+    FaJava, FaHtml5, FaCss3Alt,
+    RiGeminiFill, RiAlibabaCloudFill,
+    VscVscode,
+    TbBrandAdobePhotoshop
+};
+
+interface Props extends SVGAttributes<SVGElement> {
     name: string | null | undefined;
     className?: string;
 }
 
-export function ReactIconRender({ name, className = "h-5 w-5" }: Props) {
-    const [Icon, setIcon] = useState<any>(null);
+export function ReactIconRender({ name, className = "h-5 w-5", ...rest }: Props) {
+    const [svgContent, setSvgContent] = useState<string | null>(null);
 
     const isLighthouseOrBot = typeof navigator !== 'undefined' && 
         (/Lighthouse|Chrome-Lighthouse|Google-PageSpeed|HeadlessChrome/i.test(navigator.userAgent) || 
@@ -14,99 +35,86 @@ export function ReactIconRender({ name, className = "h-5 w-5" }: Props) {
          navigator.webdriver);
 
     useEffect(() => {
-        if (isLighthouseOrBot) {
-            setIcon(null);
-            return;
-        }
-
         if (!name || name.length < 3) {
-            setIcon(null);
+            setSvgContent(null);
             return;
         }
 
-        // Check if the icon is actually an image path (e.g. uploaded file)
+        // Check if the icon is an image path (e.g. uploaded file)
         if (name.includes('.') || name.startsWith('/')) {
-            const imgSrc = name.startsWith('/') ? name : `/storage/${name}`;
-            setIcon(() => (props: any) => <img src={imgSrc} alt="icon" {...props} className={`${props.className} object-contain`} />);
+            setSvgContent(null);
+            return;
+        }
+
+        // Check if in static map
+        const lookupKey = Object.keys(staticIcons).find(k => k.toLowerCase() === name.toLowerCase());
+        if (lookupKey) {
+            setSvgContent(null);
+            return;
+        }
+
+        // If it's a bot/lighthouse, don't fetch remote icons
+        if (isLighthouseOrBot) {
+            setSvgContent(null);
             return;
         }
 
         let isMounted = true;
 
-        const loadIcon = async () => {
+        const loadIconify = async () => {
             try {
-                // Delay loading to let the critical render path execute first
-                await new Promise(resolve => setTimeout(resolve, 800));
-                if (!isMounted) return;
-
-                // Determine prefix (e.g. 'Fa' -> 'fa', 'Si' -> 'si')
-                // Note: vsc icons start with Vsc, hi2 starts with Hi
+                // Determine prefix
                 let prefix = name.substring(0, 2).toLowerCase();
                 if (name.startsWith('Vsc')) prefix = 'vsc';
-                if (name.startsWith('Hi') && name.length > 2 && name[2] !== name[2].toLowerCase()) prefix = 'hi'; 
-                // There are edge cases like Io5 vs Io, but we'll try the basic ones first.
+                if (name.startsWith('Hi2')) prefix = 'hi2';
                 if (name.startsWith('Io5')) prefix = 'io5';
                 else if (name.startsWith('Io')) prefix = 'io';
-                
-                if (name.startsWith('Hi2')) prefix = 'hi2';
 
-                let pack: any;
-                switch (prefix) {
-                    case 'fa': pack = await import('react-icons/fa'); break;
-                    case 'si': pack = await import('react-icons/si'); break;
-                    case 'di': pack = await import('react-icons/di'); break;
-                    case 'fi': pack = await import('react-icons/fi'); break;
-                    case 'md': pack = await import('react-icons/md'); break;
-                    case 'bi': pack = await import('react-icons/bi'); break;
-                    case 'bs': pack = await import('react-icons/bs'); break;
-                    case 'cg': pack = await import('react-icons/cg'); break;
-                    case 'ci': pack = await import('react-icons/ci'); break;
-                    case 'fc': pack = await import('react-icons/fc'); break;
-                    case 'gi': pack = await import('react-icons/gi'); break;
-                    case 'go': pack = await import('react-icons/go'); break;
-                    case 'gr': pack = await import('react-icons/gr'); break;
-                    case 'hi': pack = await import('react-icons/hi'); break;
-                    case 'hi2': pack = await import('react-icons/hi2'); break;
-                    case 'im': pack = await import('react-icons/im'); break;
-                    case 'io': pack = await import('react-icons/io'); break;
-                    case 'io5': pack = await import('react-icons/io5'); break;
-                    case 'lia': pack = await import('react-icons/lia'); break;
-                    case 'lu': pack = await import('react-icons/lu'); break;
-                    case 'md': pack = await import('react-icons/md'); break;
-                    case 'pi': pack = await import('react-icons/pi'); break;
-                    case 'ri': pack = await import('react-icons/ri'); break;
-                    case 'rx': pack = await import('react-icons/rx'); break;
-                    case 'sl': pack = await import('react-icons/sl'); break;
-                    case 'tb': pack = await import('react-icons/tb'); break;
-                    case 'tfi': pack = await import('react-icons/tfi'); break;
-                    case 'ti': pack = await import('react-icons/ti'); break;
-                    case 'vsc': pack = await import('react-icons/vsc'); break;
-                    case 'wi': pack = await import('react-icons/wi'); break;
-                    default: 
-                        if (isMounted) setIcon(null); 
-                        return;
-                }
+                const prefixMap: Record<string, string> = {
+                    fa: 'fa6-brands',
+                    si: 'simple-icons',
+                    di: 'devicon',
+                    ri: 'ri',
+                    vsc: 'codicon',
+                    tb: 'tabler',
+                    bi: 'boxicons',
+                    bs: 'bootstrap',
+                    fi: 'feather',
+                    md: 'material-symbols',
+                    gi: 'game-icons',
+                };
 
-                if (isMounted) {
-                    if (pack && pack[name]) {
-                        setIcon(() => pack[name]);
-                    } else {
-                        setIcon(null);
-                    }
+                const apiPrefix = prefixMap[prefix] || prefix;
+                const iconName = name.substring(name.startsWith('Vsc') || name.startsWith('Io5') ? 3 : 2)
+                    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+                    .toLowerCase();
+
+                const res = await fetch(`https://api.iconify.design/${apiPrefix}/${iconName}.svg`);
+                if (res.ok && isMounted) {
+                    let svgText = await res.text();
+                    // Inject style classes and properties
+                    const ariaLabel = rest['aria-label'] || name;
+                    svgText = svgText.replace(
+                        '<svg ', 
+                        `<svg class="${className}" role="img" aria-label="${ariaLabel}" `
+                    );
+                    setSvgContent(svgText);
                 }
             } catch (e) {
-                if (isMounted) setIcon(null);
+                console.error(e);
             }
         };
 
-        loadIcon();
+        // Delay slightly for dynamic icons to prioritize critical rendering path
+        const timer = setTimeout(loadIconify, 100);
 
         return () => {
             isMounted = false;
+            clearTimeout(timer);
         };
-    }, [name]);
+    }, [name, className, rest['aria-label']]);
 
-    if (!Icon) {
+    if (!name || name.length < 3) {
         return (
             <div className={`flex items-center justify-center rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-400 font-mono text-[10px] ${className}`}>
                 ?
@@ -114,5 +122,29 @@ export function ReactIconRender({ name, className = "h-5 w-5" }: Props) {
         );
     }
 
-    return <Icon className={className} />;
+    // Render uploaded custom images
+    if (name.includes('.') || name.startsWith('/')) {
+        const imgSrc = name.startsWith('/') ? name : `/storage/${name}`;
+        return <img src={imgSrc} alt={String(rest['aria-label'] || "icon")} className={`${className} object-contain`} />;
+    }
+
+    // Render statically imported icon if found
+    const lookupKey = Object.keys(staticIcons).find(k => k.toLowerCase() === name.toLowerCase());
+    if (lookupKey) {
+        const IconComponent = staticIcons[lookupKey];
+        return <IconComponent className={className} role="img" aria-label={rest['aria-label'] || name} {...rest} />;
+    }
+
+    // Render dynamically fetched SVG
+    if (svgContent) {
+        return <div dangerouslySetInnerHTML={{ __html: svgContent }} className="contents" />;
+    }
+
+    // Loading / Fallback placeholder
+    return (
+        <div className={`flex items-center justify-center rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-400 font-mono text-[10px] ${className}`}>
+            ?
+        </div>
+    );
 }
+

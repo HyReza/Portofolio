@@ -30,6 +30,11 @@
     Header set X-Content-Type-Options "nosniff"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
     Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    
+    # Cache static assets and hashed resources for performance
+    <FilesMatch "\.(css|js|woff2|webp|png|jpg|jpeg|gif|ico|svg)$">
+        Header set Cache-Control "max-age=31536000, public, no-transform, immutable"
+    </FilesMatch>
 </IfModule>
 
 # Browser Caching for Performance

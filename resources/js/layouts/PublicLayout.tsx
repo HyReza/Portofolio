@@ -17,12 +17,13 @@ const AiChatWidget = lazy(() => import('@/components/ai/AiChatWidget'));
 import ScrollToTop from '@/components/ui/ScrollToTop';
 
 /* ─── PREMIUM TOGGLE COMPONENT ─── */
-function PremiumToggle({ isActive, onClick, iconLeft, iconRight, textLeft, textRight, dk, tooltipText, forceShowTooltip, side = "bottom" }: any) {
+function PremiumToggle({ isActive, onClick, iconLeft, iconRight, textLeft, textRight, dk, tooltipText, ariaLabel, forceShowTooltip, side = "bottom" }: any) {
     return (
         <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
                 <button
                     onClick={onClick}
+                    aria-label={ariaLabel || tooltipText || "Toggle Button"}
                     className={`relative flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border p-1 transition-all duration-300 ${dk ? 'border-neutral-700 bg-neutral-900' : 'border-neutral-200 bg-white'}`}
                 >
                     <motion.div
@@ -93,6 +94,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     const sp = props.siteProfile || {};
     const pv = (key: string) => lang === 'id' ? (sp[key]?.value_id || sp[key]?.value_en || '') : (sp[key]?.value_en || sp[key]?.value_id || '');
     const profilePhoto = pv('profile_photo') || '/assets/img/profil.jpeg';
+    const profilePhotoSmall = profilePhoto === '/assets/img/profil.jpeg' ? '/assets/img/profil_small.jpeg' : profilePhoto;
     const profileName = pv('name') || 'Reza Edi Saputra';
     const profileTitle = pv('title') || 'Software Engineer';
     const profileUsername = pv('username') || 'rezaedisaputra';
@@ -152,7 +154,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`h-10 w-10 overflow-hidden rounded-full border-2 ${dk ? 'border-neutral-700' : 'border-white shadow-sm'}`}>
-                                        <img src={profilePhoto} alt="profile" className="h-full w-full object-cover" />
+                                        <img src={profilePhotoSmall} alt="profile" className="h-full w-full object-cover" />
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2 mb-0.5">
@@ -201,7 +203,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className={`h-10 w-10 overflow-hidden rounded-full border-2 ${dk ? 'border-neutral-700' : 'border-white shadow-sm'}`}>
-                                        <img src={profilePhoto} alt="profile" className="h-full w-full object-cover" />
+                                        <img src={profilePhotoSmall} alt="profile" className="h-full w-full object-cover" />
                                     </div>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 mb-0.5">
@@ -259,8 +261,8 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                             <div className="mt-4 flex items-center justify-between rounded-xl p-3 border dark:border-neutral-800 border-neutral-200">
                                                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest">{t('Settings', 'Pengaturan')}</span>
                                                 <div className="flex gap-2">
-                                                    <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14} />} iconRight={<BsCloudMoon size={14} />} />
-                                                    <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" />
+                                                    <PremiumToggle dk={dk} isActive={dk} onClick={toggleTheme} iconLeft={<BsCloudSun size={14} />} iconRight={<BsCloudMoon size={14} />} tooltipText={t('Toggle Theme', 'Ganti Tema')} />
+                                                    <PremiumToggle dk={dk} isActive={lang === 'id'} onClick={toggleLang} textLeft="EN" textRight="ID" tooltipText={t('Switch Language', 'Ganti Bahasa')} />
                                                 </div>
                                             </div>
                                         </nav>
@@ -292,7 +294,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                                         </div>
 
                                         <div className="z-10 mt-0 rounded-full border-[3px] border-white dark:border-[#121212] bg-white dark:bg-[#121212] shadow-md transition-all duration-500 group-hover:scale-110 group-hover:-mt-10">
-                                            <img src={profilePhoto} alt="profile" className="h-12 w-12 group-hover:h-20 group-hover:w-20 rounded-full object-cover" />
+                                            <img src={profilePhotoSmall} alt="profile" className="h-12 w-12 group-hover:h-20 group-hover:w-20 rounded-full object-cover" />
                                         </div>
 
                                         <div className="flex flex-col items-center text-center mt-3 w-full transition-all duration-500 overflow-hidden">

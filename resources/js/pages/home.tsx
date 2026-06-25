@@ -292,9 +292,9 @@ export default function Home({ profiles, skillCategories, softSkills, projects, 
                                                     style={{ animation: `skillFloat ${3 + (index % 3)}s ease-in-out infinite` }}
                                                 >
                                                     {skill.icon ? (
-                                                        <ReactIconRender name={skill.icon} className="h-6 w-6" />
+                                                        <ReactIconRender name={skill.icon} className="h-6 w-6" aria-label={skillName} />
                                                     ) : (
-                                                        <Code2 className="h-6 w-6 opacity-50" />
+                                                        <Code2 className="h-6 w-6 opacity-50" aria-label={skillName} />
                                                     )}
                                                 </div>
                                                 <div className="relative min-w-0 flex-1">
@@ -317,7 +317,7 @@ export default function Home({ profiles, skillCategories, softSkills, projects, 
                                                             >
                                                                 <div className="flex items-center gap-2 mb-1.5 font-bold">
                                                                     <div className={`flex h-5 w-5 items-center justify-center rounded-md ${style.bg} ${style.text}`}>
-                                                                        {skill.icon && <ReactIconRender name={skill.icon} className="h-3 w-3" />}
+                                                                        {skill.icon && <ReactIconRender name={skill.icon} className="h-3.5 w-3.5" aria-label={skillName} />}
                                                                     </div>
                                                                     {skillName}
                                                                 </div>
@@ -378,9 +378,9 @@ export default function Home({ profiles, skillCategories, softSkills, projects, 
                                     >
                                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 ${dk ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-100 text-violet-600'}`}>
                                             {ss.icon ? (
-                                                <ReactIconRender name={ss.icon} className="h-5 w-5" />
+                                                <ReactIconRender name={ss.icon} className="h-5 w-5" aria-label={name} />
                                             ) : (
-                                                <Brain className="h-5 w-5" />
+                                                <Brain className="h-5 w-5" aria-label={name} />
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
