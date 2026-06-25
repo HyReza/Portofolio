@@ -74,6 +74,18 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     const pathname = url;
     useAutoAchievements(pathname);
 
+    // Google Tag Manager pageview tracking for SPA navigation
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const dataLayer = (window as any).dataLayer = (window as any).dataLayer || [];
+            dataLayer.push({
+                event: 'page_view',
+                page_path: url,
+                page_title: document.title
+            });
+        }
+    }, [url]);
+
     const [mountWidget, setMountWidget] = useState(false);
     useEffect(() => {
         const isLighthouseOrBot = typeof navigator !== 'undefined' && 
