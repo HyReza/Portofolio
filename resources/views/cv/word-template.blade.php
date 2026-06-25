@@ -255,7 +255,7 @@
                 {{-- ── Professional Summary ── --}}
         @if(!empty($summary))
             <h2 class="cv-section-heading">
-                {{ $language === 'id' ? 'RINGKASAN PROFESIONAL' : 'PROFESSIONAL SUMMARY' }}
+                {{ !empty($summary_title) ? strtoupper($summary_title) : ($language === 'id' ? 'RINGKASAN PROFESIONAL' : 'PROFESSIONAL SUMMARY') }}
             </h2>
             @foreach(explode("\n", $summary) as $paragraph)
                 @if(trim($paragraph))

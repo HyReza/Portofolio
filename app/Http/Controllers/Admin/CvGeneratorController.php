@@ -204,6 +204,7 @@ class CvGeneratorController extends Controller
         $validated = $request->validate([
             'cv_data' => ['required', 'array'],
             'cv_data.professional_summary' => ['nullable', 'string'],
+            'cv_data.summary_title' => ['nullable', 'string', 'max:255'],
             'cv_data.ats_keywords' => ['nullable', 'array'],
             'cv_data.ats_keywords.*' => ['string'],
             'cv_data.ats_match_score' => ['nullable', 'integer'],
@@ -371,6 +372,7 @@ class CvGeneratorController extends Controller
             'github' => $contactVal('contact_github', 'github'),
             'website' => $contactVal('contact_website', 'website'),
             'summary' => $cvData['professional_summary'] ?? '',
+            'summary_title' => $cvData['summary_title'] ?? null,
             'sections' => $sections,
             'language' => $cvGeneration->language,
             'style_settings' => $cvData['style_settings'] ?? null,
@@ -608,7 +610,8 @@ class CvGeneratorController extends Controller
         $md .= "---\n\n";
 
         if (! empty($data['summary'])) {
-            $md .= "## Professional Summary\n";
+            $summaryTitle = ! empty($data['summary_title']) ? $data['summary_title'] : 'Professional Summary';
+            $md .= "## {$summaryTitle}\n";
             $md .= "{$data['summary']}\n\n";
             $md .= "---\n\n";
         }

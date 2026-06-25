@@ -40,6 +40,7 @@ interface CvSectionData {
 
 interface CvData {
     professional_summary: string;
+    summary_title?: string;
     ats_keywords: string[];
     ats_match_score: number;
     improvement_suggestions?: string[];
@@ -599,6 +600,8 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
     const [expandedSections, setExpandedSections] = useState<Set<number>>(() => new Set(cvGeneration.cv_data.sections.map((_, i) => i)));
     const [editingSectionTitle, setEditingSectionTitle] = useState<number | null>(null);
     const sectionTitleRef = useRef<HTMLInputElement>(null);
+    const [isEditingSummaryTitle, setIsEditingSummaryTitle] = useState(false);
+    const summaryTitleInputRef = useRef<HTMLInputElement>(null);
     const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [addDialog, setAddDialog] = useState<{ isOpen: boolean; sectionIndex: number; sectionType: string } | null>(null);
@@ -836,6 +839,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
 
     const initialCvData: CvData = {
         professional_summary: cvGeneration.cv_data.professional_summary || '',
+        summary_title: cvGeneration.cv_data.summary_title || '',
         ats_keywords: cvGeneration.cv_data.ats_keywords || [],
         ats_match_score: cvGeneration.cv_data.ats_match_score || 0,
         contact_name: cvGeneration.cv_data.contact_name,
@@ -1689,9 +1693,46 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                         {/* Professional Summary */}
                         <Card className="border-neutral-200 dark:border-neutral-800">
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-violet-500" />
-                                    Professional Summary
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2 w-full">
+                                    <FileText className="h-4 w-4 text-violet-500 shrink-0" />
+                                    {isEditingSummaryTitle ? (
+                                        <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                            <Input
+                                                ref={summaryTitleInputRef}
+                                                className="h-7 text-xs font-semibold flex-1 min-w-0"
+                                                defaultValue={state.cvData.summary_title || (cvGeneration.language === 'id' ? 'Ringkasan Profesional' : 'Professional Summary')}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'summary_title', value: (e.target as HTMLInputElement).value });
+                                                        setIsEditingSummaryTitle(false);
+                                                    } else if (e.key === 'Escape') {
+                                                        setIsEditingSummaryTitle(false);
+                                                    }
+                                                }}
+                                                autoFocus
+                                            />
+                                            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => {
+                                                if (summaryTitleInputRef.current) {
+                                                    dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'summary_title', value: summaryTitleInputRef.current.value });
+                                                }
+                                                setIsEditingSummaryTitle(false);
+                                            }}>
+                                                <Check className="h-3 w-3 text-emerald-600" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setIsEditingSummaryTitle(false)}>
+                                                <X className="h-3 w-3 text-neutral-400" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div 
+                                            className="flex items-center gap-1.5 group/title cursor-pointer flex-1 min-w-0 select-none"
+                                            onClick={() => setIsEditingSummaryTitle(true)}
+                                            title="Click to edit section title"
+                                        >
+                                            <span>{state.cvData.summary_title || (cvGeneration.language === 'id' ? 'Ringkasan Profesional' : 'Professional Summary')}</span>
+                                            <Pencil className="h-3.5 w-3.5 text-neutral-400 opacity-0 group-hover/title:opacity-100 transition-opacity" />
+                                        </div>
+                                    )}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-0">
