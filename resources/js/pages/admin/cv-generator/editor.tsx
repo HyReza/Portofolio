@@ -602,6 +602,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
     const sectionTitleRef = useRef<HTMLInputElement>(null);
     const [isEditingSummaryTitle, setIsEditingSummaryTitle] = useState(false);
     const summaryTitleInputRef = useRef<HTMLInputElement>(null);
+    const [isRegeneratingSummary, setIsRegeneratingSummary] = useState(false);
     const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [addDialog, setAddDialog] = useState<{ isOpen: boolean; sectionIndex: number; sectionType: string } | null>(null);
@@ -630,7 +631,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
 
     const [aiActionDialog, setAiActionDialog] = useState<{
         isOpen: boolean;
-        type: 'bullet' | 'item' | 'section';
+        type: 'bullet' | 'item' | 'section' | 'summary';
         sectionIndex: number;
         itemIndex?: number;
         bulletIndex?: number;
@@ -702,6 +703,8 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
             setIsGeneratingItem({ sIdx: sectionIndex, iIdx: itemIndex });
         } else if (type === 'section') {
             setIsRegenerating(true);
+        } else if (type === 'summary') {
+            setIsRegeneratingSummary(true);
         }
 
         try {
@@ -715,7 +718,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                 },
                 body: JSON.stringify({
                     type,
-                    section_index: sectionIndex,
+                    section_index: sectionIndex === -1 ? null : sectionIndex,
                     item_index: itemIndex,
                     bullet_index: bulletIndex,
                     instruction: instruction.trim(),
@@ -756,6 +759,12 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     payload: { ...state.cvData, sections: updatedSections }
                 });
                 toast.success('Section berhasil di-rewrite dengan AI!');
+            } else if (type === 'summary') {
+                dispatch({
+                    type: 'UPDATE_SUMMARY',
+                    payload: responseData.data.summary
+                });
+                toast.success('Professional Summary berhasil di-optimize dengan AI!');
             }
 
             setPreviewKey(prev => prev + 1);
@@ -765,6 +774,38 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
         } finally {
             setIsGeneratingItem(null);
             setIsRegenerating(false);
+            setIsRegeneratingSummary(false);
+        }
+    };
+
+    const handleRegenerateSummary = async () => {
+        setIsRegeneratingSummary(true);
+        try {
+            const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch(`/admin/cv-generator/${cvGeneration.id}/ai-action`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    type: 'summary',
+                    cv_data: state.cvData
+                })
+            });
+            const responseData = await res.json();
+            if (!res.ok) throw new Error(responseData.error || 'Gagal melakukan optimasi AI.');
+            dispatch({
+                type: 'UPDATE_SUMMARY',
+                payload: responseData.data.summary
+            });
+            toast.success('Professional Summary berhasil di-generate ulang dengan AI!');
+            setPreviewKey(prev => prev + 1);
+        } catch (err: any) {
+            toast.error(err.message || 'Gagal melakukan optimasi AI.');
+        } finally {
+            setIsRegeneratingSummary(false);
         }
     };
 
@@ -1693,44 +1734,73 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                         {/* Professional Summary */}
                         <Card className="border-neutral-200 dark:border-neutral-800">
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-semibold flex items-center gap-2 w-full">
-                                    <FileText className="h-4 w-4 text-violet-500 shrink-0" />
-                                    {isEditingSummaryTitle ? (
-                                        <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                                            <Input
-                                                ref={summaryTitleInputRef}
-                                                className="h-7 text-xs font-semibold flex-1 min-w-0"
-                                                defaultValue={state.cvData.summary_title || (cvGeneration.language === 'id' ? 'Ringkasan Profesional' : 'Professional Summary')}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'summary_title', value: (e.target as HTMLInputElement).value });
-                                                        setIsEditingSummaryTitle(false);
-                                                    } else if (e.key === 'Escape') {
-                                                        setIsEditingSummaryTitle(false);
+                                <CardTitle className="text-sm font-semibold flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        {isEditingSummaryTitle ? (
+                                            <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                                <Input
+                                                    ref={summaryTitleInputRef}
+                                                    className="h-7 text-xs font-semibold flex-1 min-w-0"
+                                                    defaultValue={state.cvData.summary_title || (cvGeneration.language === 'id' ? 'Ringkasan Profesional' : 'Professional Summary')}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'summary_title', value: (e.target as HTMLInputElement).value });
+                                                            setIsEditingSummaryTitle(false);
+                                                        } else if (e.key === 'Escape') {
+                                                            setIsEditingSummaryTitle(false);
+                                                        }
+                                                    }}
+                                                    autoFocus
+                                                />
+                                                <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => {
+                                                    if (summaryTitleInputRef.current) {
+                                                        dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'summary_title', value: summaryTitleInputRef.current.value });
                                                     }
-                                                }}
-                                                autoFocus
-                                            />
-                                            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => {
-                                                if (summaryTitleInputRef.current) {
-                                                    dispatch({ type: 'UPDATE_CONTACT_FIELD', field: 'summary_title', value: summaryTitleInputRef.current.value });
-                                                }
-                                                setIsEditingSummaryTitle(false);
-                                            }}>
-                                                <Check className="h-3 w-3 text-emerald-600" />
+                                                    setIsEditingSummaryTitle(false);
+                                                }}>
+                                                    <Check className="h-3 w-3 text-emerald-600" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setIsEditingSummaryTitle(false)}>
+                                                    <X className="h-3 w-3 text-neutral-400" />
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div 
+                                                className="flex items-center gap-1.5 group/title cursor-pointer flex-1 min-w-0 select-none"
+                                                onClick={() => setIsEditingSummaryTitle(true)}
+                                                title="Click to edit section title"
+                                            >
+                                                <span>{state.cvData.summary_title || (cvGeneration.language === 'id' ? 'Ringkasan Profesional' : 'Professional Summary')}</span>
+                                                <Pencil className="h-3.5 w-3.5 text-neutral-400 opacity-0 group-hover/title:opacity-100 transition-opacity" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!isEditingSummaryTitle && (
+                                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 px-2 text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-500/10 flex items-center gap-1 text-[11px]"
+                                                disabled={isRegeneratingSummary}
+                                                onClick={handleRegenerateSummary}
+                                            >
+                                                {isRegeneratingSummary ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin text-violet-600" />
+                                                ) : (
+                                                    <RefreshCw className="h-3 w-3 text-violet-600" />
+                                                )}
+                                                Generate Ulang
                                             </Button>
-                                            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setIsEditingSummaryTitle(false)}>
-                                                <X className="h-3 w-3 text-neutral-400" />
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-7 w-7 text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-500/10"
+                                                title="Optimize Summary with AI Request"
+                                                disabled={isRegeneratingSummary}
+                                                onClick={() => setAiActionDialog({ isOpen: true, type: 'summary', sectionIndex: -1, instruction: '' })}
+                                            >
+                                                <Sparkles className="h-3.5 w-3.5 text-violet-500 animate-pulse" />
                                             </Button>
-                                        </div>
-                                    ) : (
-                                        <div 
-                                            className="flex items-center gap-1.5 group/title cursor-pointer flex-1 min-w-0 select-none"
-                                            onClick={() => setIsEditingSummaryTitle(true)}
-                                            title="Click to edit section title"
-                                        >
-                                            <span>{state.cvData.summary_title || (cvGeneration.language === 'id' ? 'Ringkasan Profesional' : 'Professional Summary')}</span>
-                                            <Pencil className="h-3.5 w-3.5 text-neutral-400 opacity-0 group-hover/title:opacity-100 transition-opacity" />
                                         </div>
                                     )}
                                 </CardTitle>
@@ -2579,13 +2649,15 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-violet-600 dark:text-violet-400 font-bold">
                             <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" />
-                            Optimasi AI ({aiActionDialog?.type === 'bullet' ? 'Bullet Point' : aiActionDialog?.type === 'item' ? 'Item' : 'Section'})
+                            Optimasi AI ({aiActionDialog?.type === 'bullet' ? 'Bullet Point' : aiActionDialog?.type === 'item' ? 'Item' : aiActionDialog?.type === 'summary' ? 'Professional Summary' : 'Section'})
                         </DialogTitle>
                         <DialogDescription className="text-xs">
                             {aiActionDialog?.type === 'bullet' 
                                 ? 'AI akan mereformulasi baris deskripsi ini secara profesional menggunakan metode STAR/XYZ dan mencocokkannya dengan Kata Kunci Lowongan.' 
                                 : aiActionDialog?.type === 'item' 
                                 ? 'AI akan menulis ulang seluruh entri (judul, subtitle, dan bullet points) agar terstruktur dengan sangat profesional sesuai lowongan.' 
+                                : aiActionDialog?.type === 'summary'
+                                ? 'AI akan memformulasikan ringkasan profil Anda secara profesional, ringkas, dan penuh kata kunci relevan berdasarkan target lowongan.'
                                 : 'AI akan menyusun ulang dan mengoptimasi seluruh isi section ini untuk meningkatkan relevansi ATS.'}
                         </DialogDescription>
                     </DialogHeader>
@@ -2601,6 +2673,8 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                         ? "Contoh: Ubah ke Bahasa Inggris, tonjolkan metrik performa database, atau perpendek kalimat."
                                         : aiActionDialog?.type === 'item'
                                         ? "Contoh: Buat deskripsi pekerjaan berfokus pada DevOps, atau gunakan istilah teknis Laravel."
+                                        : aiActionDialog?.type === 'summary'
+                                        ? "Contoh: Fokuskan ke keahlian Backend Developer, buat lebih formal, atau terjemahkan ke Bahasa Inggris."
                                         : "Contoh: Urutkan berdasarkan relevansi terbesar, terjemahkan ke Bahasa Inggris."
                                 }
                                 value={aiActionDialog?.instruction || ''}

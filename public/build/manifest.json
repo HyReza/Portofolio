@@ -899,7 +899,7 @@
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-D7gLjfk-.js",
+    "file": "assets/app-CXLay4N2.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -1245,7 +1245,7 @@
     ]
   },
   "resources/js/pages/admin/cv-generator/editor.tsx": {
-    "file": "assets/editor-COZLS2DF.js",
+    "file": "assets/editor-CzYhhTbE.js",
     "name": "editor",
     "src": "resources/js/pages/admin/cv-generator/editor.tsx",
     "isDynamicEntry": true,
@@ -1269,7 +1269,6 @@
       "_download-v48RKSAU.js",
       "_eye-off-IQvkqSaH.js",
       "_eye-DvFmTKLG.js",
-      "_folder-kanban-DK-PaxnG.js",
       "_loader-circle-C1TkY5JN.js",
       "_pencil-DR11gIuD.js",
       "_plus-D6b_RwI-.js",

@@ -854,8 +854,8 @@ class CvGeneratorController extends Controller
     public function aiAction(Request $request, CvGeneration $cvGeneration): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['required', 'string', 'in:bullet,item,section'],
-            'section_index' => ['required', 'integer'],
+            'type' => ['required', 'string', 'in:bullet,item,section,summary'],
+            'section_index' => ['required_unless:type,summary', 'nullable', 'integer'],
             'item_index' => ['nullable', 'integer'],
             'bullet_index' => ['nullable', 'integer'],
             'instruction' => ['nullable', 'string', 'max:2000'],
@@ -866,7 +866,7 @@ class CvGeneratorController extends Controller
             $cvGeneration,
             $validated['type'],
             [
-                'section_index' => $validated['section_index'],
+                'section_index' => $validated['section_index'] ?? null,
                 'item_index' => $validated['item_index'] ?? null,
                 'bullet_index' => $validated['bullet_index'] ?? null,
                 'cv_data' => $validated['cv_data'],

@@ -1620,20 +1620,23 @@ PROMPT;
     public function executeAiAction(\App\Models\CvGeneration $cv, string $type, array $params, ?string $instruction = null): array
     {
         $cvData = $params['cv_data'];
-        $sectionIndex = $params['section_index'];
+        $sectionIndex = $params['section_index'] ?? null;
         $itemIndex = $params['item_index'] ?? null;
         $bulletIndex = $params['bullet_index'] ?? null;
         $language = $cv->language;
 
-        $section = $cvData['sections'][$sectionIndex] ?? null;
-        if (!$section) {
-            return ['success' => false, 'error' => 'Section not found'];
-        }
-
+        $section = null;
         $skillsInstruction = "";
-        if (in_array($section['type'] ?? '', ['skills', 'soft_skills'])) {
-            $skillsInstruction = "\nCRITICAL NOTE FOR SKILLS/SOFT_SKILLS SECTION ITEMS:\n" .
-                "- Since this item belongs to a skills or soft_skills section, you MUST format it as a skills category: put the category name in 'title', the comma-separated list of skills in 'subtitle', and keep the 'bullets' array completely empty []. Do NOT generate bullet points.\n";
+        if ($type !== 'summary') {
+            $section = $cvData['sections'][$sectionIndex] ?? null;
+            if (!$section) {
+                return ['success' => false, 'error' => 'Section not found'];
+            }
+
+            if (in_array($section['type'] ?? '', ['skills', 'soft_skills'])) {
+                $skillsInstruction = "\nCRITICAL NOTE FOR SKILLS/SOFT_SKILLS SECTION ITEMS:\n" .
+                    "- Since this item belongs to a skills or soft_skills section, you MUST format it as a skills category: put the category name in 'title', the comma-separated list of skills in 'subtitle', and keep the 'bullets' array completely empty []. Do NOT generate bullet points.\n";
+            }
         }
 
         $item = null;
@@ -1799,6 +1802,34 @@ INSTRUCTIONS:
       }
     }
   ]
+}
+PROMPT;
+        } elseif ($type === 'summary') {
+            $currentSummary = $cvData['professional_summary'] ?? '';
+            $systemPrompt = <<<PROMPT
+You are an elite ATS CV writer. The user wants to rewrite their CV Professional Summary.
+
+CONTEXT:
+Job Title: {$cv->job_title}
+Company: {$cv->company_name}
+JD: {$cv->job_description}
+
+CURRENT PROFESSIONAL SUMMARY:
+"{$currentSummary}"
+
+USER INSTRUCTION / CHANGE NOTE (Optional):
+"{$instruction}"
+
+LANGUAGE INSTRUCTION:
+{$langInstruction}
+
+INSTRUCTIONS:
+1. Rewrite the professional summary to be highly professional, compelling, keyword-rich, and perfectly optimized for the target Job Description.
+2. If the user provided a custom instruction, prioritize and follow that instruction exactly.
+3. Keep the summary concise (strictly between 50 to 90 words, formatted in 1 paragraph).
+4. Return ONLY a valid JSON object matching exactly this schema, and nothing else. No markdown wrapping.
+{
+  "summary": "The rewritten professional summary text"
 }
 PROMPT;
         }
