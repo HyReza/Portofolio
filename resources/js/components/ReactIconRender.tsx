@@ -71,7 +71,7 @@ export function ReactIconRender({ name, className = "h-5 w-5", ...rest }: Props)
                 else if (name.startsWith('Io')) prefix = 'io';
 
                 const prefixMap: Record<string, string[]> = {
-                    fa: ['fa6-solid', 'fa6-regular', 'fa6-brands'],
+                    fa: ['fa6-solid', 'fa6-regular', 'fa6-brands', 'fa', 'font-awesome'],
                     si: ['simple-icons'],
                     di: ['devicon', 'logos'],
                     ri: ['ri'],
@@ -80,7 +80,7 @@ export function ReactIconRender({ name, className = "h-5 w-5", ...rest }: Props)
                     bi: ['boxicons'],
                     bs: ['bootstrap'],
                     fi: ['feather'],
-                    md: ['mdi', 'material-symbols'],
+                    md: ['mdi', 'material-symbols', 'material-symbols-outlined', 'material-symbols-rounded'],
                     gi: ['game-icons'],
                 };
 
@@ -102,25 +102,30 @@ export function ReactIconRender({ name, className = "h-5 w-5", ...rest }: Props)
                     iconNames.push(base);
                 }
 
-                // Try each prefix and name variant in sequence
+                // Try each prefix in sequence using the .json endpoint to avoid 404 browser logs
                 for (const apiPrefix of prefixes) {
-                    for (const nameVariant of iconNames) {
-                        try {
-                            const res = await fetch(`https://api.iconify.design/${apiPrefix}/${nameVariant}.svg`);
-                            if (res.ok && isMounted) {
-                                let svgText = await res.text();
-                                // Inject style classes and properties
-                                const ariaLabel = rest['aria-label'] || name;
-                                svgText = svgText.replace(
-                                    '<svg ', 
-                                    `<svg class="${className}" role="img" aria-label="${ariaLabel}" `
-                                );
-                                setSvgContent(svgText);
-                                return; // Success! Exit function.
+                    try {
+                        const queryIcons = iconNames.join(',');
+                        const res = await fetch(`https://api.iconify.design/${apiPrefix}.json?icons=${queryIcons}`);
+                        if (res.ok && isMounted) {
+                            const data = await res.json();
+                            // Find the first variant that exists in the returned JSON icons
+                            for (const nameVariant of iconNames) {
+                                if (data.icons && data.icons[nameVariant]) {
+                                    const iconData = data.icons[nameVariant];
+                                    const width = iconData.width || data.width || 1024;
+                                    const height = iconData.height || data.height || 1024;
+                                    const ariaLabel = rest['aria-label'] || name;
+                                    
+                                    const svgText = `<svg xmlns="http://www.w3.org/2000/svg" class="${className}" role="img" aria-label="${ariaLabel}" viewBox="0 0 ${width} ${height}">${iconData.body}</svg>`;
+                                    
+                                    setSvgContent(svgText);
+                                    return; // Success! Exit function.
+                                }
                             }
-                        } catch (err) {
-                            // Silently continue to next fallback
                         }
+                    } catch (err) {
+                        // Silently continue to next prefix
                     }
                 }
             } catch (e) {
