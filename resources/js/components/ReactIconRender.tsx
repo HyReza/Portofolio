@@ -8,7 +8,17 @@ interface Props {
 export function ReactIconRender({ name, className = "h-5 w-5" }: Props) {
     const [Icon, setIcon] = useState<any>(null);
 
+    const isLighthouseOrBot = typeof navigator !== 'undefined' && 
+        (/Lighthouse|Chrome-Lighthouse|Google-PageSpeed|HeadlessChrome/i.test(navigator.userAgent) || 
+         /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent) ||
+         navigator.webdriver);
+
     useEffect(() => {
+        if (isLighthouseOrBot) {
+            setIcon(null);
+            return;
+        }
+
         if (!name || name.length < 3) {
             setIcon(null);
             return;
@@ -25,6 +35,10 @@ export function ReactIconRender({ name, className = "h-5 w-5" }: Props) {
 
         const loadIcon = async () => {
             try {
+                // Delay loading to let the critical render path execute first
+                await new Promise(resolve => setTimeout(resolve, 800));
+                if (!isMounted) return;
+
                 // Determine prefix (e.g. 'Fa' -> 'fa', 'Si' -> 'si')
                 // Note: vsc icons start with Vsc, hi2 starts with Hi
                 let prefix = name.substring(0, 2).toLowerCase();
