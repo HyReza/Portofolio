@@ -2026,11 +2026,10 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                 <div className="px-3 pb-3 pt-2 grid gap-3 sm:grid-cols-2">
                                                                     <div className="space-y-1">
                                                                         <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Technologies (pisahkan dengan koma)</Label>
-                                                                        <Input
+                                                                        <TechStackInput
                                                                             className="h-7 text-xs"
-                                                                            value={Array.isArray(item.metadata?.tech_stack) ? item.metadata.tech_stack.join(', ') : (item.metadata?.tech_stack || '')}
-                                                                            onChange={(e) => {
-                                                                                const techStack = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                                                            value={item.metadata?.tech_stack as string[] | string | undefined}
+                                                                            onChange={(techStack) => {
                                                                                 const updatedMeta = { ...item.metadata, tech_stack: techStack };
                                                                                 dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
                                                                             }}
@@ -2041,7 +2040,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                         <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Penerbit / Institusi (Issued By)</Label>
                                                                         <Input
                                                                             className="h-7 text-xs"
-                                                                            value={item.metadata?.issuer || ''}
+                                                                            value={(item.metadata?.issuer as string) || ''}
                                                                             onChange={(e) => {
                                                                                 const updatedMeta = { ...item.metadata, issuer: e.target.value };
                                                                                 dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
@@ -2053,7 +2052,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                         <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Tautan Sertifikat / Kredensial URL</Label>
                                                                         <Input
                                                                             className="h-7 text-xs"
-                                                                            value={item.metadata?.credential_url || ''}
+                                                                            value={(item.metadata?.credential_url as string) || ''}
                                                                             onChange={(e) => {
                                                                                 const updatedMeta = { ...item.metadata, credential_url: e.target.value };
                                                                                 dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
@@ -2065,7 +2064,7 @@ export default function CvEditor({ cvGeneration, profileData, references = {} }:
                                                                         <Label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">IPK / Nilai (GPA)</Label>
                                                                         <Input
                                                                             className="h-7 text-xs"
-                                                                            value={item.metadata?.gpa || ''}
+                                                                            value={(item.metadata?.gpa as string) || ''}
                                                                             onChange={(e) => {
                                                                                 const updatedMeta = { ...item.metadata, gpa: e.target.value };
                                                                                 dispatch({ type: 'UPDATE_ITEM_FIELD', sectionIndex: sIdx, itemIndex: iIdx, field: 'metadata', value: updatedMeta });
@@ -2717,3 +2716,49 @@ const AutoResizeTextarea = ({
         />
     );
 };
+
+interface TechStackInputProps {
+    value?: string[] | string;
+    onChange: (value: string[]) => void;
+    placeholder?: string;
+    className?: string;
+}
+
+const TechStackInput: React.FC<TechStackInputProps> = ({ value, onChange, placeholder, className }) => {
+    const getInitialString = (val: string[] | string | undefined): string => {
+        if (Array.isArray(val)) {
+            return val.join(', ');
+        }
+        return val || '';
+    };
+
+    const [localValue, setLocalValue] = useState(() => getInitialString(value));
+
+    useEffect(() => {
+        const expected = getInitialString(value);
+        const currentParsed = localValue.split(',').map(s => s.trim()).filter(Boolean);
+        const externalParsed = Array.isArray(value) ? value : (value ? value.split(',').map(s => s.trim()).filter(Boolean) : []);
+        
+        if (JSON.stringify(currentParsed) !== JSON.stringify(externalParsed)) {
+            setLocalValue(expected);
+        }
+    }, [value]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setLocalValue(val);
+        
+        const techStack = val.split(',').map(s => s.trim()).filter(Boolean);
+        onChange(techStack);
+    };
+
+    return (
+        <Input
+            className={className}
+            value={localValue}
+            onChange={handleChange}
+            placeholder={placeholder}
+        />
+    );
+};
+
