@@ -89,8 +89,43 @@ export function ReactIconRender({ name, className = "h-5 w-5", ...rest }: Props)
                     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
                     .toLowerCase();
 
+                const faRenameMap: Record<string, string> = {
+                    'sync-alt': 'arrows-rotate',
+                    'sync': 'rotate',
+                    'refresh': 'rotate',
+                    'cog': 'gear',
+                    'cogs': 'gears',
+                    'info-circle': 'circle-info',
+                    'exclamation-circle': 'circle-exclamation',
+                    'exclamation-triangle': 'triangle-exclamation',
+                    'question-circle': 'circle-question',
+                    'check-circle': 'circle-check',
+                    'times-circle': 'circle-xmark',
+                    'times': 'xmark',
+                    'close': 'xmark',
+                    'remove': 'xmark',
+                    'trash-alt': 'trash-can',
+                    'history': 'clock-rotate-left',
+                    'search': 'magnifying-glass',
+                    'phone-alt': 'phone',
+                    'tablet-alt': 'tablet-screen-button',
+                    'mobile-alt': 'mobile-screen-button',
+                    'external-link-alt': 'arrow-up-right-from-square',
+                    'external-link': 'arrow-up-right-from-square',
+                    'share-alt': 'share-nodes',
+                    'file-alt': 'file-lines',
+                    'file-text': 'file-lines',
+                    'sign-in-alt': 'right-to-bracket',
+                    'sign-in': 'right-to-bracket',
+                    'sign-out-alt': 'right-from-bracket',
+                    'sign-out': 'right-from-bracket',
+                };
+
                 // Generate name variants (e.g. outline-network-check -> network-check-outline -> network-check)
                 const iconNames = [iconName];
+                if (prefix === 'fa' && faRenameMap[iconName]) {
+                    iconNames.push(faRenameMap[iconName]);
+                }
                 if (iconName.startsWith('outline-')) {
                     const base = iconName.substring(8);
                     iconNames.push(`${base}-outline`);
