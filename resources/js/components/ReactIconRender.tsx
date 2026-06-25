@@ -70,35 +70,58 @@ export function ReactIconRender({ name, className = "h-5 w-5", ...rest }: Props)
                 if (name.startsWith('Io5')) prefix = 'io5';
                 else if (name.startsWith('Io')) prefix = 'io';
 
-                const prefixMap: Record<string, string> = {
-                    fa: 'fa6-brands',
-                    si: 'simple-icons',
-                    di: 'devicon',
-                    ri: 'ri',
-                    vsc: 'codicon',
-                    tb: 'tabler',
-                    bi: 'boxicons',
-                    bs: 'bootstrap',
-                    fi: 'feather',
-                    md: 'material-symbols',
-                    gi: 'game-icons',
+                const prefixMap: Record<string, string[]> = {
+                    fa: ['fa6-solid', 'fa6-regular', 'fa6-brands'],
+                    si: ['simple-icons'],
+                    di: ['devicon', 'logos'],
+                    ri: ['ri'],
+                    vsc: ['codicon'],
+                    tb: ['tabler'],
+                    bi: ['boxicons'],
+                    bs: ['bootstrap'],
+                    fi: ['feather'],
+                    md: ['mdi', 'material-symbols'],
+                    gi: ['game-icons'],
                 };
 
-                const apiPrefix = prefixMap[prefix] || prefix;
+                const prefixes = prefixMap[prefix] || [prefix];
                 const iconName = name.substring(name.startsWith('Vsc') || name.startsWith('Io5') ? 3 : 2)
                     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
                     .toLowerCase();
 
-                const res = await fetch(`https://api.iconify.design/${apiPrefix}/${iconName}.svg`);
-                if (res.ok && isMounted) {
-                    let svgText = await res.text();
-                    // Inject style classes and properties
-                    const ariaLabel = rest['aria-label'] || name;
-                    svgText = svgText.replace(
-                        '<svg ', 
-                        `<svg class="${className}" role="img" aria-label="${ariaLabel}" `
-                    );
-                    setSvgContent(svgText);
+                // Generate name variants (e.g. outline-network-check -> network-check-outline -> network-check)
+                const iconNames = [iconName];
+                if (iconName.startsWith('outline-')) {
+                    const base = iconName.substring(8);
+                    iconNames.push(`${base}-outline`);
+                    iconNames.push(base);
+                }
+                if (iconName.startsWith('fill-')) {
+                    const base = iconName.substring(5);
+                    iconNames.push(`${base}-fill`);
+                    iconNames.push(base);
+                }
+
+                // Try each prefix and name variant in sequence
+                for (const apiPrefix of prefixes) {
+                    for (const nameVariant of iconNames) {
+                        try {
+                            const res = await fetch(`https://api.iconify.design/${apiPrefix}/${nameVariant}.svg`);
+                            if (res.ok && isMounted) {
+                                let svgText = await res.text();
+                                // Inject style classes and properties
+                                const ariaLabel = rest['aria-label'] || name;
+                                svgText = svgText.replace(
+                                    '<svg ', 
+                                    `<svg class="${className}" role="img" aria-label="${ariaLabel}" `
+                                );
+                                setSvgContent(svgText);
+                                return; // Success! Exit function.
+                            }
+                        } catch (err) {
+                            // Silently continue to next fallback
+                        }
+                    }
                 }
             } catch (e) {
                 console.error(e);
