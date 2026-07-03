@@ -244,8 +244,8 @@ export default function AiChatWidget() {
                         {/* ─── Header ─── */}
                         <div className={`flex items-center justify-between px-4 py-3 border-b ${dk ? 'border-neutral-800' : 'border-neutral-100'}`}>
                             <div className="flex items-center gap-3">
-                                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${dk ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                    <Sparkles size={18} />
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden">
+                                    <img src="/assets/img/icons%20message.png" alt="Reza's AI" className="w-full h-full object-contain" />
                                 </div>
                                 <div>
                                     <h3 className={`text-sm font-semibold ${dk ? 'text-white' : 'text-neutral-900'}`}>Reza's AI</h3>
@@ -279,8 +279,8 @@ export default function AiChatWidget() {
                                         className={`flex flex-col mb-3 ${isAi ? 'items-start' : 'items-end'}`}>
                                         <div className={`flex gap-2 max-w-[85%] ${isAi ? 'flex-row' : 'flex-row-reverse'}`}>
                                             {isAi && (
-                                                <div className={`shrink-0 flex h-6 w-6 items-center justify-center rounded-lg mt-0.5 ${dk ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                                    <Sparkles size={11} />
+                                                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden mt-0.5">
+                                                    <img src="/assets/img/icons%20message.png" alt="AI" className="w-full h-full object-contain" />
                                                 </div>
                                             )}
                                             <div className={`px-3 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-wrap ${isAi
@@ -297,8 +297,8 @@ export default function AiChatWidget() {
                             {streamingText && (
                                 <div className="flex flex-col mb-3 items-start">
                                     <div className="flex gap-2 max-w-[85%]">
-                                        <div className={`shrink-0 flex h-6 w-6 items-center justify-center rounded-lg mt-0.5 ${dk ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                            <Sparkles size={11} />
+                                        <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden mt-0.5">
+                                            <img src="/assets/img/icons%20message.png" alt="AI" className="w-full h-full object-contain" />
                                         </div>
                                         <div className={`px-3 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-wrap ${dk ? 'bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-2xl rounded-tl-md' : 'bg-white border border-neutral-200 text-neutral-800 rounded-2xl rounded-tl-md shadow-sm'}`}
                                             dangerouslySetInnerHTML={{ __html: parseMarkdown(streamingText) }} />
@@ -309,8 +309,8 @@ export default function AiChatWidget() {
                             {/* Typing */}
                             {isTyping && !streamingText && (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-2 mb-3">
-                                    <div className={`shrink-0 flex h-6 w-6 items-center justify-center rounded-lg mt-0.5 ${dk ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                        <Sparkles size={11} />
+                                    <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden mt-0.5">
+                                        <img src="/assets/img/icons%20message.png" alt="AI" className="w-full h-full object-contain" />
                                     </div>
                                     <AiTypingIndicator dk={dk} />
                                 </motion.div>
