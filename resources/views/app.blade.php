@@ -4,6 +4,26 @@
 <head>
     @php
         $locale = app()->getLocale();
+        
+        $val = function($data, $key, $default = '') {
+            if (empty($data)) return $default;
+            if (is_array($data)) {
+                return $data[$key] ?? $default;
+            }
+            if (is_object($data)) {
+                return $data->$key ?? $default;
+            }
+            return $default;
+        };
+        
+        $localizedVal = function($data, $keyId, $keyEn, $default = '') use ($locale, $val) {
+            if ($locale === 'id') {
+                return $val($data, $keyId) ?: $val($data, $keyEn) ?: $default;
+            } else {
+                return $val($data, $keyEn) ?: $val($data, $keyId) ?: $default;
+            }
+        };
+
         try {
             $profile = \App\Models\Profile::ordered()->get()->keyBy('key');
         } catch (\Exception $e) {
@@ -20,11 +40,10 @@
         };
 
         $profileName = $pv('name') ?: 'Reza Edi Saputra';
-        $metaTitle = $pv('meta_site_title') ?: ($profileName . ' - AI Engineer & Full-Stack Developer');
-
+        $defaultTitle = $pv('meta_site_title') ?: ($profileName . ' - AI Engineer & Full-Stack Developer');
         $rawDesc = $pv('meta_site_description') ?: 'Portfolio profesional Reza Edi Saputra, lulusan S1 Informatika UMPP dengan 3+ tahun pengalaman sebagai Software Engineer.';
 
-        $metaDescription = $rawDesc;
+        $defaultDescription = $rawDesc;
         if (strpos($rawDesc, 'BAHASA INDONESIA:') !== false) {
             $parts = explode('BAHASA INDONESIA:', $rawDesc);
             $cleanDesc = trim($parts[1]);
@@ -36,7 +55,7 @@
                 $subparts = explode('EN:', $cleanDesc);
                 $cleanDesc = trim($subparts[0]);
             }
-            $metaDescription = $cleanDesc ?: $rawDesc;
+            $defaultDescription = $cleanDesc ?: $rawDesc;
         }
 
         $metaKeywords = $pv('meta_keywords') ?: 'software engineer, AI engineer, full stack developer, reza edi saputra, reza, rez, edi saputra, reza edi, reza edi saputra software engineer, reza edi saputra AI engineer, reza edi saputra full stack developer, reza edi saputra 2024, reza edi saputra 2025, ';
@@ -46,6 +65,96 @@
         $profilePhoto = $pv('about_page_photo') ?: $pv('profile_photo') ?: '/assets/img/profil.jpeg';
         $ogImageUrl = filter_var($profilePhoto, FILTER_VALIDATE_URL) ? $profilePhoto : url($profilePhoto);
         $websiteUrl = $pv('website_url') ?: request()->url();
+
+        // ─── DYNAMIC SEO PAGE SWITCHER ───
+        $component = $page['component'] ?? '';
+        $props = $page['props'] ?? [];
+
+        $metaTitle = $defaultTitle;
+        $metaDescription = $defaultDescription;
+
+        if ($component === 'public/blog-show' && isset($props['blog'])) {
+            $blog = $props['blog'];
+            $seoMeta = $val($blog, 'seo_meta');
+            $customTitle = $localizedVal($seoMeta, 'meta_title_id', 'meta_title_en');
+            $customDesc = $localizedVal($seoMeta, 'meta_description_id', 'meta_description_en');
+            $customImage = $val($seoMeta, 'og_image');
+            
+            $blogTitle = $localizedVal($blog, 'title_id', 'title_en');
+            $blogExcerpt = $localizedVal($blog, 'excerpt_id', 'excerpt_en') ?: strip_tags($localizedVal($blog, 'content_id', 'content_en'));
+            $blogExcerpt = \Illuminate\Support\Str::limit($blogExcerpt, 160);
+            
+            $metaTitle = $customTitle ?: ($blogTitle . ' - ' . $profileName);
+            $metaDescription = $customDesc ?: ($blogExcerpt ?: $defaultDescription);
+            
+            $thumbnail = $customImage ?: $val($blog, 'thumbnail');
+            if ($thumbnail) {
+                $ogImageUrl = filter_var($thumbnail, FILTER_VALIDATE_URL) ? $thumbnail : url('storage/' . $thumbnail);
+            }
+        } 
+        elseif ($component === 'public/project-show' && isset($props['project'])) {
+            $project = $props['project'];
+            $seoMeta = $val($project, 'seo_meta');
+            $customTitle = $localizedVal($seoMeta, 'meta_title_id', 'meta_title_en');
+            $customDesc = $localizedVal($seoMeta, 'meta_description_id', 'meta_description_en');
+            $customImage = $val($seoMeta, 'og_image');
+            
+            $projectTitle = $localizedVal($project, 'title_id', 'title_en');
+            $projectExcerpt = $localizedVal($project, 'excerpt_id', 'excerpt_en') ?: strip_tags($localizedVal($project, 'content_id', 'content_en'));
+            $projectExcerpt = \Illuminate\Support\Str::limit($projectExcerpt, 160);
+            
+            $metaTitle = $customTitle ?: ($projectTitle . ' - ' . $profileName);
+            $metaDescription = $customDesc ?: ($projectExcerpt ?: $defaultDescription);
+            
+            $thumbnail = $customImage ?: $val($project, 'thumbnail');
+            if ($thumbnail) {
+                $ogImageUrl = filter_var($thumbnail, FILTER_VALIDATE_URL) ? $thumbnail : url('storage/' . $thumbnail);
+            }
+        } 
+        elseif ($component === 'public/certificates' && isset($props['certificates'])) {
+            $certs = $props['certificates'];
+            $metaTitle = ($locale === 'id' ? 'Sertifikasi & Kredensial' : 'Certifications & Credentials') . ' - ' . $profileName;
+            
+            $certList = [];
+            $count = 0;
+            foreach ($certs as $cert) {
+                $cTitle = $localizedVal($cert, 'title', 'title_en');
+                if ($cTitle) {
+                    $certList[] = $cTitle;
+                    if (++$count >= 3) break;
+                }
+            }
+            if (!empty($certList)) {
+                $metaDescription = ($locale === 'id' 
+                    ? 'Daftar sertifikasi profesional ' . $profileName . ' termasuk ' . implode(', ', $certList) . ' dan kredensial IT lainnya.'
+                    : 'List of professional certifications for ' . $profileName . ' including ' . implode(', ', $certList) . ' and other IT credentials.');
+            }
+        }
+        elseif ($component === 'public/about') {
+            $metaTitle = ($locale === 'id' ? 'Tentang ' : 'About ') . $profileName . ' - AI Engineer & Full-Stack Developer';
+            $aboutBio = $pv('about_page_subtitle') ?: $pv('about_page_bio');
+            if ($aboutBio) {
+                $metaDescription = \Illuminate\Support\Str::limit(strip_tags($aboutBio), 160);
+            }
+        }
+        elseif ($component === 'public/blog') {
+            $metaTitle = ($locale === 'id' ? 'Artikel & Blog' : 'Articles & Blog') . ' - ' . $profileName;
+            $metaDescription = $locale === 'id' 
+                ? 'Kumpulan artikel, tutorial, dan blog seputar Kecerdasan Buatan (AI), Web Development, dan Rekayasa Perangkat Lunak oleh ' . $profileName
+                : 'A collection of articles, tutorials, and blogs about Artificial Intelligence (AI), Web Development, and Software Engineering by ' . $profileName;
+        }
+        elseif ($component === 'public/projects') {
+            $metaTitle = ($locale === 'id' ? 'Portofolio Proyek' : 'Project Portfolio') . ' - ' . $profileName;
+            $metaDescription = $locale === 'id'
+                ? 'Jelajahi galeri proyek digital, implementasi model AI, sistem cerdas, dan solusi web full-stack yang dikembangkan oleh ' . $profileName
+                : 'Explore the digital projects gallery, AI model implementations, intelligent systems, and full-stack web solutions developed by ' . $profileName;
+        }
+        elseif ($component === 'public/contact') {
+            $metaTitle = ($locale === 'id' ? 'Hubungi ' : 'Contact ') . $profileName;
+            $metaDescription = $locale === 'id'
+                ? 'Hubungi ' . $profileName . ' untuk konsultasi proyek digital, freelance, kolaborasi AI, dan full-stack software development.'
+                : 'Get in touch with ' . $profileName . ' for digital project consultations, freelance work, AI collaborations, and full-stack software development.';
+        }
     @endphp
     <!-- Google Tag Manager -->
     <script>(function (w, d, s, l, i) {
