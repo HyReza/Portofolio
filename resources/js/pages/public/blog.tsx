@@ -1,22 +1,49 @@
 import { useState, useMemo } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { SeoHead } from '@/components/SeoHead';
 import { motion } from 'framer-motion';
-import { Sparkles, Search } from 'lucide-react';
+import { Sparkles, Search, Bookmark, MessageSquare, Eye, Heart } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { TextReveal, FadeUp, ImageReveal } from '@/components/animations';
 import { SearchableFilter } from '@/components/ui/searchable-filter';
 
-interface BlogPost { id: number; title_id: string; title_en: string; slug: string; excerpt_en: string | null; excerpt_id: string | null; thumbnail: string | null; published_at: string | null; tags: { id: number; name_en: string; name_id: string; }[]; }
+interface BlogPost {
+    id: number;
+    title_id: string;
+    title_en: string;
+    slug: string;
+    excerpt_en: string | null;
+    excerpt_id: string | null;
+    thumbnail: string | null;
+    published_at: string | null;
+    tags: { id: number; name_en: string; name_id: string; }[];
+    comments_count?: number;
+    bookmarks_count?: number;
+    likes_count?: number;
+    view_count: number;
+}
 
-export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
+export default function Blog({ 
+    blogs, 
+    bookmarkedIds = [], 
+    likedIds = [] 
+}: { 
+    blogs: { data: BlogPost[] }; 
+    bookmarkedIds?: number[]; 
+    likedIds?: number[];
+}) {
     const { lang, theme: appTheme, t } = useApp();
     const dk = appTheme === 'dark';
     const posts = blogs.data || [];
 
+    const { props } = usePage<any>();
+    const auth = props.auth as { user: { id: number; name: string; email: string; avatar: string | null; role?: string } | null };
+    const user = auth?.user;
+
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTag, setSelectedTag] = useState<string>('All');
+    const [filterBookmarkedOnly, setFilterBookmarkedOnly] = useState(false);
 
     // Extract unique tags
     const allTags = useMemo(() => {
@@ -40,9 +67,11 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
             const postTags = post.tags.map(t => lang === 'id' ? (t.name_id || t.name_en) : (t.name_en || t.name_id));
             const matchesTag = selectedTag === 'All' || postTags.includes(selectedTag);
 
-            return matchesSearch && matchesTag;
+            const matchesBookmark = !filterBookmarkedOnly || bookmarkedIds.includes(post.id);
+
+            return matchesSearch && matchesTag && matchesBookmark;
         });
-    }, [posts, searchQuery, selectedTag, lang]);
+    }, [posts, searchQuery, selectedTag, filterBookmarkedOnly, bookmarkedIds, lang]);
 
     return (
         <PublicLayout>
@@ -79,6 +108,21 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
                                 searchPlaceholder={t('Search tag...', 'Cari tag...')}
                                 dark={dk}
                             />
+
+                            {/* Bookmarks Toggle */}
+                            {user && (
+                                <button
+                                    onClick={() => setFilterBookmarkedOnly(!filterBookmarkedOnly)}
+                                    className={`flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition-all border ${
+                                        filterBookmarkedOnly
+                                            ? (dk ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30 shadow-lg shadow-indigo-500/10' : 'bg-indigo-50 text-indigo-600 border-indigo-200 shadow-lg shadow-indigo-500/5')
+                                            : (dk ? 'bg-white/5 text-white/60 border-white/5 hover:bg-white/10 hover:text-white' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100')
+                                    }`}
+                                >
+                                    <Bookmark className={`h-4 w-4 ${filterBookmarkedOnly ? 'fill-current' : ''}`} />
+                                    {t('Bookmarks', 'Disimpan')}
+                                </button>
+                            )}
                         </FadeUp>
                     )}
 
@@ -105,9 +149,9 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
                                 <p className={`mt-2 max-w-sm text-sm ${dk ? 'text-white/40' : 'text-gray-500'}`}>
                                     {t("We couldn't find any articles matching your search criteria. Try adjusting your filters.", "Kami tidak dapat menemukan artikel yang cocok dengan pencarian Anda. Coba sesuaikan filter Anda.")}
                                 </p>
-                                {(searchQuery || selectedTag !== 'All') && (
+                                {(searchQuery || selectedTag !== 'All' || filterBookmarkedOnly) && (
                                     <button 
-                                        onClick={() => { setSearchQuery(''); setSelectedTag('All'); }}
+                                        onClick={() => { setSearchQuery(''); setSelectedTag('All'); setFilterBookmarkedOnly(false); }}
                                         className={`mt-6 rounded-full px-6 py-2.5 text-sm font-medium transition-all ${dk ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'}`}
                                     >
                                         {t('Clear Filters', 'Hapus Filter')}
@@ -130,7 +174,34 @@ export default function Blog({ blogs }: { blogs: { data: BlogPost[] } }) {
                                         <div className="p-6 flex flex-col flex-1">
                                             <h2 className={`font-bold group-hover:text-indigo-400 transition-colors line-clamp-2 text-lg`}>{lang === 'id' ? (b.title_id || b.title_en) : (b.title_en || b.title_id)}</h2>
                                             {(b.excerpt_en || b.excerpt_id) && <p className={`mt-3 line-clamp-2 text-sm ${dk ? 'text-white/40' : 'text-gray-500'}`}>{lang === 'id' ? (b.excerpt_id || b.excerpt_en) : (b.excerpt_en || b.excerpt_id)}</p>}
-                                            {b.published_at && <p className={`mt-auto pt-5 text-xs font-semibold uppercase tracking-wider ${dk ? 'text-white/20' : 'text-gray-400'}`}>{new Date(b.published_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
+                                            
+                                            {/* Card Footer with counts */}
+                                            <div className="mt-auto pt-5 flex items-center justify-between border-t border-dashed border-neutral-200 dark:border-neutral-800">
+                                                {b.published_at && (
+                                                    <p className={`text-xs font-semibold uppercase tracking-wider ${dk ? 'text-white/20' : 'text-gray-400'}`}>
+                                                        {new Date(b.published_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </p>
+                                                )}
+                                                
+                                                <div className={`flex items-center gap-3 text-[10px] sm:text-[11px] font-bold ${dk ? 'text-white/35' : 'text-gray-400'}`}>
+                                                    <span className="flex items-center gap-1" title={t('Views', 'Dilihat')}>
+                                                        <Eye className="h-3.5 w-3.5" />
+                                                        {(b.view_count || 0).toLocaleString()}
+                                                    </span>
+                                                    <span className="flex items-center gap-1" title={t('Likes', 'Suka')}>
+                                                        <Heart className={`h-3.5 w-3.5 ${likedIds.includes(b.id) ? 'fill-current text-red-500 dark:text-red-400' : ''}`} />
+                                                        {b.likes_count || 0}
+                                                    </span>
+                                                    <span className="flex items-center gap-1" title={t('Comments', 'Komentar')}>
+                                                        <MessageSquare className="h-3.5 w-3.5" />
+                                                        {b.comments_count || 0}
+                                                    </span>
+                                                    <span className="flex items-center gap-1" title={t('Bookmarks', 'Disimpan')}>
+                                                        <Bookmark className={`h-3.5 w-3.5 ${bookmarkedIds.includes(b.id) ? 'fill-current text-indigo-500 dark:text-indigo-400' : ''}`} />
+                                                        {b.bookmarks_count || 0}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </Link>
                                 </motion.article>

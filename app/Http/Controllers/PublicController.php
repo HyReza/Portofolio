@@ -69,8 +69,20 @@ class PublicController extends Controller
 
     public function blog(): Response
     {
+        $bookmarkedIds = [];
+        $likedIds = [];
+        if (auth()->check()) {
+            $bookmarkedIds = auth()->user()->bookmarks()->pluck('blog_id')->toArray();
+            $likedIds = auth()->user()->likes()->pluck('blog_id')->toArray();
+        }
+
         return Inertia::render('public/blog', [
-            'blogs' => Blog::with(['tags', 'seoMeta'])->latestPublished()->paginate(12),
+            'blogs' => Blog::with(['tags', 'seoMeta'])
+                ->withCount(['comments', 'bookmarks', 'likes'])
+                ->latestPublished()
+                ->paginate(12),
+            'bookmarkedIds' => $bookmarkedIds,
+            'likedIds' => $likedIds,
         ]);
     }
 
@@ -78,10 +90,19 @@ class PublicController extends Controller
     {
         $blog->incrementViewCount();
         $blog->load(['tags', 'seoMeta']);
+        $blog->loadCount(['comments', 'bookmarks', 'likes']);
+
+        $isBookmarked = false;
+        $isLiked = false;
+        if (auth()->check()) {
+            $isBookmarked = $blog->bookmarks()->where('user_id', auth()->id())->exists();
+            $isLiked = $blog->likes()->where('user_id', auth()->id())->exists();
+        }
 
         // Get related articles by shared tags
         $tagIds = $blog->tags->pluck('id');
         $related = Blog::with(['tags', 'seoMeta'])
+            ->withCount(['comments', 'bookmarks', 'likes'])
             ->published()
             ->where('id', '!=', $blog->id)
             ->when($tagIds->isNotEmpty(), function ($q) use ($tagIds) {
@@ -93,6 +114,8 @@ class PublicController extends Controller
         return Inertia::render('public/blog-show', [
             'blog' => $blog,
             'related' => $related,
+            'isBookmarked' => $isBookmarked,
+            'isLiked' => $isLiked,
         ]);
     }
 

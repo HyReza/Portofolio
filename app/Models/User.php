@@ -53,4 +53,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(MessageReaction::class);
     }
+
+    public function bookmarks()
+    {
+        return $this->hasMany(BlogBookmark::class);
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(BlogLike::class);
+    }
 }

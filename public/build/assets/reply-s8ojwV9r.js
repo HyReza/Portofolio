@@ -1,0 +1,2 @@
+import{t as e}from"./createLucideIcon-Sc0HmOf5.js";var t=e(`Reply`,[[`polyline`,{points:`9 17 4 12 9 7`,key:`hvgpf2`}],[`path`,{d:`M20 18v-2a4 4 0 0 0-4-4H4`,key:`5vmcpk`}]]);export{t};
+//# sourceMappingURL=reply-s8ojwV9r.js.map

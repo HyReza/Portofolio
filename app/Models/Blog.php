@@ -68,6 +68,21 @@ class Blog extends Model
         return $this->morphOne(SeoMeta::class, 'metaable');
     }
 
+    public function comments()
+    {
+        return $this->hasMany(BlogComment::class);
+    }
+
+    public function bookmarks()
+    {
+        return $this->hasMany(BlogBookmark::class);
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(BlogLike::class);
+    }
+
     // ── Scopes ──
 
     public function scopePublished($query)

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\BlogInteractionController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CvController;
@@ -30,12 +31,23 @@ Route::get('/projects/{project}', [PublicController::class, 'projectShow'])->nam
 Route::get('/chat', [ChatController::class, 'index'])->name('chat');
 Route::get('/api/chat', [ChatController::class, 'messages'])->name('chat.messages');
 
+// Public Blog Interactions
+Route::get('/api/blogs/{blog}/comments', [BlogInteractionController::class, 'comments'])->name('blogs.comments');
+
 // Auth Required for interactions
 Route::middleware(['auth'])->group(function () {
     Route::post('/api/chat', [ChatController::class, 'store'])->name('chat.store');
     Route::put('/api/chat/{id}', [ChatController::class, 'update'])->name('chat.update');
     Route::delete('/api/chat/{id}', [ChatController::class, 'destroy'])->name('chat.destroy');
     Route::post('/api/chat/{id}/react', [ChatController::class, 'react'])->name('chat.react');
+
+    // Blog Interactions (Auth Required)
+    Route::post('/api/blogs/{blog}/comments', [BlogInteractionController::class, 'storeComment'])->name('blogs.comments.store');
+    Route::delete('/api/blogs/comments/{comment}', [BlogInteractionController::class, 'destroyComment'])->name('blogs.comments.destroy');
+    Route::post('/api/blogs/{blog}/bookmark', [BlogInteractionController::class, 'toggleBookmark'])->name('blogs.bookmark.toggle');
+    Route::post('/api/blogs/{blog}/like', [BlogInteractionController::class, 'toggleLike'])->name('blogs.like.toggle');
+    Route::post('/api/blogs/comments/{comment}/pin', [BlogInteractionController::class, 'togglePinComment'])->name('blogs.comments.pin');
+    Route::post('/api/blogs/comments/{comment}/like', [BlogInteractionController::class, 'toggleLikeComment'])->name('blogs.comments.like');
 });
 
 // Google OAuth

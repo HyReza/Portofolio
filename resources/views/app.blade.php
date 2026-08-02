@@ -208,6 +208,11 @@
 
     <link rel="icon" href="/assets/img/logo.png" type="image/png">
     <link rel="apple-touch-icon" href="/assets/img/logo.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Reza Portfolio">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link
@@ -247,6 +252,21 @@
             style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
     <x-inertia::app />
+
+    {{-- Register Service Worker for PWA --}}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => {
+                        console.log('PWA ServiceWorker registered successfully:', reg.scope);
+                    })
+                    .catch((err) => {
+                        console.warn('PWA ServiceWorker registration failed:', err);
+                    });
+            });
+        }
+    </script>
 </body>
 
 </html>
