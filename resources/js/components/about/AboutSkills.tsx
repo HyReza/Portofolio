@@ -51,16 +51,16 @@ export function AboutSkills({ skillCategories }: Props) {
                     {skillCategories.map((cat, catIndex) => (
                         <motion.div
                             key={cat.id}
-                            initial={{ opacity: 0, y: 40, filter: 'blur(4px)' }}
+                            initial={{ opacity: 0, y: 30, filter: 'blur(4px)' }}
                             whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                             viewport={{ once: true, margin: '-30px' }}
                             transition={{
-                                delay: catIndex * 0.1,
-                                duration: 0.65,
-                                ease: [0.25, 0.4, 0.25, 1],
+                                delay: catIndex * 0.08,
+                                duration: 0.5,
+                                ease: [0.25, 1, 0.5, 1],
                             }}
-                            whileHover={{ y: -5, transition: { duration: 0.25, ease: 'easeOut' } }}
-                            className={`group relative overflow-hidden rounded-2xl p-7 transition-all duration-300 ${dk ? 'bg-white/[0.02] border border-white/5 hover:border-indigo-500/20' : 'bg-white border border-gray-100 hover:shadow-xl'}`}
+                            whileHover={{ y: -6, transition: { duration: 0.25, ease: [0.25, 1, 0.5, 1] } }}
+                            className={`group relative overflow-hidden rounded-2xl p-7 transition-[border-color,background-color,box-shadow] duration-300 ${dk ? 'bg-white/[0.02] border border-white/5 hover:border-indigo-500/20' : 'bg-white border border-gray-100 hover:shadow-xl'}`}
                         >
                             {/* Gradient border glow on hover */}
                             <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${dk ? 'bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5' : 'bg-gradient-to-br from-indigo-50/40 via-transparent to-purple-50/40'}`} />
@@ -81,15 +81,17 @@ export function AboutSkills({ skillCategories }: Props) {
                                         return (
                                             <motion.div
                                                 key={s.id}
-                                                initial={{ opacity: 0, x: -15 }}
-                                                whileInView={{ opacity: 1, x: 0 }}
+                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                whileInView={{ opacity: 1, scale: 1 }}
                                                 viewport={{ once: true }}
+                                                whileHover={{ scale: 1.06, y: -2 }}
                                                 transition={{
-                                                    delay: catIndex * 0.1 + sIdx * 0.04,
-                                                    duration: 0.4,
-                                                    ease: [0.25, 0.4, 0.25, 1],
+                                                    type: 'spring',
+                                                    stiffness: 380,
+                                                    damping: 18,
+                                                    delay: sIdx * 0.02
                                                 }}
-                                                className={`group/pill flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${style.pillBg} ${style.border} ${style.text}`}
+                                                className={`group/pill flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium cursor-default transition-[border-color,background-color,box-shadow] duration-300 hover:shadow-sm ${style.pillBg} ${style.border} ${style.text}`}
                                             >
                                                 <span className="font-bold opacity-80 transition-opacity group-hover/pill:opacity-100">
                                                     {s.icon ? <ReactIconRender name={s.icon} className="h-4 w-4" /> : <div className="flex h-5 w-5 items-center justify-center rounded-full bg-current/20 text-[9px]">{sName.charAt(0).toUpperCase()}</div>}

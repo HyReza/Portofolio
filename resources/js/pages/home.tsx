@@ -282,7 +282,7 @@ export default function Home({ profiles, skillCategories, softSkills, projects, 
                                                 transition={{ type: 'spring', stiffness: 350, damping: 28, delay: index * 0.035 }}
                                                 key={skill.id}
                                                 whileHover={{ y: -8, transition: { duration: 0.25, ease: 'easeOut' } }}
-                                                className={`group relative flex items-center gap-3 rounded-2xl border p-4 overflow-hidden transition-all duration-300 ${dk ? 'bg-neutral-900/50 hover:bg-neutral-800/80' : 'bg-white hover:bg-neutral-50 shadow-sm hover:shadow-lg'} ${style.border}`}
+                                                className={`group relative flex items-center gap-3 rounded-2xl border p-4 overflow-hidden transition-[border-color,background-color,box-shadow] duration-300 ${dk ? 'bg-neutral-900/50 hover:bg-neutral-800/80' : 'bg-white hover:bg-neutral-50 shadow-sm hover:shadow-lg'} ${style.border}`}
                                             >
                                                 {/* Glassmorphism hover overlay */}
                                                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${dk ? 'bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5' : 'bg-gradient-to-br from-indigo-50/50 via-transparent to-purple-50/50'}`} />

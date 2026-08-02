@@ -3,7 +3,8 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ArrowLeft, Calendar, Clock, Eye, Tag, Bookmark, MessageSquare, 
-    Share2, Send, Reply, Trash2, LogOut, Lock, Copy, Check, Sparkles, Heart, Pin
+    Share2, Send, Reply, Trash2, LogOut, Lock, Copy, Check, Sparkles, Heart, Pin,
+    Edit2, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/hooks/useApp';
@@ -104,23 +105,30 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
     const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
     const [copiedShare, setCopiedShare] = useState(false);
 
+    /* ── Comment Editing States ── */
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editingContent, setEditingContent] = useState('');
+    const [isSavingComment, setIsSavingComment] = useState(false);
+
+    /* ── Collapse/Minimize Replies States ── */
+    const [collapsedComments, setCollapsedComments] = useState<Record<number, boolean>>({});
+
     const commentsSectionRef = useRef<HTMLDivElement>(null);
     const csrf = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     /* ── Fetch comments ── */
     const fetchComments = useCallback(async () => {
         try {
-            const res = await fetch(`/api/blogs/${blog.id}/comments`);
-            if (res.ok) {
-                const data = await res.json();
-                setComments(data);
-            }
+            const res = await fetch(`/api/blogs/${blog.slug}/comments`);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const data = await res.json();
+            setComments(data);
         } catch (e) {
             console.error('Failed to load comments:', e);
         } finally {
             setIsLoadingComments(false);
         }
-    }, [blog.id]);
+    }, [blog.slug]);
 
     useEffect(() => {
         fetchComments();
@@ -135,22 +143,22 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
         if (isLiking) return;
         setIsLiking(true);
         try {
-            const res = await fetch(`/api/blogs/${blog.id}/like`, {
+            const res = await fetch(`/api/blogs/${blog.slug}/like`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': csrf() },
             });
-            if (res.ok) {
-                const data = await res.json();
-                setLiked(data.liked);
-                setLikesCount(data.likes_count);
-                toast.success(
-                    data.liked 
-                        ? t('Post liked!', 'Artikel disukai!') 
-                        : t('Post unliked.', 'Batal menyukai artikel.')
-                );
-            }
-        } catch {
-            toast.error(t('An error occurred. Please try again.', 'Terjadi kesalahan. Silakan coba lagi.'));
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const data = await res.json();
+            setLiked(data.liked);
+            setLikesCount(data.likes_count);
+            toast.success(
+                data.liked 
+                    ? t('Post liked!', 'Artikel disukai!') 
+                    : t('Post unliked.', 'Batal menyukai artikel.')
+            );
+        } catch (error) {
+            console.error('Like toggle failed:', error);
+            toast.error(t('Failed to toggle like. Please refresh or login again.', 'Gagal menyukai artikel. Silakan muat ulang halaman atau login kembali.'));
         } finally {
             setIsLiking(false);
         }
@@ -165,22 +173,22 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
         if (isBookmarking) return;
         setIsBookmarking(true);
         try {
-            const res = await fetch(`/api/blogs/${blog.id}/bookmark`, {
+            const res = await fetch(`/api/blogs/${blog.slug}/bookmark`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': csrf() },
             });
-            if (res.ok) {
-                const data = await res.json();
-                setBookmarked(data.bookmarked);
-                setBookmarksCount(data.bookmarks_count);
-                toast.success(
-                    data.bookmarked 
-                        ? t('Article added to bookmarks!', 'Artikel disimpan ke bookmark!') 
-                        : t('Article removed from bookmarks.', 'Artikel dihapus dari bookmark.')
-                );
-            }
-        } catch {
-            toast.error(t('An error occurred. Please try again.', 'Terjadi kesalahan. Silakan coba lagi.'));
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const data = await res.json();
+            setBookmarked(data.bookmarked);
+            setBookmarksCount(data.bookmarks_count);
+            toast.success(
+                data.bookmarked 
+                    ? t('Article added to bookmarks!', 'Artikel disimpan ke bookmark!') 
+                    : t('Article removed from bookmarks.', 'Artikel dihapus dari bookmark.')
+            );
+        } catch (error) {
+            console.error('Bookmark toggle failed:', error);
+            toast.error(t('Failed to save bookmark. Please refresh or login again.', 'Gagal menyimpan bookmark. Silakan muat ulang halaman atau login kembali.'));
         } finally {
             setIsBookmarking(false);
         }
@@ -192,7 +200,7 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
         if (!commentInput.trim() || submittingComment || !user) return;
         setSubmittingComment(true);
         try {
-            const res = await fetch(`/api/blogs/${blog.id}/comments`, {
+            const res = await fetch(`/api/blogs/${blog.slug}/comments`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -200,14 +208,14 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                 },
                 body: JSON.stringify({ content: commentInput.trim() }),
             });
-            if (res.ok) {
-                const newComment = await res.json();
-                setComments(prev => [...prev, newComment]);
-                setCommentInput('');
-                toast.success(t('Comment posted successfully!', 'Komentar berhasil dikirim!'));
-                unlock('socializer');
-            }
-        } catch {
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const newComment = await res.json();
+            setComments(prev => [...prev, newComment]);
+            setCommentInput('');
+            toast.success(t('Comment posted successfully!', 'Komentar berhasil dikirim!'));
+            unlock('socializer');
+        } catch (error) {
+            console.error('Posting comment failed:', error);
             toast.error(t('Failed to post comment. Please try again.', 'Gagal mengirim komentar. Silakan coba lagi.'));
         } finally {
             setSubmittingComment(false);
@@ -219,7 +227,7 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
         if (!replyInput.trim() || submittingComment || !user) return;
         setSubmittingComment(true);
         try {
-            const res = await fetch(`/api/blogs/${blog.id}/comments`, {
+            const res = await fetch(`/api/blogs/${blog.slug}/comments`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -230,18 +238,45 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                     parent_id: parentId
                 }),
             });
-            if (res.ok) {
-                const newReply = await res.json();
-                setComments(prev => [...prev, newReply]);
-                setReplyInput('');
-                setReplyingToId(null);
-                toast.success(t('Reply posted successfully!', 'Balasan berhasil dikirim!'));
-                unlock('socializer');
-            }
-        } catch {
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const newReply = await res.json();
+            setComments(prev => [...prev, newReply]);
+            setReplyInput('');
+            setReplyingToId(null);
+            toast.success(t('Reply posted successfully!', 'Balasan berhasil dikirim!'));
+            unlock('socializer');
+        } catch (error) {
+            console.error('Posting reply failed:', error);
             toast.error(t('Failed to post reply. Please try again.', 'Gagal mengirim balasan. Silakan coba lagi.'));
         } finally {
             setSubmittingComment(false);
+        }
+    };
+
+    /* ── Update Comment ── */
+    const handleUpdateComment = async (commentId: number) => {
+        if (!editingContent.trim() || isSavingComment) return;
+        setIsSavingComment(true);
+        try {
+            const res = await fetch(`/api/blogs/comments/${commentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf()
+                },
+                body: JSON.stringify({ content: editingContent.trim() }),
+            });
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const updated = await res.json();
+            setComments(prev => prev.map(c => c.id === commentId ? { ...c, content: updated.content } : c));
+            setEditingCommentId(null);
+            setEditingContent('');
+            toast.success(t('Comment updated successfully!', 'Komentar berhasil diperbarui!'));
+        } catch (error) {
+            console.error('Update comment failed:', error);
+            toast.error(t('Failed to update comment.', 'Gagal memperbarui komentar.'));
+        } finally {
+            setIsSavingComment(false);
         }
     };
 
@@ -255,11 +290,11 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': csrf() }
             });
-            if (res.ok) {
-                setComments(prev => prev.filter(c => c.id !== id && c.parent_id !== id));
-                toast.success(t('Comment deleted.', 'Komentar dihapus.'));
-            }
-        } catch {
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            setComments(prev => prev.filter(c => c.id !== id && c.parent_id !== id));
+            toast.success(t('Comment deleted.', 'Komentar dihapus.'));
+        } catch (error) {
+            console.error('Deleting comment failed:', error);
             toast.error(t('Failed to delete comment.', 'Gagal menghapus komentar.'));
         }
     };
@@ -275,23 +310,23 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': csrf() }
             });
-            if (res.ok) {
-                const data = await res.json();
-                setComments(prev => prev.map(c => {
-                    if (c.id === commentId) {
-                        return {
-                            ...c,
-                            likes_count: data.likes_count,
-                            likes: data.liked 
-                                ? [...(c.likes || []), { id: 0, user_id: user.id, blog_comment_id: commentId }]
-                                : (c.likes || []).filter(l => l.user_id !== user.id)
-                        };
-                    }
-                    return c;
-                }));
-            }
-        } catch {
-            toast.error(t('Failed to toggle like.', 'Gagal menyukai komentar.'));
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const data = await res.json();
+            setComments(prev => prev.map(c => {
+                if (c.id === commentId) {
+                    return {
+                        ...c,
+                        likes_count: data.likes_count,
+                        likes: data.liked 
+                            ? [...(c.likes || []), { id: 0, user_id: user.id, blog_comment_id: commentId }]
+                            : (c.likes || []).filter(l => l.user_id !== user.id)
+                    };
+                }
+                return c;
+            }));
+        } catch (error) {
+            console.error('Comment like failed:', error);
+            toast.error(t('Failed to toggle comment like.', 'Gagal menyukai komentar.'));
         }
     };
 
@@ -302,26 +337,34 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': csrf() }
             });
-            if (res.ok) {
-                const data = await res.json();
-                setComments(prev => {
-                    const updated = prev.map(c => c.id === commentId ? { ...c, is_pinned: data.is_pinned } : c);
-                    // Re-sort comments so pinned ones are placed first
-                    return [...updated].sort((a, b) => {
-                        if (a.is_pinned && !b.is_pinned) return -1;
-                        if (!a.is_pinned && b.is_pinned) return 1;
-                        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-                    });
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const data = await res.json();
+            setComments(prev => {
+                const updated = prev.map(c => c.id === commentId ? { ...c, is_pinned: data.is_pinned } : c);
+                // Re-sort comments so pinned ones are placed first
+                return [...updated].sort((a, b) => {
+                    if (a.is_pinned && !b.is_pinned) return -1;
+                    if (!a.is_pinned && b.is_pinned) return 1;
+                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                 });
-                toast.success(
-                    data.is_pinned 
-                        ? t('Comment pinned to top!', 'Komentar disematkan ke atas!') 
-                        : t('Comment unpinned.', 'Sematkan komentar dilepas.')
-                );
-            }
-        } catch {
+            });
+            toast.success(
+                data.is_pinned 
+                    ? t('Comment pinned to top!', 'Komentar disematkan ke atas!') 
+                    : t('Comment unpinned.', 'Sematkan komentar dilepas.')
+            );
+        } catch (error) {
+            console.error('Comment pin failed:', error);
             toast.error(t('Failed to toggle pin.', 'Gagal menyematkan komentar.'));
         }
+    };
+
+    /* ── Toggle Collapse Replies ── */
+    const toggleCollapseReplies = (commentId: number) => {
+        setCollapsedComments(prev => ({
+            ...prev,
+            [commentId]: !prev[commentId]
+        }));
     };
 
     /* ── Copy share link ── */
@@ -739,16 +782,30 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Deletion Option */}
-                                                                {user && (user.id === comment.user_id || user.role === 'admin') && (
-                                                                    <button 
-                                                                        onClick={() => setDeletingCommentId(comment.id)}
-                                                                        className={`p-1.5 rounded-lg transition-colors text-neutral-400 hover:text-red-400 ${dk ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
-                                                                        title={t('Delete Comment', 'Hapus Komentar')}
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </button>
-                                                                )}
+                                                                {/* Edit/Delete Option */}
+                                                                <div className="flex items-center gap-1.5">
+                                                                    {user && user.id === comment.user_id && (
+                                                                        <button 
+                                                                            onClick={() => {
+                                                                                setEditingCommentId(comment.id);
+                                                                                setEditingContent(comment.content);
+                                                                            }}
+                                                                            className={`p-1.5 rounded-lg transition-colors text-neutral-400 hover:text-indigo-400 ${dk ? 'hover:bg-indigo-500/10' : 'hover:bg-indigo-50'}`}
+                                                                            title={t('Edit Comment', 'Edit Komentar')}
+                                                                        >
+                                                                            <Edit2 className="h-4 w-4" />
+                                                                        </button>
+                                                                    )}
+                                                                    {user && (user.id === comment.user_id || user.role === 'admin') && (
+                                                                        <button 
+                                                                            onClick={() => setDeletingCommentId(comment.id)}
+                                                                            className={`p-1.5 rounded-lg transition-colors text-neutral-400 hover:text-red-400 ${dk ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
+                                                                            title={t('Delete Comment', 'Hapus Komentar')}
+                                                                        >
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             </div>
 
                                                             {/* Pinned Badge */}
@@ -759,10 +816,39 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                                                                 </div>
                                                             )}
 
-                                                            {/* Content */}
-                                                            <p className={`text-sm leading-relaxed whitespace-pre-line ${dk ? 'text-neutral-300' : 'text-neutral-700'}`}>
-                                                                {comment.content}
-                                                            </p>
+                                                            {/* Content / Edit Area */}
+                                                            {editingCommentId === comment.id ? (
+                                                                <div className="space-y-2.5">
+                                                                    <textarea
+                                                                        value={editingContent}
+                                                                        onChange={(e) => setEditingContent(e.target.value)}
+                                                                        rows={3}
+                                                                        className={`w-full resize-none rounded-xl border p-3 text-sm outline-none transition-all focus:ring-2 ${dk
+                                                                            ? 'border-neutral-700 bg-neutral-800 text-white focus:border-teal-500 focus:ring-teal-500/15'
+                                                                            : 'border-neutral-200 bg-white text-neutral-900 focus:border-teal-400 focus:ring-teal-400/15'
+                                                                        }`}
+                                                                    />
+                                                                    <div className="flex justify-end gap-2">
+                                                                        <button 
+                                                                            onClick={() => setEditingCommentId(null)}
+                                                                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${dk ? 'bg-neutral-800 text-white hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'}`}
+                                                                        >
+                                                                            {t('Cancel', 'Batal')}
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={() => handleUpdateComment(comment.id)}
+                                                                            disabled={isSavingComment || !editingContent.trim()}
+                                                                            className="rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-400 disabled:opacity-50"
+                                                                        >
+                                                                            {t('Save', 'Simpan')}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <p className={`text-sm leading-relaxed whitespace-pre-line ${dk ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                                                                    {comment.content}
+                                                                </p>
+                                                            )}
 
                                                             {/* Footer Actions (Reply, Like, Pin togglers) */}
                                                             <div className="flex items-center gap-4 pt-1">
@@ -828,7 +914,7 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                                                                                 placeholder={t('Write a reply...', 'Tulis balasan...')}
                                                                                 rows={2}
                                                                                 required
-                                                                                className={`flex-1 resize-none rounded-xl border p-2.5 text-xs outline-none transition-all ${dk
+                                                                                className={`w-full resize-none rounded-xl border p-2.5 text-xs outline-none transition-all ${dk
                                                                                     ? 'border-neutral-800 bg-neutral-800 text-white focus:border-teal-500'
                                                                                     : 'border-neutral-200 bg-white text-neutral-900 focus:border-teal-400'
                                                                                 }`}
@@ -852,70 +938,169 @@ export default function BlogShow({ blog, related, isBookmarked: initialIsBookmar
                                                                 )}
                                                             </AnimatePresence>
 
-                                                            {/* Child Replies */}
+                                                            {/* Collapse/Minimize replies control */}
                                                             {commentReplies.length > 0 && (
-                                                                <div className={`mt-4 pl-4 border-l-2 ${dk ? 'border-neutral-800' : 'border-neutral-100'} space-y-4`}>
-                                                                    {commentReplies.map(reply => (
-                                                                        <div key={reply.id} className="space-y-2 pt-2">
-                                                                            <div className="flex items-start justify-between">
-                                                                                <div className="flex gap-2">
-                                                                                    <div className={`h-7 w-7 rounded-full overflow-hidden flex items-center justify-center ${dk ? 'ring-1 ring-neutral-700' : 'ring-1 ring-neutral-200'}`}>
-                                                                                        {reply.user.avatar ? (
-                                                                                            <img src={reply.user.avatar} alt="" className="h-full w-full object-cover" />
-                                                                                        ) : (
-                                                                                            <div className={`h-full w-full flex items-center justify-center text-[10px] font-bold ${dk ? 'bg-neutral-800 text-neutral-400' : 'bg-neutral-100 text-neutral-600'}`}>
-                                                                                                {reply.user.name.charAt(0).toUpperCase()}
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <div className="flex items-center gap-1">
-                                                                                            <span className="text-xs font-bold">{reply.user.name}</span>
-                                                                                            {reply.user.role === 'admin' && (
-                                                                                                <span className={`text-[8px] font-black uppercase px-1 py-0.5 rounded-md ${dk ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-teal-50 text-teal-600 border border-teal-100'}`}>
-                                                                                                    {t('Author', 'Penulis')}
-                                                                                                </span>
+                                                                <button
+                                                                    onClick={() => toggleCollapseReplies(comment.id)}
+                                                                    className={`flex items-center gap-1.5 text-xs font-bold transition-all pt-1 ${
+                                                                        dk ? 'text-teal-400/80 hover:text-teal-400' : 'text-teal-600 hover:text-teal-700'
+                                                                    }`}
+                                                                >
+                                                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${collapsedComments[comment.id] ? '' : 'rotate-180'}`} />
+                                                                    <span>
+                                                                        {collapsedComments[comment.id] 
+                                                                            ? t(`Show Replies (${commentReplies.length})`, `Lihat Balasan (${commentReplies.length})`) 
+                                                                            : t('Hide Replies', 'Sembunyikan Balasan')}
+                                                                    </span>
+                                                                </button>
+                                                            )}
+
+                                                            {/* Child Replies with Smooth Accordion Animation */}
+                                                            <AnimatePresence initial={false}>
+                                                                {commentReplies.length > 0 && !collapsedComments[comment.id] && (
+                                                                    <motion.div 
+                                                                        initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+                                                                        animate={{ 
+                                                                            height: 'auto', 
+                                                                            opacity: 1, 
+                                                                            transition: { 
+                                                                                height: { duration: 0.35, ease: [0.25, 1, 0.5, 1] }, 
+                                                                                opacity: { duration: 0.25, delay: 0.05 } 
+                                                                            } 
+                                                                        }}
+                                                                        exit={{ 
+                                                                            height: 0, 
+                                                                            opacity: 0, 
+                                                                            transition: { 
+                                                                                height: { duration: 0.3, ease: [0.25, 1, 0.5, 1] }, 
+                                                                                opacity: { duration: 0.15 } 
+                                                                            } 
+                                                                        }}
+                                                                        className={`mt-4 pl-4 border-l-2 ${dk ? 'border-neutral-800' : 'border-neutral-100'} space-y-4`}
+                                                                    >
+                                                                        {commentReplies.map(reply => (
+                                                                            <div key={reply.id} className="space-y-2 pt-2">
+                                                                                <div className="flex items-start justify-between">
+                                                                                    <div className="flex gap-2">
+                                                                                        <div className={`h-7 w-7 rounded-full overflow-hidden flex items-center justify-center ${dk ? 'ring-1 ring-neutral-700' : 'ring-1 ring-neutral-200'}`}>
+                                                                                            {reply.user.avatar ? (
+                                                                                                <img src={reply.user.avatar} alt="" className="h-full w-full object-cover" />
+                                                                                            ) : (
+                                                                                                <div className={`h-full w-full flex items-center justify-center text-[10px] font-bold ${dk ? 'bg-neutral-800 text-neutral-400' : 'bg-neutral-100 text-neutral-600'}`}>
+                                                                                                    {reply.user.name.charAt(0).toUpperCase()}
+                                                                                                </div>
                                                                                             )}
                                                                                         </div>
-                                                                                        <span className={`text-[9px] ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>
-                                                                                            {new Date(reply.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                                                        </span>
+                                                                                        <div>
+                                                                                            <div className="flex items-center gap-1">
+                                                                                                <span className="text-xs font-bold">{reply.user.name}</span>
+                                                                                                {reply.user.role === 'admin' && (
+                                                                                                    <span className={`text-[8px] font-black uppercase px-1 py-0.5 rounded-md ${dk ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-teal-50 text-teal-600 border border-teal-100'}`}>
+                                                                                                        {t('Author', 'Penulis')}
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <span className={`text-[9px] ${dk ? 'text-neutral-500' : 'text-neutral-400'}`}>
+                                                                                                {new Date(reply.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    
+                                                                                    {/* Edit/Delete Option */}
+                                                                                    <div className="flex items-center gap-1">
+                                                                                        {user && user.id === reply.user_id && (
+                                                                                            <button 
+                                                                                                onClick={() => {
+                                                                                                    setEditingCommentId(reply.id);
+                                                                                                    setEditingContent(reply.content);
+                                                                                                }}
+                                                                                                className={`p-1 rounded-lg transition-colors text-neutral-400 hover:text-indigo-400 ${dk ? 'hover:bg-indigo-500/10' : 'hover:bg-indigo-50'}`}
+                                                                                                title={t('Edit Reply', 'Edit Balasan')}
+                                                                                            >
+                                                                                                <Edit2 className="h-3.5 w-3.5" />
+                                                                                            </button>
+                                                                                        )}
+                                                                                        {user && (user.id === reply.user_id || user.role === 'admin') && (
+                                                                                            <button 
+                                                                                                onClick={() => setDeletingCommentId(reply.id)}
+                                                                                                className={`p-1 rounded-lg transition-colors text-neutral-400 hover:text-red-400 ${dk ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
+                                                                                                title={t('Delete Reply', 'Hapus Balasan')}
+                                                                                            >
+                                                                                                <Trash2 className="h-3 w-3" />
+                                                                                            </button>
+                                                                                        )}
                                                                                     </div>
                                                                                 </div>
                                                                                 
-                                                                                {/* Deletion Option */}
-                                                                                {user && (user.id === reply.user_id || user.role === 'admin') && (
-                                                                                    <button 
-                                                                                        onClick={() => setDeletingCommentId(reply.id)}
-                                                                                        className={`p-1 rounded-lg transition-colors text-neutral-400 hover:text-red-400 ${dk ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
-                                                                                        title={t('Delete Reply', 'Hapus Balasan')}
-                                                                                    >
-                                                                                        <Trash2 className="h-3 w-3" />
-                                                                                    </button>
+                                                                                {/* Reply Content / Edit Area */}
+                                                                                {editingCommentId === reply.id ? (
+                                                                                    <div className="space-y-2.5">
+                                                                                        <textarea
+                                                                                            value={editingContent}
+                                                                                            onChange={(e) => setEditingContent(e.target.value)}
+                                                                                            rows={2}
+                                                                                            className={`w-full resize-none rounded-xl border p-2.5 text-xs outline-none transition-all focus:ring-2 ${dk
+                                                                                                ? 'border-neutral-700 bg-neutral-800 text-white focus:border-teal-500 focus:ring-teal-500/15'
+                                                                                                : 'border-neutral-200 bg-white text-neutral-900 focus:border-teal-400 focus:ring-teal-400/15'
+                                                                                            }`}
+                                                                                        />
+                                                                                        <div className="flex justify-end gap-2">
+                                                                                            <button 
+                                                                                                onClick={() => setEditingCommentId(null)}
+                                                                                                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${dk ? 'bg-neutral-800 text-white hover:bg-neutral-700' : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'}`}
+                                                                                            >
+                                                                                                {t('Cancel', 'Batal')}
+                                                                                            </button>
+                                                                                            <button 
+                                                                                                onClick={() => handleUpdateComment(reply.id)}
+                                                                                                disabled={isSavingComment || !editingContent.trim()}
+                                                                                                className="rounded-lg bg-teal-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-400 disabled:opacity-50"
+                                                                                            >
+                                                                                                {t('Save', 'Simpan')}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <p className={`text-xs sm:text-sm leading-relaxed whitespace-pre-line ${dk ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                                                                                        {reply.content}
+                                                                                    </p>
                                                                                 )}
+                                                                                
+                                                                                <div className="flex items-center gap-4 pt-0.5">
+                                                                                    {/* Reply inside reply */}
+                                                                                    {user && (
+                                                                                        <button 
+                                                                                            onClick={() => {
+                                                                                                setReplyingToId(comment.id); // Open reply form for root comment
+                                                                                                setReplyInput(`@${reply.user.name} `); // Pre-fill mention
+                                                                                            }}
+                                                                                            className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider ${
+                                                                                                dk ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-400 hover:text-neutral-600'
+                                                                                            }`}
+                                                                                        >
+                                                                                            <Reply className="h-2.5 w-2.5" />
+                                                                                            {t('Reply', 'Balas')}
+                                                                                        </button>
+                                                                                    )}
+
+                                                                                    {/* Like Reply Button */}
+                                                                                    <button
+                                                                                        onClick={() => handleLikeComment(reply.id)}
+                                                                                        className={`flex items-center gap-1 text-[10px] font-bold transition-colors ${
+                                                                                            reply.likes?.some(l => l.user_id === user?.id)
+                                                                                                ? 'text-red-500'
+                                                                                                : (dk ? 'text-neutral-500 hover:text-red-400' : 'text-neutral-400 hover:text-red-500')
+                                                                                        }`}
+                                                                                    >
+                                                                                        <Heart className={`h-2.5 w-2.5 ${reply.likes?.some(l => l.user_id === user?.id) ? 'fill-current' : ''}`} />
+                                                                                        <span>{reply.likes_count || 0}</span>
+                                                                                    </button>
+                                                                                </div>
                                                                             </div>
-                                                                            <p className={`text-xs sm:text-sm leading-relaxed whitespace-pre-line ${dk ? 'text-neutral-300' : 'text-neutral-700'}`}>
-                                                                                {reply.content}
-                                                                            </p>
-                                                                            
-                                                                            <div className="flex items-center gap-4 pt-0.5">
-                                                                                {/* Like Reply Button */}
-                                                                                <button
-                                                                                    onClick={() => handleLikeComment(reply.id)}
-                                                                                    className={`flex items-center gap-1 text-[10px] font-bold transition-colors ${
-                                                                                        reply.likes?.some(l => l.user_id === user?.id)
-                                                                                            ? 'text-red-500'
-                                                                                            : (dk ? 'text-neutral-500 hover:text-red-400' : 'text-neutral-400 hover:text-red-500')
-                                                                                    }`}
-                                                                                >
-                                                                                    <Heart className={`h-2.5 w-2.5 ${reply.likes?.some(l => l.user_id === user?.id) ? 'fill-current' : ''}`} />
-                                                                                    <span>{reply.likes_count || 0}</span>
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
                                                         </motion.div>
                                                     );
                                                 })}

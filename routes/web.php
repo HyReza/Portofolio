@@ -48,6 +48,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/blogs/{blog}/like', [BlogInteractionController::class, 'toggleLike'])->name('blogs.like.toggle');
     Route::post('/api/blogs/comments/{comment}/pin', [BlogInteractionController::class, 'togglePinComment'])->name('blogs.comments.pin');
     Route::post('/api/blogs/comments/{comment}/like', [BlogInteractionController::class, 'toggleLikeComment'])->name('blogs.comments.like');
+    Route::put('/api/blogs/comments/{comment}', [BlogInteractionController::class, 'updateComment'])->name('blogs.comments.update');
 });
 
 // Google OAuth

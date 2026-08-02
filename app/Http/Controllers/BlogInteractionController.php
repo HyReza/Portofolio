@@ -62,6 +62,32 @@ class BlogInteractionController extends Controller
     }
 
     /**
+     * Update a blog comment.
+     */
+    public function updateComment(Request $request, BlogComment $comment)
+    {
+        $user = Auth::user();
+
+        if ($comment->user_id !== $user->id && !$user->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'content' => 'required|string|max:1000',
+        ]);
+
+        $comment->update([
+            'content' => $request->content,
+        ]);
+
+        // Reload relationships to return clean data
+        $comment->load(['user:id,name,avatar,role', 'likes']);
+        $comment->loadCount('likes');
+
+        return response()->json($comment);
+    }
+
+    /**
      * Toggle bookmark state for a blog post.
      */
     public function toggleBookmark(Blog $blog)

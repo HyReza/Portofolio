@@ -12,23 +12,28 @@ class GoogleController extends Controller
 {
     public function redirect(Request $request)
     {
-        if ($request->has('redirect')) {
-            session(['login_redirect_url' => $request->query('redirect')]);
-            session()->save(); // Explicitly save session before external redirect
-        }
+        $redirectUrl = $request->query('redirect', route('chat'));
         
-        return Socialite::driver('google')->redirect();
+        // Encode the redirect URL into the state parameter
+        $state = base64_encode($redirectUrl);
+        
+        return Socialite::driver('google')
+            ->with(['state' => $state])
+            ->redirect();
     }
 
-    public function callback()
+    public function callback(Request $request)
     {
+        // Retrieve the redirect URL from the state parameter
+        $state = $request->query('state');
+        $decodedUrl = $state ? base64_decode($state) : null;
+        $redirectUrl = $decodedUrl ? $this->getSafeRedirectUrl($decodedUrl) : route('chat');
+
         try {
             // Using stateless() prevents session mismatch (InvalidStateException) on callback
             $googleUser = Socialite::driver('google')->stateless()->user();
         } catch (\Exception $e) {
             \Log::warning('Google OAuth: failed to get user from Google', ['error' => $e->getMessage()]);
-
-            $redirectUrl = session()->pull('login_redirect_url', route('chat'));
             return redirect($redirectUrl)->with('error', 'Gagal login menggunakan Google. Silakan coba lagi.');
         }
 
@@ -52,7 +57,6 @@ class GoogleController extends Controller
 
             Auth::login($user, true);
 
-            $redirectUrl = session()->pull('login_redirect_url', route('chat'));
             return redirect($redirectUrl);
 
         } catch (\Exception $e) {
@@ -61,8 +65,24 @@ class GoogleController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            $redirectUrl = session()->pull('login_redirect_url', route('chat'));
             return redirect($redirectUrl)->with('error', 'Terjadi kesalahan saat memproses login. Silakan coba lagi.');
         }
+    }
+
+    /**
+     * Ensure the redirect URL is safe to prevent open redirect vulnerabilities.
+     */
+    private function getSafeRedirectUrl(string $url): string
+    {
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            return $url;
+        }
+
+        $appUrl = config('app.url');
+        if (str_starts_with($url, $appUrl)) {
+            return $url;
+        }
+
+        return route('chat');
     }
 }
